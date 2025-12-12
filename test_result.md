@@ -145,7 +145,7 @@ frontend:
     implemented: true
     working: false
     file: "/app/frontend/src/components/NewTaskModal.jsx"
-    stuck_count: 2
+    stuck_count: 3
     priority: "high"
     needs_retesting: false
     status_history:
@@ -158,6 +158,9 @@ frontend:
         - working: false
         - agent: "testing"
         - comment: "RE-TESTED POST-FIX: Issue persists. Modal opens successfully, form submission works, but created tasks still do NOT appear in main table. Modal also fails to close after creation. DataContext.createTask() adds to state but UI doesn't refresh."
+        - working: false
+        - agent: "testing"
+        - comment: "FINAL TEST FAILED: Task creation modal opens correctly and form can be filled, but created tasks still do NOT appear in main table after submission. Modal closes properly but UI doesn't refresh to show new tasks. This is a persistent context re-render issue specific to task display."
 
   - task: "Kanban View"
     implemented: true
