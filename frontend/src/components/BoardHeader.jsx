@@ -68,7 +68,7 @@ const BoardHeader = ({ boardId, currentView, onViewChange }) => {
             Davet Et
           </Button>
 
-          <Button size="sm" className="gap-2 bg-[#0086c0] hover:bg-[#006a99]">
+          <Button onClick={() => setShowNewTaskModal(true)} size="sm" className="gap-2 bg-[#0086c0] hover:bg-[#006a99]">
             Yeni Öğe
           </Button>
         </div>
