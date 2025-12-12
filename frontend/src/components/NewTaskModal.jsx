@@ -41,16 +41,20 @@ const NewTaskModal = ({ isOpen, onClose, projectId, defaultStatus = 'todo' }) =>
     setLoading(false);
 
     if (result.success) {
-      onClose();
+      // Reset form
       setFormData({
         title: '',
         description: '',
         priority: 'medium',
-        status: 'todo',
+        status: defaultStatus,
         assignees: [],
         labels: [],
         dueDate: ''
       });
+      // Close modal after a short delay to show toast
+      setTimeout(() => {
+        onClose();
+      }, 500);
     }
   };
 
