@@ -175,7 +175,7 @@ export const DataProvider = ({ children }) => {
     }
   };
 
-  const value = {
+  const value = React.useMemo(() => ({
     projects,
     tasks,
     users,
@@ -194,7 +194,7 @@ export const DataProvider = ({ children }) => {
     deleteTask,
     updateTaskStatus,
     refreshData: fetchAllData
-  };
+  }), [projects, tasks, users, departments, loading]);
 
   return <DataContext.Provider value={value}>{children}</DataContext.Provider>;
 };
