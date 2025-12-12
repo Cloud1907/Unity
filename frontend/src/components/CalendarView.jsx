@@ -12,10 +12,17 @@ const statuses = [
 ];
 
 const CalendarView = ({ boardId }) => {
-  const { tasks } = useData();
+  const { tasks, fetchTasks } = useData();
   const [selectedTask, setSelectedTask] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [currentDate, setCurrentDate] = useState(new Date());
+
+  // Fetch tasks when boardId changes
+  React.useEffect(() => {
+    if (boardId) {
+      fetchTasks(boardId);
+    }
+  }, [boardId]);
 
   const boardTasks = tasks.filter(t => t.projectId === boardId);
 
