@@ -142,7 +142,7 @@ frontend:
     implemented: true
     working: false
     file: "/app/frontend/src/components/NewTaskModal.jsx"
-    stuck_count: 1
+    stuck_count: 2
     priority: "high"
     needs_retesting: false
     status_history:
@@ -152,6 +152,9 @@ frontend:
         - working: false
         - agent: "testing"
         - comment: "TESTED: Modal opens and form works, but created tasks do not appear in main table after creation. API call succeeds (201 Created) but UI doesn't refresh to show new task."
+        - working: false
+        - agent: "testing"
+        - comment: "RE-TESTED POST-FIX: Issue persists. Modal opens successfully, form submission works, but created tasks still do NOT appear in main table. Modal also fails to close after creation. DataContext.createTask() adds to state but UI doesn't refresh."
 
   - task: "Kanban View"
     implemented: true
