@@ -142,7 +142,7 @@ const MainTable = ({ boardId }) => {
                       {taskLabels.map(label => (
                         <span
                           key={label.id}
-                          className="px-2 py-1 rounded text-xs font-medium text-white"
+                          className="px-2 py-1 rounded text-xs font-normal text-white"
                           style={{ backgroundColor: label.color }}
                         >
                           {label.name}
