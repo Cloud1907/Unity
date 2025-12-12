@@ -80,105 +80,101 @@ export const DataProvider = ({ children }) => {
   }, [isAuthenticated, fetchAllData]);
 
   // Project operations
-  const createProject = async (data) => {
+  const createProject = useCallback(async (data) => {
     try {
       const response = await projectsAPI.create(data);
-      setProjects([...projects, response.data]);
+      setProjects(prev => [...prev, response.data]);
       toast.success('Proje oluşturuldu!');
       return { success: true, data: response.data };
     } catch (error) {
       toast.error('Proje oluşturulamadı');
       return { success: false, error };
     }
-  };
+  }, []);
 
-  const updateProject = async (id, data) => {
+  const updateProject = useCallback(async (id, data) => {
     try {
       const response = await projectsAPI.update(id, data);
-      setProjects(projects.map(p => p._id === id ? response.data : p));
+      setProjects(prev => prev.map(p => p._id === id ? response.data : p));
       toast.success('Proje güncellendi!');
       return { success: true, data: response.data };
     } catch (error) {
       toast.error('Proje güncellenemedi');
       return { success: false, error };
     }
-  };
+  }, []);
 
-  const deleteProject = async (id) => {
+  const deleteProject = useCallback(async (id) => {
     try {
       await projectsAPI.delete(id);
-      setProjects(projects.filter(p => p._id !== id));
+      setProjects(prev => prev.filter(p => p._id !== id));
       toast.success('Proje silindi!');
       return { success: true };
     } catch (error) {
       toast.error('Proje silinemedi');
       return { success: false, error };
     }
-  };
+  }, []);
 
-  const toggleFavorite = async (id) => {
+  const toggleFavorite = useCallback(async (id) => {
     try {
       const response = await projectsAPI.toggleFavorite(id);
-      setProjects(projects.map(p => p._id === id ? response.data : p));
+      setProjects(prev => prev.map(p => p._id === id ? response.data : p));
       return { success: true, data: response.data };
     } catch (error) {
       toast.error('Favori durumu değiştirilemedi');
       return { success: false, error };
     }
-  };
+  }, []);
 
   // Task operations
-  const createTask = async (data) => {
+  const createTask = useCallback(async (data) => {
     try {
-      console.log('📝 Creating task with data:', data);
       const response = await tasksAPI.create(data);
-      console.log('✅ Task created successfully:', response.data);
-      const newTasks = [...tasks, response.data];
-      console.log('📊 Updated tasks array:', newTasks);
-      setTasks(newTasks);
+      setTasks(prev => [...prev, response.data]);
       toast.success('Görev oluşturuldu!');
       return { success: true, data: response.data };
     } catch (error) {
-      console.error('❌ Task creation failed:', error);
+      console.error('Task creation failed:', error);
       toast.error('Görev oluşturulamadı');
       return { success: false, error };
     }
-  };
+  }, []);
 
-  const updateTask = async (id, data) => {
+  const updateTask = useCallback(async (id, data) => {
     try {
       const response = await tasksAPI.update(id, data);
-      setTasks(tasks.map(t => t._id === id ? response.data : t));
+      setTasks(prev => prev.map(t => t._id === id ? response.data : t));
       toast.success('Görev güncellendi!');
       return { success: true, data: response.data };
     } catch (error) {
       toast.error('Görev güncellenemedi');
       return { success: false, error };
     }
-  };
+  }, []);
 
-  const deleteTask = async (id) => {
+  const deleteTask = useCallback(async (id) => {
     try {
       await tasksAPI.delete(id);
-      setTasks(tasks.filter(t => t._id !== id));
+      setTasks(prev => prev.filter(t => t._id !== id));
       toast.success('Görev silindi!');
       return { success: true };
     } catch (error) {
       toast.error('Görev silinemedi');
       return { success: false, error };
     }
-  };
+  }, []);
 
-  const updateTaskStatus = async (id, status) => {
+  const updateTaskStatus = useCallback(async (id, status) => {
     try {
       const response = await tasksAPI.updateStatus(id, status);
-      setTasks(tasks.map(t => t._id === id ? response.data : t));
+      setTasks(prev => prev.map(t => t._id === id ? response.data : t));
       return { success: true, data: response.data };
     } catch (error) {
       toast.error('Durum güncellenemedi');
       return { success: false, error };
     }
-  };
+  }, []);
 
   const value = React.useMemo(() => ({
     projects,
