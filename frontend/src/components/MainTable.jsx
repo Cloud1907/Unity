@@ -50,7 +50,7 @@ const MainTable = ({ boardId }) => {
               <div className="w-12 flex items-center justify-center py-3 border-r border-gray-200">
                 <input type="checkbox" className="rounded" />
               </div>
-              <div className="w-80 px-4 py-3 font-semibold text-sm text-gray-700 border-r border-gray-200">
+              <div className="w-80 px-4 py-3 font-medium text-sm text-gray-700 border-r border-gray-200">
                 Görev
               </div>
               <div className="w-48 px-4 py-3 font-semibold text-sm text-gray-700 border-r border-gray-200 flex items-center gap-2">
