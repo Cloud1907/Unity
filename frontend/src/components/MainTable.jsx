@@ -21,15 +21,24 @@ const priorities = [
 ];
 
 const MainTable = ({ boardId }) => {
-  const { tasks, users } = useData();
+  const { tasks, users, fetchTasks } = useData();
   const [selectedTask, setSelectedTask] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   
+  // Fetch tasks when boardId changes
+  React.useEffect(() => {
+    if (boardId) {
+      console.log('🔄 Fetching tasks for boardId:', boardId);
+      fetchTasks(boardId);
+    }
+  }, [boardId]);
+  
   // Debug logging
   React.useEffect(() => {
-    console.log('MainTable - boardId:', boardId);
-    console.log('MainTable - all tasks:', tasks);
-    console.log('MainTable - filtered tasks:', tasks.filter(t => t.projectId === boardId));
+    console.log('📊 MainTable render - boardId:', boardId);
+    console.log('📊 MainTable render - all tasks:', tasks);
+    const filtered = tasks.filter(t => t.projectId === boardId);
+    console.log('📊 MainTable render - filtered tasks:', filtered);
   }, [boardId, tasks]);
   
   const boardTasks = React.useMemo(() => {
