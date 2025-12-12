@@ -43,7 +43,7 @@ const NewProjectModal = ({ isOpen, onClose }) => {
     setLoading(false);
 
     if (result.success) {
-      onClose();
+      // Reset form
       setFormData({
         name: '',
         description: '',
@@ -52,6 +52,10 @@ const NewProjectModal = ({ isOpen, onClose }) => {
         priority: 'medium',
         status: 'planning'
       });
+      // Close modal after a short delay to show toast
+      setTimeout(() => {
+        onClose();
+      }, 500);
     }
   };
 
