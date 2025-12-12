@@ -1,38 +1,63 @@
-import { useEffect } from "react";
-import "@/App.css";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
-import axios from "axios";
+import React, { useState } from 'react';
+import './App.css';
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import Sidebar from './components/Sidebar';
+import BoardHeader from './components/BoardHeader';
+import MainTable from './components/MainTable';
+import KanbanView from './components/KanbanView';
+import CalendarView from './components/CalendarView';
+import GanttView from './components/GanttView';
+import WorkloadView from './components/WorkloadView';
+import { Toaster } from './components/ui/sonner';
 
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
-const API = `${BACKEND_URL}/api`;
+const Dashboard = () => {
+  const [currentBoard, setCurrentBoard] = useState('1');
+  const [currentView, setCurrentView] = useState('main');
 
-const Home = () => {
-  const helloWorldApi = async () => {
-    try {
-      const response = await axios.get(`${API}/`);
-      console.log(response.data.message);
-    } catch (e) {
-      console.error(e, `errored out requesting / api`);
+  const handleBoardChange = (boardId) => {
+    setCurrentBoard(boardId);
+  };
+
+  const handleViewChange = (view) => {
+    setCurrentView(view);
+  };
+
+  const handleNewBoard = () => {
+    console.log('Creating new board...');
+    // Mock new board creation
+  };
+
+  const renderView = () => {
+    switch (currentView) {
+      case 'kanban':
+        return <KanbanView boardId={currentBoard} />;
+      case 'calendar':
+        return <CalendarView boardId={currentBoard} />;
+      case 'gantt':
+        return <GanttView boardId={currentBoard} />;
+      case 'workload':
+        return <WorkloadView boardId={currentBoard} />;
+      default:
+        return <MainTable boardId={currentBoard} />;
     }
   };
 
-  useEffect(() => {
-    helloWorldApi();
-  }, []);
-
   return (
-    <div>
-      <header className="App-header">
-        <a
-          className="App-link"
-          href="https://emergent.sh"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <img src="https://avatars.githubusercontent.com/in/1201222?s=120&u=2686cf91179bbafbc7a71bfbc43004cf9ae1acea&v=4" />
-        </a>
-        <p className="mt-5">Building something incredible ~!</p>
-      </header>
+    <div className="flex h-screen bg-gray-50 overflow-hidden">
+      <Sidebar
+        currentBoard={currentBoard}
+        onBoardChange={handleBoardChange}
+        onNewBoard={handleNewBoard}
+      />
+      <div className="flex-1 flex flex-col overflow-hidden">
+        <BoardHeader
+          boardId={currentBoard}
+          currentView={currentView}
+          onViewChange={handleViewChange}
+        />
+        {renderView()}
+      </div>
+      <Toaster />
     </div>
   );
 };
@@ -42,9 +67,7 @@ function App() {
     <div className="App">
       <BrowserRouter>
         <Routes>
-          <Route path="/" element={<Home />}>
-            <Route index element={<Home />} />
-          </Route>
+          <Route path="/" element={<Dashboard />} />
         </Routes>
       </BrowserRouter>
     </div>
