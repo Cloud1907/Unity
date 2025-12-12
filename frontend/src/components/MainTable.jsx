@@ -3,6 +3,7 @@ import { MoreHorizontal, Plus, Calendar, User, Tag, TrendingUp } from 'lucide-re
 import { useData } from '../contexts/DataContext';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
 import ModernTaskModal from './ModernTaskModal';
+import NewTaskModal from './NewTaskModal';
 
 // Status ve priority tanımları
 const statuses = [
