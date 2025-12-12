@@ -106,7 +106,7 @@ const ModernTaskModal = ({ task, isOpen, onClose, onUpdate }) => {
               </h2>
             )}
           </div>
-          <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
+          <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-lg transition-colors" aria-label="Close">
             <X size={24} className="text-gray-500" />
           </button>
         </div>
