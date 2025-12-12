@@ -57,7 +57,11 @@ const TaskModal = ({ task, isOpen, onClose }) => {
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4" onClick={onClose}>
+    <div 
+      className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4" 
+      style={{ zIndex: 9999 }}
+      onClick={onClose}
+    >
       <div
         className="bg-white rounded-lg shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden animate-in fade-in zoom-in duration-200"
         onClick={(e) => e.stopPropagation()}
