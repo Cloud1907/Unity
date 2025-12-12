@@ -11,7 +11,15 @@ const statuses = [
 ];
 
 const WorkloadView = ({ boardId }) => {
-  const { tasks, users } = useData();
+  const { tasks, users, fetchTasks } = useData();
+
+  // Fetch tasks when boardId changes
+  React.useEffect(() => {
+    if (boardId) {
+      fetchTasks(boardId);
+    }
+  }, [boardId]);
+
   const boardTasks = tasks.filter(t => t.projectId === boardId);
 
   const getStatusColor = (statusId) => {
