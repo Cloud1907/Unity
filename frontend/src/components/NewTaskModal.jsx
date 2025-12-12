@@ -6,14 +6,14 @@ import { Label } from './ui/label';
 import { Textarea } from './ui/textarea';
 import { useData } from '../contexts/DataContext';
 
-const NewTaskModal = ({ isOpen, onClose, projectId }) => {
+const NewTaskModal = ({ isOpen, onClose, projectId, defaultStatus = 'todo' }) => {
   const { createTask, users } = useData();
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     title: '',
     description: '',
     priority: 'medium',
-    status: 'todo',
+    status: defaultStatus,
     assignees: [],
     labels: [],
     dueDate: ''
