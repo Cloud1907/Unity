@@ -96,7 +96,7 @@ const MainTable = ({ boardId }) => {
                     <input type="checkbox" className="rounded" onClick={(e) => e.stopPropagation()} />
                   </div>
                   <div className="w-80 px-4 py-4 border-r border-gray-100">
-                    <div className="font-medium text-gray-900 hover:text-[#0086c0] transition-colors">
+                    <div className="font-normal text-gray-900 hover:text-[#0086c0] transition-colors">
                       {task.title}
                     </div>
                   </div>
