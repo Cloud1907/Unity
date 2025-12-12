@@ -1,34 +1,74 @@
-.App-logo {
-    height: 40vmin;
-    pointer-events: none;
+/* Monday.com Clone Styles */
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
 }
 
-@media (prefers-reduced-motion: no-preference) {
-    .App-logo {
-        animation: App-logo-spin infinite 20s linear;
-    }
+body {
+    overflow: hidden;
 }
 
-.App-header {
-    background-color: #0f0f10;
-    min-height: 100vh;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    font-size: calc(10px + 2vmin);
-    color: white;
+/* Custom scrollbar */
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
 }
 
-.App-link {
-    color: #61dafb;
+::-webkit-scrollbar-track {
+    background: #f1f1f1;
 }
 
-@keyframes App-logo-spin {
+::-webkit-scrollbar-thumb {
+    background: #c4c4c4;
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #a0a0a0;
+}
+
+/* Animations */
+@keyframes fade-in {
     from {
-        transform: rotate(0deg);
+        opacity: 0;
     }
     to {
-        transform: rotate(360deg);
+        opacity: 1;
     }
+}
+
+@keyframes zoom-in {
+    from {
+        transform: scale(0.95);
+        opacity: 0;
+    }
+    to {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+.animate-in {
+    animation: fade-in 0.2s ease-out;
+}
+
+.fade-in {
+    animation: fade-in 0.2s ease-out;
+}
+
+.zoom-in {
+    animation: zoom-in 0.2s ease-out;
+}
+
+/* Smooth transitions */
+button, a, input, select, textarea {
+    transition: all 0.2s ease;
+}
+
+/* Focus states */
+input:focus, select:focus, textarea:focus {
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(0, 134, 192, 0.2);
 }
