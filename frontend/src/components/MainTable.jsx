@@ -61,7 +61,7 @@ const MainTable = ({ boardId }) => {
                 <TrendingUp size={14} />
                 Öncelik
               </div>
-              <div className="w-48 px-4 py-3 font-semibold text-sm text-gray-700 border-r border-gray-200 flex items-center gap-2">
+              <div className="w-48 px-4 py-3 font-medium text-sm text-gray-700 border-r border-gray-200 flex items-center gap-2">
                 <User size={14} />
                 Atanan
               </div>
