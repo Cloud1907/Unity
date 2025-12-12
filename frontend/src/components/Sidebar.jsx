@@ -91,8 +91,8 @@ const Sidebar = ({ currentBoard, onBoardChange, onNewBoard }) => {
                   onClick={() => onBoardChange(board.id)}
                   className={`w-full flex items-center gap-3 px-6 py-2 rounded-lg transition-colors ${
                     currentBoard === board.id
-                      ? 'bg-white text-gray-900 font-medium'
-                      : 'text-gray-700 hover:bg-white'
+                      ? 'bg-white text-gray-900 font-semibold'
+                      : 'text-gray-700 hover:bg-white font-normal'
                   }`}
                 >
                   <div
