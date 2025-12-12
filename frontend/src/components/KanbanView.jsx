@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Plus, MoreHorizontal } from 'lucide-react';
 import { useData } from '../contexts/DataContext';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
-import TaskModal from './TaskModal';
+import ModernTaskModal from './ModernTaskModal';
 import NewTaskModal from './NewTaskModal';
 
 const statuses = [
