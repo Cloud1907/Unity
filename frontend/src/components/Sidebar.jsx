@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
-import { Home, Users, Settings, Plus, ChevronDown, ChevronRight, Star } from 'lucide-react';
+import { Home, Users, Settings, Plus, ChevronDown, ChevronRight, Star, LogOut } from 'lucide-react';
 import { boards } from '../mockData';
+import { useAuth } from '../contexts/AuthContext';
+import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
 
 const Sidebar = ({ currentBoard, onBoardChange, onNewBoard }) => {
   const [expandedSections, setExpandedSections] = useState({
