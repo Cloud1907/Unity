@@ -239,10 +239,6 @@ const MainTable = ({ boardId }) => {
           task={selectedTask}
           isOpen={isModalOpen}
           onClose={() => setIsModalOpen(false)}
-          onUpdate={(updatedTask) => {
-            // Task güncellendiğinde listeyi yenile
-            fetchTasks(boardId);
-          }}
         />
       )}
 
