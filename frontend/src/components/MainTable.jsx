@@ -111,7 +111,7 @@ const MainTable = ({ boardId }) => {
                   </div>
                   <div className="w-40 px-4 py-4 border-r border-gray-100">
                     <button
-                      className="px-3 py-1.5 rounded-lg text-sm font-medium transition-all hover:scale-105"
+                      className="px-3 py-1.5 rounded-lg text-sm font-normal transition-all hover:scale-105"
                       style={{
                         backgroundColor: `${priority.color}15`,
                         color: priority.color,
