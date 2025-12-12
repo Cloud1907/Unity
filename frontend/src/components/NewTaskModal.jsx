@@ -56,7 +56,6 @@ const NewTaskModal = ({ isOpen, onClose, projectId, defaultStatus = 'todo' }) =>
     setLoading(false);
 
     if (result.success) {
-      // Close modal immediately
       onClose();
     }
   };
