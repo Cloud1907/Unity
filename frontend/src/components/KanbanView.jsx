@@ -121,7 +121,10 @@ const KanbanView = ({ boardId }) => {
                           draggable
                           onDragStart={(e) => handleDragStart(e, task)}
                           onClick={() => openTaskModal(task)}
-                          className="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-lg transition-all cursor-move group"
+                          className="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-lg hover:scale-[1.02] transition-all duration-200 cursor-move group"
+                          style={{
+                            opacity: draggedTask?._id === task._id ? 0.5 : 1
+                          }}
                         >
                           {/* Task Title */}
                           <h4 className="font-medium text-gray-900 mb-3 group-hover:text-[#0086c0] transition-colors">
