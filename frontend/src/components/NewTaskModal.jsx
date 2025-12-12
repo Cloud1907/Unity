@@ -7,7 +7,7 @@ import { Textarea } from './ui/textarea';
 import { useData } from '../contexts/DataContext';
 
 const NewTaskModal = ({ isOpen, onClose, projectId, defaultStatus = 'todo' }) => {
-  const { createTask, users } = useData();
+  const { createTask } = useData();
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     title: '',
@@ -18,6 +18,21 @@ const NewTaskModal = ({ isOpen, onClose, projectId, defaultStatus = 'todo' }) =>
     labels: [],
     dueDate: ''
   });
+
+  // Reset form when modal closes
+  React.useEffect(() => {
+    if (!isOpen) {
+      setFormData({
+        title: '',
+        description: '',
+        priority: 'medium',
+        status: defaultStatus,
+        assignees: [],
+        labels: [],
+        dueDate: ''
+      });
+    }
+  }, [isOpen, defaultStatus]);
 
   const handleChange = (e) => {
     setFormData({
