@@ -247,13 +247,9 @@ metadata:
 
 test_plan:
   current_focus:
-    - "Project Creation Modal"
     - "Task Creation Modal"
-    - "Modal Overlay Issue"
   stuck_tasks:
-    - "Project Creation Modal"
     - "Task Creation Modal"
-    - "Modal Overlay Issue"
   test_all: false
   test_priority: "stuck_first"
 
