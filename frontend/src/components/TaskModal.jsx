@@ -107,7 +107,7 @@ const TaskModal = ({ task, isOpen, onClose }) => {
                     : 'text-gray-500 hover:text-gray-700'
                 }`}
               >
-                Yorumlar ({task.comments.length})
+                Yorumlar ({(task.comments || []).length})
               </button>
               <button
                 onClick={() => setActiveTab('files')}
