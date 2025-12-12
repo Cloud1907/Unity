@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Star, MoreHorizontal, Filter, Search, Users as UsersIcon } from 'lucide-react';
-import { boards, users, currentUser } from '../mockData';
+import { useData } from '../contexts/DataContext';
 import { Button } from './ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
+import NewTaskModal from './NewTaskModal';
 
 const BoardHeader = ({ boardId, currentView, onViewChange }) => {
   const board = boards.find(b => b.id === boardId);
