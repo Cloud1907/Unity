@@ -22,11 +22,11 @@ const Sidebar = ({ currentBoard, onBoardChange, onNewBoard }) => {
     <div className="w-64 bg-[#f6f7fb] border-r border-gray-200 h-screen flex flex-col">
       {/* Logo */}
       <div className="p-4 border-b border-gray-200">
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 bg-gradient-to-br from-[#6366f1] to-[#8b5cf6] rounded-lg flex items-center justify-center text-white font-bold text-sm">
-            4
+        <div className="flex items-center gap-3">
+          <div className="flex items-center">
+            <span className="text-2xl font-bold text-[#6366f1]">4</span>
+            <span className="text-2xl font-semibold text-gray-800">Task</span>
           </div>
-          <span className="font-bold text-lg" style={{ fontFamily: 'Poppins, sans-serif' }}>4Task</span>
         </div>
       </div>
 
