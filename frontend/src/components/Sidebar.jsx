@@ -118,7 +118,7 @@ const Sidebar = ({ currentBoard, onBoardChange, onNewBoard }) => {
       <div className="p-3 border-t border-gray-200">
         <button className="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-white transition-colors text-gray-700">
           <Settings size={20} />
-          <span className="font-medium">Ayarlar</span>
+          <span className="font-normal">Ayarlar</span>
         </button>
       </div>
     </div>
