@@ -21,12 +21,19 @@ const priorities = [
 ];
 
 const KanbanView = ({ boardId }) => {
-  const { tasks, users, updateTaskStatus } = useData();
+  const { tasks, users, updateTaskStatus, fetchTasks } = useData();
   const [selectedTask, setSelectedTask] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [showNewTaskModal, setShowNewTaskModal] = useState(false);
   const [newTaskStatus, setNewTaskStatus] = useState('todo');
   const [draggedTask, setDraggedTask] = useState(null);
+
+  // Fetch tasks when boardId changes
+  React.useEffect(() => {
+    if (boardId) {
+      fetchTasks(boardId);
+    }
+  }, [boardId]);
 
   const boardTasks = tasks.filter(t => t.projectId === boardId);
 
