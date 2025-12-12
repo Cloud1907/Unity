@@ -245,6 +245,19 @@ const MainTable = ({ boardId }) => {
           }}
         />
       )}
+
+      {/* New Task Modal */}
+      {showNewTaskModal && (
+        <NewTaskModal
+          isOpen={showNewTaskModal}
+          onClose={() => setShowNewTaskModal(false)}
+          boardId={boardId}
+          onTaskCreated={() => {
+            // Yeni görev oluşturulduğunda listeyi yenile
+            fetchTasks(boardId);
+          }}
+        />
+      )}
     </>
   );
 };
