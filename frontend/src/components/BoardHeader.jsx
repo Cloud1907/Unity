@@ -111,6 +111,13 @@ const BoardHeader = ({ boardId, currentView, onViewChange }) => {
           </button>
         </div>
       </div>
+
+      {/* New Task Modal */}
+      <NewTaskModal
+        isOpen={showNewTaskModal}
+        onClose={() => setShowNewTaskModal(false)}
+        projectId={boardId}
+      />
     </div>
   );
 };
