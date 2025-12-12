@@ -103,7 +103,7 @@ const GanttView = ({ boardId }) => {
               const duration = getTaskDuration(task.createdAt, task.dueDate);
 
               return (
-                <div key={task.id} className="flex hover:bg-gray-50 transition-colors border-b border-gray-100">
+                <div key={task._id} className="flex hover:bg-gray-50 transition-colors border-b border-gray-100">
                   <div className="w-64 px-4 py-4 border-r border-gray-100">
                     <div className="font-medium text-sm text-gray-900">{task.title}</div>
                   </div>
