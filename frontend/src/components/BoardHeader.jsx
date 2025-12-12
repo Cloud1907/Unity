@@ -6,8 +6,17 @@ import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
 import NewTaskModal from './NewTaskModal';
 
 const BoardHeader = ({ boardId, currentView, onViewChange }) => {
-  const board = boards.find(b => b.id === boardId);
-  const boardMembers = users.filter(u => board?.members.includes(u.id));
+  const { projects, users, toggleFavorite } = useData();
+  const [showNewTaskModal, setShowNewTaskModal] = useState(false);
+  
+  const board = projects.find(b => b._id === boardId);
+  const boardMembers = users.filter(u => board?.members?.includes(u._id));
+
+  const handleToggleFavorite = async () => {
+    if (board) {
+      await toggleFavorite(board._id);
+    }
+  };
 
   const views = [
     { id: 'main', label: 'Ana Tablo', icon: '📊' },
