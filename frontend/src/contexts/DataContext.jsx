@@ -130,11 +130,16 @@ export const DataProvider = ({ children }) => {
   // Task operations
   const createTask = async (data) => {
     try {
+      console.log('📝 Creating task with data:', data);
       const response = await tasksAPI.create(data);
-      setTasks([...tasks, response.data]);
+      console.log('✅ Task created successfully:', response.data);
+      const newTasks = [...tasks, response.data];
+      console.log('📊 Updated tasks array:', newTasks);
+      setTasks(newTasks);
       toast.success('Görev oluşturuldu!');
       return { success: true, data: response.data };
     } catch (error) {
+      console.error('❌ Task creation failed:', error);
       toast.error('Görev oluşturulamadı');
       return { success: false, error };
     }
