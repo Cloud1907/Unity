@@ -48,8 +48,17 @@ const NewTaskModal = ({ isOpen, onClose, projectId, defaultStatus = 'todo' }) =>
     const taskData = {
       ...formData,
       projectId: projectId || null,
-      startDate: new Date().toISOString()
+      startDate: new Date().toISOString(),
+      // Remove empty dueDate to avoid validation error
+      dueDate: formData.dueDate || undefined
     };
+
+    // Remove undefined fields
+    Object.keys(taskData).forEach(key => {
+      if (taskData[key] === undefined || taskData[key] === '') {
+        delete taskData[key];
+      }
+    });
 
     const result = await createTask(taskData);
 
