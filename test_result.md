@@ -102,7 +102,68 @@
 # Testing Data - Main Agent and testing sub agent both should log testing data below this section
 #====================================================================================================
 
-user_problem_statement: "4Flow Proje Yönetim Sistemi - Kapsamlı Frontend Test. Test all authentication, project creation, task creation, kanban view, calendar view, workload view, and settings functionality."
+user_problem_statement: "Backend API Test - Task Creation & Retrieval. Test login, project retrieval, task creation with projectId, task filtering by projectId, and verify projectId field integrity."
+
+backend:
+  - task: "Authentication API"
+    implemented: true
+    working: true
+    file: "/app/backend/routes/auth.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: "NA"
+        - agent: "testing"
+        - comment: "Initial assessment - needs testing of login endpoint with test@4task.com/test123 credentials"
+        - working: true
+        - agent: "testing"
+        - comment: "TESTED: Login API works perfectly. POST /api/auth/login with test@4task.com/test123 returns 200 status, valid JWT token, and complete user information. Token authentication working correctly for subsequent requests."
+
+  - task: "Projects API"
+    implemented: true
+    working: true
+    file: "/app/backend/routes/projects.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: "NA"
+        - agent: "testing"
+        - comment: "Initial assessment - needs testing of GET /api/projects endpoint"
+        - working: true
+        - agent: "testing"
+        - comment: "TESTED: Projects API works correctly. GET /api/projects returns 200 status with array of 4 projects. Each project has proper _id field, user access control working, and all required fields present (name, description, owner, members, etc.)."
+
+  - task: "Task Creation API"
+    implemented: true
+    working: true
+    file: "/app/backend/routes/tasks.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: "NA"
+        - agent: "testing"
+        - comment: "Initial assessment - needs testing of POST /api/tasks with projectId field"
+        - working: true
+        - agent: "testing"
+        - comment: "TESTED: Task creation API works perfectly. POST /api/tasks with projectId creates task successfully (201 status), returns complete task object with correct projectId field matching input. Also tested standalone tasks (no projectId) - correctly handles null projectId values."
+
+  - task: "Task Filtering API"
+    implemented: true
+    working: true
+    file: "/app/backend/routes/tasks.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: "NA"
+        - agent: "testing"
+        - comment: "Initial assessment - needs testing of GET /api/tasks?projectId=XXX filtering"
+        - working: true
+        - agent: "testing"
+        - comment: "TESTED: Task filtering API works correctly. GET /api/tasks?projectId=XXX returns only tasks for specified project, all returned tasks have correct projectId field. Filter handles non-existent projectIds properly (returns empty array). Individual task retrieval (GET /api/tasks/{id}) also maintains correct projectId field."
 
 frontend:
   - task: "Authentication Flow"
