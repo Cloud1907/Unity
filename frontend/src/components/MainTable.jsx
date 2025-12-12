@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { MoreHorizontal, Plus, Calendar, User, Tag, TrendingUp } from 'lucide-react';
 import { useData } from '../contexts/DataContext';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
-import TaskModal from './TaskModal';
+import ModernTaskModal from './ModernTaskModal';
 
 // Status ve priority tanımları
 const statuses = [
