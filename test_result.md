@@ -124,7 +124,7 @@ frontend:
     implemented: true
     working: false
     file: "/app/frontend/src/components/NewProjectModal.jsx"
-    stuck_count: 1
+    stuck_count: 2
     priority: "high"
     needs_retesting: false
     status_history:
@@ -134,6 +134,9 @@ frontend:
         - working: false
         - agent: "testing"
         - comment: "TESTED: Modal opens and form works, but created projects do not appear in sidebar after creation. API call succeeds (201 Created) but UI doesn't refresh to show new project."
+        - working: false
+        - agent: "testing"
+        - comment: "RE-TESTED POST-FIX: Issue persists. Modal opens successfully, form submission works, but created projects still do NOT appear in sidebar. Modal also fails to close after creation. DataContext.createProject() adds to state but UI doesn't refresh."
 
   - task: "Task Creation Modal"
     implemented: true
