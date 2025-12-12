@@ -1,0 +1,128 @@
+import React, { useState } from 'react';
+import { Home, Users, Settings, Plus, ChevronDown, ChevronRight, Star } from 'lucide-react';
+import { boards } from '../mockData';
+
+const Sidebar = ({ currentBoard, onBoardChange, onNewBoard }) => {
+  const [expandedSections, setExpandedSections] = useState({
+    favorites: true,
+    boards: true
+  });
+
+  const toggleSection = (section) => {
+    setExpandedSections(prev => ({
+      ...prev,
+      [section]: !prev[section]
+    }));
+  };
+
+  const favoriteBoards = boards.filter(b => b.favorite);
+  const otherBoards = boards.filter(b => !b.favorite);
+
+  return (
+    <div className="w-64 bg-[#f6f7fb] border-r border-gray-200 h-screen flex flex-col">
+      {/* Logo */}
+      <div className="p-4 border-b border-gray-200">
+        <div className="flex items-center gap-2">
+          <div className="w-8 h-8 bg-gradient-to-br from-[#ff5a5f] to-[#ff009e] rounded-lg flex items-center justify-center text-white font-bold text-sm">
+            M
+          </div>
+          <span className="font-bold text-lg">monday</span>
+        </div>
+      </div>
+
+      {/* Navigation */}
+      <div className="flex-1 overflow-y-auto py-4">
+        {/* Main Items */}
+        <div className="px-3 mb-6">
+          <button className="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-white transition-colors text-gray-700">
+            <Home size={20} />
+            <span className="font-medium">Ana Sayfa</span>
+          </button>
+          <button className="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-white transition-colors text-gray-700">
+            <Users size={20} />
+            <span className="font-medium">Ekibim</span>
+          </button>
+        </div>
+
+        {/* Favorites */}
+        <div className="mb-4">
+          <button
+            onClick={() => toggleSection('favorites')}
+            className="w-full flex items-center gap-2 px-6 py-2 text-xs font-semibold text-gray-500 hover:text-gray-700 uppercase tracking-wider"
+          >
+            {expandedSections.favorites ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+            <span>Favoriler</span>
+          </button>
+          {expandedSections.favorites && (
+            <div className="mt-1">
+              {favoriteBoards.map(board => (
+                <button
+                  key={board.id}
+                  onClick={() => onBoardChange(board.id)}
+                  className={`w-full flex items-center gap-3 px-6 py-2 rounded-lg transition-colors ${
+                    currentBoard === board.id
+                      ? 'bg-white text-gray-900 font-medium'
+                      : 'text-gray-700 hover:bg-white'
+                  }`}
+                >
+                  <span className="text-lg">{board.icon}</span>
+                  <span className="flex-1 text-left truncate text-sm">{board.name}</span>
+                  <Star size={14} className="text-yellow-500 fill-yellow-500" />
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* All Boards */}
+        <div>
+          <button
+            onClick={() => toggleSection('boards')}
+            className="w-full flex items-center gap-2 px-6 py-2 text-xs font-semibold text-gray-500 hover:text-gray-700 uppercase tracking-wider"
+          >
+            {expandedSections.boards ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+            <span>Tüm Panolar</span>
+          </button>
+          {expandedSections.boards && (
+            <div className="mt-1">
+              {boards.map(board => (
+                <button
+                  key={board.id}
+                  onClick={() => onBoardChange(board.id)}
+                  className={`w-full flex items-center gap-3 px-6 py-2 rounded-lg transition-colors ${
+                    currentBoard === board.id
+                      ? 'bg-white text-gray-900 font-medium'
+                      : 'text-gray-700 hover:bg-white'
+                  }`}
+                >
+                  <div
+                    className="w-2 h-2 rounded-full"
+                    style={{ backgroundColor: board.color }}
+                  />
+                  <span className="flex-1 text-left truncate text-sm">{board.name}</span>
+                </button>
+              ))}
+              <button
+                onClick={onNewBoard}
+                className="w-full flex items-center gap-3 px-6 py-2 rounded-lg hover:bg-white transition-colors text-gray-500 hover:text-gray-700"
+              >
+                <Plus size={16} />
+                <span className="text-sm">Yeni Pano Ekle</span>
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Settings */}
+      <div className="p-3 border-t border-gray-200">
+        <button className="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-white transition-colors text-gray-700">
+          <Settings size={20} />
+          <span className="font-medium">Ayarlar</span>
+        </button>
+      </div>
+    </div>
+  );
+};
+
+export default Sidebar;
