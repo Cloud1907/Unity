@@ -23,7 +23,7 @@ const priorities = [
   { id: 'urgent', label: 'Acil', color: '#df2f4a' }
 ];
 
-const ModernTaskModal = ({ task, isOpen, onClose, onUpdate }) => {
+const ModernTaskModal = ({ task, isOpen, onClose }) => {
   const { users, updateTask, updateTaskStatus } = useData();
   const { user: currentUser } = useAuth();
   const [activeTab, setActiveTab] = useState('updates');
@@ -49,7 +49,6 @@ const ModernTaskModal = ({ task, isOpen, onClose, onUpdate }) => {
     const result = await updateTaskStatus(task._id, newStatus);
     if (result.success) {
       setTaskData({ ...taskData, status: newStatus });
-      if (onUpdate) onUpdate({ ...taskData, status: newStatus });
     }
   };
 
@@ -58,7 +57,6 @@ const ModernTaskModal = ({ task, isOpen, onClose, onUpdate }) => {
       const result = await updateTask(task._id, { title: taskData.title });
       if (result.success) {
         toast.success('Başlık güncellendi');
-        if (onUpdate) onUpdate(taskData);
       }
     }
     setIsEditing(false);
