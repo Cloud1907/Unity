@@ -11,6 +11,7 @@ import GanttView from './components/GanttView';
 import WorkloadView from './components/WorkloadView';
 import Login from './pages/Login';
 import Register from './pages/Register';
+import Settings from './pages/Settings';
 import { Toaster } from './components/ui/sonner';
 
 // Protected Route Component
