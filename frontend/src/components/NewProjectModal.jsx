@@ -57,19 +57,8 @@ const NewProjectModal = ({ isOpen, onClose }) => {
     setLoading(false);
 
     if (result.success) {
-      // Reset form
-      setFormData({
-        name: '',
-        description: '',
-        icon: '📁',
-        color: '#0086c0',
-        priority: 'medium',
-        status: 'planning'
-      });
-      // Close modal after a short delay to show toast
-      setTimeout(() => {
-        onClose();
-      }, 500);
+      // Close modal immediately
+      onClose();
     }
   };
 
