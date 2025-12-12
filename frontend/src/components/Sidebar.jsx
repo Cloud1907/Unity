@@ -111,17 +111,17 @@ const Sidebar = ({ currentBoard, onBoardChange, onNewBoard }) => {
             <div className="mt-1">
               {favoriteBoards.map(board => (
                 <button
-                  key={board.id}
-                  onClick={() => onBoardChange(board.id)}
+                  key={board._id}
+                  onClick={() => onBoardChange(board._id)}
                   className={`w-full flex items-center gap-3 px-6 py-2 rounded-lg transition-colors ${
-                    currentBoard === board.id
+                    currentBoard === board._id
                       ? 'bg-white text-gray-900 font-semibold'
                       : 'text-gray-700 hover:bg-white font-normal'
                   }`}
                 >
                   <span className="text-lg">{board.icon}</span>
                   <span className="flex-1 text-left truncate text-sm">{board.name}</span>
-                  <Star size={14} className="text-yellow-500 fill-yellow-500" />
+                  <Star size={14} className="text-yellow-500 fill-yellow-500" onClick={(e) => handleToggleFavorite(e, board._id)} />
                 </button>
               ))}
             </div>
