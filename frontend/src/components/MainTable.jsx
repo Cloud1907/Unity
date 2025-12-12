@@ -73,7 +73,7 @@ const MainTable = ({ boardId }) => {
                 <Tag size={14} />
                 Etiketler
               </div>
-              <div className="w-32 px-4 py-3 font-semibold text-sm text-gray-700 flex items-center gap-2">
+              <div className="w-32 px-4 py-3 font-medium text-sm text-gray-700 flex items-center gap-2">
                 İlerleme
               </div>
             </div>
