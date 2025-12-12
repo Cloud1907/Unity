@@ -107,87 +107,120 @@ user_problem_statement: "4Flow Proje Yönetim Sistemi - Kapsamlı Frontend Test.
 frontend:
   - task: "Authentication Flow"
     implemented: true
-    working: "NA"
+    working: true
     file: "/app/frontend/src/pages/Login.jsx"
     stuck_count: 0
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
         - working: "NA"
         - agent: "testing"
         - comment: "Initial assessment - needs comprehensive testing of login flow with test@4task.com credentials"
+        - working: true
+        - agent: "testing"
+        - comment: "TESTED: Login flow works perfectly. 4Task logo visible, demo credentials displayed, login with test@4task.com/test123 successful, redirects to dashboard properly."
 
   - task: "Project Creation Modal"
     implemented: true
-    working: "NA"
+    working: false
     file: "/app/frontend/src/components/NewProjectModal.jsx"
-    stuck_count: 0
+    stuck_count: 1
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
         - working: "NA"
         - agent: "testing"
         - comment: "Initial assessment - needs testing of 'Yeni Pano Ekle' button and modal functionality"
+        - working: false
+        - agent: "testing"
+        - comment: "TESTED: Modal opens and form works, but created projects do not appear in sidebar after creation. API call succeeds (201 Created) but UI doesn't refresh to show new project."
 
   - task: "Task Creation Modal"
     implemented: true
-    working: "NA"
+    working: false
     file: "/app/frontend/src/components/NewTaskModal.jsx"
-    stuck_count: 0
+    stuck_count: 1
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
         - working: "NA"
         - agent: "testing"
         - comment: "Initial assessment - needs testing of 'Yeni Öğe' button and task creation flow"
+        - working: false
+        - agent: "testing"
+        - comment: "TESTED: Modal opens and form works, but created tasks do not appear in main table after creation. API call succeeds (201 Created) but UI doesn't refresh to show new task."
 
   - task: "Kanban View"
     implemented: true
-    working: "NA"
+    working: true
     file: "/app/frontend/src/components/KanbanView.jsx"
     stuck_count: 0
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
         - working: "NA"
         - agent: "testing"
         - comment: "Initial assessment - needs testing of kanban columns and task display"
+        - working: true
+        - agent: "testing"
+        - comment: "TESTED: All kanban columns visible (Yapılacak, Devam Ediyor, Takıldı, Tamamlandı, İncelemede). Found 5 'Görev Ekle' buttons in columns. View loads and functions properly."
 
   - task: "Calendar View"
     implemented: true
-    working: "NA"
+    working: true
     file: "/app/frontend/src/components/CalendarView.jsx"
     stuck_count: 0
     priority: "medium"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
         - working: "NA"
         - agent: "testing"
         - comment: "Initial assessment - needs testing of calendar functionality and task display"
+        - working: true
+        - agent: "testing"
+        - comment: "TESTED: Calendar view loads successfully, shows monthly view with proper date grid (Aralık 2025). Calendar navigation and display working correctly."
 
   - task: "Workload View"
     implemented: true
-    working: "NA"
+    working: true
     file: "/app/frontend/src/components/WorkloadView.jsx"
     stuck_count: 0
     priority: "medium"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
         - working: "NA"
         - agent: "testing"
         - comment: "Initial assessment - needs testing of workload distribution display"
+        - working: true
+        - agent: "testing"
+        - comment: "TESTED: Workload view loads successfully, shows user workload percentages (Test User: 0% İş Yükü, 0 Aktif Görev, 0 Tamamlandı). Display and functionality working correctly."
 
   - task: "Settings Page"
     implemented: true
-    working: "NA"
+    working: true
     file: "/app/frontend/src/pages/Settings.jsx"
     stuck_count: 0
     priority: "medium"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
         - working: "NA"
         - agent: "testing"
         - comment: "Initial assessment - needs testing of settings navigation and user management"
+        - working: true
+        - agent: "testing"
+        - comment: "TESTED: Settings page loads successfully, shows Kullanıcılar tab with user list (Test User admin), Departmanlar and Profil tabs accessible. Navigation and display working correctly."
+
+  - task: "Modal Overlay Issue"
+    implemented: true
+    working: false
+    file: "/app/frontend/src/components/NewProjectModal.jsx, /app/frontend/src/components/NewTaskModal.jsx"
+    stuck_count: 1
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: false
+        - agent: "testing"
+        - comment: "CRITICAL ISSUE: Modal overlays block interactions with other UI elements. When modals are open, clicking other buttons/tabs fails due to overlay intercepting pointer events. Need to fix modal z-index or click-outside behavior."
 
 metadata:
   created_by: "testing_agent"
