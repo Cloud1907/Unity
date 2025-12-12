@@ -9,7 +9,7 @@ import { useAuth } from '../contexts/AuthContext';
 
 const NewProjectModal = ({ isOpen, onClose }) => {
   const { user } = useAuth();
-  const { createProject, users } = useData();
+  const { createProject } = useData();
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
@@ -19,6 +19,20 @@ const NewProjectModal = ({ isOpen, onClose }) => {
     priority: 'medium',
     status: 'planning'
   });
+
+  // Reset form when modal closes
+  React.useEffect(() => {
+    if (!isOpen) {
+      setFormData({
+        name: '',
+        description: '',
+        icon: '📁',
+        color: '#0086c0',
+        priority: 'medium',
+        status: 'planning'
+      });
+    }
+  }, [isOpen]);
 
   const icons = ['📁', '🎯', '🚀', '💼', '🌟', '⚡', '🔥', '💡', '🎨', '🏆'];
   const colors = ['#0086c0', '#6366f1', '#8b5cf6', '#00c875', '#fdab3d', '#e2445c', '#ff5a5f'];
