@@ -93,7 +93,7 @@ const Register = () => {
                 id="email"
                 name="email"
                 type="email"
-                placeholder="ornek@4task.com"
+                placeholder="ornek@4flow.com"
                 value={formData.email}
                 onChange={handleChange}
                 required
