@@ -25,7 +25,17 @@ const MainTable = ({ boardId }) => {
   const [selectedTask, setSelectedTask] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   
-  const boardTasks = tasks.filter(t => t.projectId === boardId);
+  // Debug logging
+  React.useEffect(() => {
+    console.log('MainTable - boardId:', boardId);
+    console.log('MainTable - all tasks:', tasks);
+    console.log('MainTable - filtered tasks:', tasks.filter(t => t.projectId === boardId));
+  }, [boardId, tasks]);
+  
+  const boardTasks = React.useMemo(() => {
+    if (!boardId) return [];
+    return tasks.filter(t => t.projectId === boardId);
+  }, [tasks, boardId]);
 
   const getStatusColor = (statusId) => {
     return statuses.find(s => s.id === statusId)?.color || '#c4c4c4';
