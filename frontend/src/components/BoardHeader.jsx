@@ -27,12 +27,12 @@ const BoardHeader = ({ boardId, currentView, onViewChange }) => {
             <span className="text-2xl">{board.icon}</span>
             <div>
               <div className="flex items-center gap-2">
-                <h1 className="text-2xl font-bold text-gray-900">{board.name}</h1>
+                <h1 className="text-2xl font-semibold text-gray-900">{board.name}</h1>
                 <button className="p-1 hover:bg-gray-100 rounded transition-colors">
                   <Star size={20} className={board.favorite ? 'text-yellow-500 fill-yellow-500' : 'text-gray-400'} />
                 </button>
               </div>
-              <p className="text-sm text-gray-500 mt-1">{board.description}</p>
+              <p className="text-sm text-gray-500 mt-1 font-normal">{board.description}</p>
             </div>
           </div>
         </div>
