@@ -67,9 +67,18 @@ const KanbanView = ({ boardId }) => {
   const handleDrop = async (e, statusId) => {
     e.preventDefault();
     if (draggedTask && draggedTask.status !== statusId) {
-      await updateTaskStatus(draggedTask._id, statusId);
+      // Optimistic UI update
+      const oldStatus = draggedTask.status;
+      setDraggedTask({ ...draggedTask, status: statusId });
+      
+      // API call
+      const result = await updateTaskStatus(draggedTask._id, statusId);
+      if (!result.success) {
+        // Rollback on failure
+        setDraggedTask({ ...draggedTask, status: oldStatus });
+      }
     }
-    setDraggedTask(null);
+    setTimeout(() => setDraggedTask(null), 300);
   };
 
   const handleAddTask = (statusId) => {
