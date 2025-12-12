@@ -63,6 +63,17 @@ const MainTable = ({ boardId }) => {
     setIsModalOpen(true);
   };
 
+  // Show empty state if no board selected
+  if (!boardId) {
+    return (
+      <div className="flex-1 flex items-center justify-center bg-white">
+        <div className="text-center text-gray-500">
+          <p className="text-lg">Bir proje seçin veya yeni proje oluşturun</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <>
       <div className="flex-1 overflow-auto bg-white">
