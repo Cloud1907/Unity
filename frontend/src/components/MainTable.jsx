@@ -252,10 +252,6 @@ const MainTable = ({ boardId }) => {
           isOpen={showNewTaskModal}
           onClose={() => setShowNewTaskModal(false)}
           boardId={boardId}
-          onTaskCreated={() => {
-            // Yeni görev oluşturulduğunda listeyi yenile
-            fetchTasks(boardId);
-          }}
         />
       )}
     </>
