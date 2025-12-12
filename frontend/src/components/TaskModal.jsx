@@ -1,11 +1,27 @@
 import React, { useState } from 'react';
 import { X, Calendar, User, Tag, TrendingUp, MessageSquare, Paperclip, Clock } from 'lucide-react';
-import { users, statuses, priorities, labels } from '../mockData';
+import { useData } from '../contexts/DataContext';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
 import { Button } from './ui/button';
 import { Textarea } from './ui/textarea';
 
+const statuses = [
+  { id: 'todo', label: 'Yapılacak', color: '#c4c4c4' },
+  { id: 'working', label: 'Devam Ediyor', color: '#fdab3d' },
+  { id: 'stuck', label: 'Takıldı', color: '#e2445c' },
+  { id: 'done', label: 'Tamamlandı', color: '#00c875' },
+  { id: 'review', label: 'İncelemede', color: '#579bfc' }
+];
+
+const priorities = [
+  { id: 'low', label: 'Düşük', color: '#c4c4c4', icon: '↓' },
+  { id: 'medium', label: 'Orta', color: '#fdab3d', icon: '−' },
+  { id: 'high', label: 'Yüksek', color: '#e2445c', icon: '↑' },
+  { id: 'urgent', label: 'Acil', color: '#df2f4a', icon: '⇈' }
+];
+
 const TaskModal = ({ task, isOpen, onClose }) => {
+  const { users } = useData();
   const [activeTab, setActiveTab] = useState('details');
   const [newComment, setNewComment] = useState('');
 
@@ -20,21 +36,17 @@ const TaskModal = ({ task, isOpen, onClose }) => {
   };
 
   const getAssignees = (assigneeIds) => {
-    return users.filter(u => assigneeIds.includes(u.id));
-  };
-
-  const getLabels = (labelIds) => {
-    return labels.filter(l => labelIds.includes(l.id));
+    return users.filter(u => assigneeIds?.includes(u._id));
   };
 
   const getCommentUser = (userId) => {
-    return users.find(u => u.id === userId);
+    return users.find(u => u._id === userId);
   };
 
   const statusData = getStatusData(task.status);
   const priorityData = getPriorityData(task.priority);
   const taskAssignees = getAssignees(task.assignees);
-  const taskLabels = getLabels(task.labels);
+  const taskLabels = task.labels || [];
 
   const handleAddComment = () => {
     if (newComment.trim()) {
