@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { projectsAPI, tasksAPI, usersAPI, departmentsAPI } from '../services/api';
 import { useAuth } from './AuthContext';
 import { toast } from '../components/ui/sonner';
@@ -21,13 +21,44 @@ export const DataProvider = ({ children }) => {
   const [departments, setDepartments] = useState([]);
   const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    if (isAuthenticated) {
-      fetchAllData();
+  const fetchProjects = useCallback(async () => {
+    try {
+      const response = await projectsAPI.getAll();
+      setProjects(response.data);
+    } catch (error) {
+      console.error('Error fetching projects:', error);
     }
-  }, [isAuthenticated]);
+  }, []);
 
-  const fetchAllData = async () => {
+  const fetchTasks = useCallback(async (projectId = null) => {
+    try {
+      const params = projectId ? { projectId } : {};
+      const response = await tasksAPI.getAll(params);
+      setTasks(response.data);
+    } catch (error) {
+      console.error('Error fetching tasks:', error);
+    }
+  }, []);
+
+  const fetchUsers = useCallback(async () => {
+    try {
+      const response = await usersAPI.getAll();
+      setUsers(response.data);
+    } catch (error) {
+      console.error('Error fetching users:', error);
+    }
+  }, []);
+
+  const fetchDepartments = useCallback(async () => {
+    try {
+      const response = await departmentsAPI.getAll();
+      setDepartments(response.data);
+    } catch (error) {
+      console.error('Error fetching departments:', error);
+    }
+  }, []);
+
+  const fetchAllData = useCallback(async () => {
     setLoading(true);
     try {
       await Promise.all([
@@ -40,44 +71,13 @@ export const DataProvider = ({ children }) => {
       console.error('Error fetching data:', error);
     }
     setLoading(false);
-  };
+  }, [fetchProjects, fetchTasks, fetchUsers, fetchDepartments]);
 
-  const fetchProjects = async () => {
-    try {
-      const response = await projectsAPI.getAll();
-      setProjects(response.data);
-    } catch (error) {
-      console.error('Error fetching projects:', error);
+  useEffect(() => {
+    if (isAuthenticated) {
+      fetchAllData();
     }
-  };
-
-  const fetchTasks = async (projectId = null) => {
-    try {
-      const params = projectId ? { projectId } : {};
-      const response = await tasksAPI.getAll(params);
-      setTasks(response.data);
-    } catch (error) {
-      console.error('Error fetching tasks:', error);
-    }
-  };
-
-  const fetchUsers = async () => {
-    try {
-      const response = await usersAPI.getAll();
-      setUsers(response.data);
-    } catch (error) {
-      console.error('Error fetching users:', error);
-    }
-  };
-
-  const fetchDepartments = async () => {
-    try {
-      const response = await departmentsAPI.getAll();
-      setDepartments(response.data);
-    } catch (error) {
-      console.error('Error fetching departments:', error);
-    }
-  };
+  }, [isAuthenticated, fetchAllData]);
 
   // Project operations
   const createProject = async (data) => {
