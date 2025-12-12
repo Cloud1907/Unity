@@ -195,7 +195,26 @@ export const DataProvider = ({ children }) => {
     deleteTask,
     updateTaskStatus,
     refreshData: fetchAllData
-  }), [projects, tasks, users, departments, loading]);
+  }), [
+    projects,
+    tasks,
+    users,
+    departments,
+    loading,
+    fetchProjects,
+    fetchTasks,
+    fetchUsers,
+    fetchDepartments,
+    createProject,
+    updateProject,
+    deleteProject,
+    toggleFavorite,
+    createTask,
+    updateTask,
+    deleteTask,
+    updateTaskStatus,
+    fetchAllData
+  ]);
 
   return <DataContext.Provider value={value}>{children}</DataContext.Provider>;
 };
