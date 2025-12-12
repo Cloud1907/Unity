@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Home, Users, Settings, Plus, ChevronDown, ChevronRight, Star, LogOut } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { boards } from '../mockData';
 import { useAuth } from '../contexts/AuthContext';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
