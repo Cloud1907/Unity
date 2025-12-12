@@ -53,7 +53,7 @@ const MainTable = ({ boardId }) => {
               <div className="w-80 px-4 py-3 font-medium text-sm text-gray-700 border-r border-gray-200">
                 Görev
               </div>
-              <div className="w-48 px-4 py-3 font-semibold text-sm text-gray-700 border-r border-gray-200 flex items-center gap-2">
+              <div className="w-48 px-4 py-3 font-medium text-sm text-gray-700 border-r border-gray-200 flex items-center gap-2">
                 <div className="w-3 h-3 rounded-full bg-gray-300"></div>
                 Durum
               </div>
