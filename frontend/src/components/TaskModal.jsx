@@ -253,14 +253,14 @@ const TaskModal = ({ task, isOpen, onClose }) => {
                 </label>
                 <div className="flex flex-wrap gap-2">
                   {taskAssignees.map(assignee => (
-                    <div key={assignee.id} className="flex items-center gap-2 bg-white px-3 py-2 rounded-lg border border-gray-200">
+                    <div key={assignee._id || assignee.id} className="flex items-center gap-2 bg-white px-3 py-2 rounded-lg border border-gray-200">
                       <Avatar className="w-6 h-6">
                         <AvatarImage src={assignee.avatar} />
                         <AvatarFallback style={{ backgroundColor: assignee.color }}>
-                          {assignee.name.charAt(0)}
+                          {assignee.fullName.charAt(0)}
                         </AvatarFallback>
                       </Avatar>
-                      <span className="text-sm">{assignee.name}</span>
+                      <span className="text-sm">{assignee.fullName}</span>
                     </div>
                   ))}
                   <Button variant="outline" size="sm">+ Ekle</Button>
