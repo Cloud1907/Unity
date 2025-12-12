@@ -24,6 +24,7 @@ const MainTable = ({ boardId }) => {
   const { tasks, users, fetchTasks } = useData();
   const [selectedTask, setSelectedTask] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [showNewTaskModal, setShowNewTaskModal] = useState(false);
   
   // Fetch tasks when boardId changes
   React.useEffect(() => {
