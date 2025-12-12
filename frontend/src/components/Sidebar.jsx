@@ -4,6 +4,49 @@ import { boards } from '../mockData';
 import { useAuth } from '../contexts/AuthContext';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
 
+// User Profile Component
+const UserProfile = () => {
+  const { user, logout } = useAuth();
+  const [showMenu, setShowMenu] = useState(false);
+
+  if (!user) return null;
+
+  return (
+    <div className="relative">
+      <button
+        onClick={() => setShowMenu(!showMenu)}
+        className="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-white transition-colors"
+      >
+        <Avatar className="w-8 h-8">
+          <AvatarImage src={user.avatar} alt={user.fullName} />
+          <AvatarFallback style={{ backgroundColor: user.color }}>
+            {user.fullName?.charAt(0)}
+          </AvatarFallback>
+        </Avatar>
+        <div className="flex-1 text-left">
+          <p className="text-sm font-medium text-gray-900">{user.fullName}</p>
+          <p className="text-xs text-gray-500">{user.role}</p>
+        </div>
+      </button>
+
+      {showMenu && (
+        <div className="absolute bottom-full left-3 right-3 mb-2 bg-white rounded-lg shadow-lg border border-gray-200 py-2">
+          <button
+            onClick={() => {
+              logout();
+              setShowMenu(false);
+            }}
+            className="w-full flex items-center gap-2 px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors"
+          >
+            <LogOut size={16} />
+            <span>Çıkış Yap</span>
+          </button>
+        </div>
+      )}
+    </div>
+  );
+};
+
 const Sidebar = ({ currentBoard, onBoardChange, onNewBoard }) => {
   const [expandedSections, setExpandedSections] = useState({
     favorites: true,
