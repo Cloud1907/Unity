@@ -229,10 +229,14 @@ const MainTable = ({ boardId }) => {
 
       {/* Task Modal */}
       {isModalOpen && selectedTask && (
-        <TaskModal
+        <ModernTaskModal
           task={selectedTask}
           isOpen={isModalOpen}
           onClose={() => setIsModalOpen(false)}
+          onUpdate={(updatedTask) => {
+            // Task güncellendiğinde listeyi yenile
+            fetchTasks(boardId);
+          }}
         />
       )}
     </>
