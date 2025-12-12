@@ -166,7 +166,7 @@ backend:
         - comment: "TESTED: Task filtering API works correctly. GET /api/tasks?projectId=XXX returns only tasks for specified project, all returned tasks have correct projectId field. Filter handles non-existent projectIds properly (returns empty array). Individual task retrieval (GET /api/tasks/{id}) also maintains correct projectId field."
 
 frontend:
-  - task: "Authentication Flow"
+  - task: "4Flow Branding & Authentication"
     implemented: true
     working: true
     file: "/app/frontend/src/pages/Login.jsx"
