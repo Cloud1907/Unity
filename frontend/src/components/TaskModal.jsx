@@ -152,7 +152,7 @@ const TaskModal = ({ task, isOpen, onClose }) => {
                 <div className="flex gap-3">
                   <Avatar className="w-8 h-8">
                     <AvatarImage src={users[0].avatar} />
-                    <AvatarFallback>{users[0].name.charAt(0)}</AvatarFallback>
+                    <AvatarFallback>{users[0].fullName.charAt(0)}</AvatarFallback>
                   </Avatar>
                   <div className="flex-1">
                     <Textarea
