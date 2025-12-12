@@ -50,10 +50,10 @@ const BoardHeader = ({ boardId, currentView, onViewChange }) => {
         <div className="flex items-center gap-3">
           {/* Members */}
           <div className="flex items-center -space-x-2">
-            {boardMembers.slice(0, 5).map(member => (
-              <Avatar key={member.id} className="w-8 h-8 border-2 border-white">
-                <AvatarImage src={member.avatar} alt={member.name} />
-                <AvatarFallback>{member.name.charAt(0)}</AvatarFallback>
+            {boardMembers?.slice(0, 5).map(member => (
+              <Avatar key={member._id} className="w-8 h-8 border-2 border-white">
+                <AvatarImage src={member.avatar} alt={member.fullName} />
+                <AvatarFallback>{member.fullName?.charAt(0)}</AvatarFallback>
               </Avatar>
             ))}
             {boardMembers.length > 5 && (
