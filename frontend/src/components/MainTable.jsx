@@ -69,7 +69,7 @@ const MainTable = ({ boardId }) => {
                 <Calendar size={14} />
                 Son Tarih
               </div>
-              <div className="w-48 px-4 py-3 font-semibold text-sm text-gray-700 border-r border-gray-200 flex items-center gap-2">
+              <div className="w-48 px-4 py-3 font-medium text-sm text-gray-700 border-r border-gray-200 flex items-center gap-2">
                 <Tag size={14} />
                 Etiketler
               </div>
