@@ -1,12 +1,28 @@
 import React, { useState } from 'react';
-import { tasks, statuses } from '../mockData';
+import { useData } from '../contexts/DataContext';
 import TaskModal from './TaskModal';
 
+const statuses = [
+  { id: 'todo', label: 'Yapılacak', color: '#c4c4c4' },
+  { id: 'working', label: 'Devam Ediyor', color: '#fdab3d' },
+  { id: 'stuck', label: 'Takıldı', color: '#e2445c' },
+  { id: 'done', label: 'Tamamlandı', color: '#00c875' },
+  { id: 'review', label: 'İncelemede', color: '#579bfc' }
+];
+
 const GanttView = ({ boardId }) => {
+  const { tasks, fetchTasks } = useData();
   const [selectedTask, setSelectedTask] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  const boardTasks = tasks.filter(t => t.boardId === boardId);
+  // Fetch tasks when boardId changes
+  React.useEffect(() => {
+    if (boardId) {
+      fetchTasks(boardId);
+    }
+  }, [boardId]);
+
+  const boardTasks = tasks.filter(t => t.projectId === boardId);
 
   const getStatusColor = (statusId) => {
     return statuses.find(s => s.id === statusId)?.color || '#c4c4c4';
