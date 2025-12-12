@@ -38,7 +38,7 @@ const BoardHeader = ({ boardId, currentView, onViewChange }) => {
             <div>
               <div className="flex items-center gap-2">
                 <h1 className="text-2xl font-semibold text-gray-900">{board.name}</h1>
-                <button className="p-1 hover:bg-gray-100 rounded transition-colors">
+                <button onClick={handleToggleFavorite} className="p-1 hover:bg-gray-100 rounded transition-colors">
                   <Star size={20} className={board.favorite ? 'text-yellow-500 fill-yellow-500' : 'text-gray-400'} />
                 </button>
               </div>
