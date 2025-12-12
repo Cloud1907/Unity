@@ -18,7 +18,7 @@ client = AsyncIOMotorClient(mongo_url)
 db = client[os.environ['DB_NAME']]
 
 # Create the main app without a prefix
-app = FastAPI(title="4Task API", version="1.0.0", description="Monday.com clone API")
+app = FastAPI(title="4Flow API", version="1.0.0", description="Monday.com clone API")
 
 # Create a router with the /api prefix
 api_router = APIRouter(prefix="/api")
@@ -26,7 +26,7 @@ api_router = APIRouter(prefix="/api")
 # Health check endpoint
 @api_router.get("/")
 async def root():
-    return {"message": "4Task API is running", "version": "1.0.0"}
+    return {"message": "4Flow API is running", "version": "1.0.0"}
 
 @api_router.get("/health")
 async def health_check():
