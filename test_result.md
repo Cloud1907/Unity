@@ -229,14 +229,18 @@ metadata:
 
 test_plan:
   current_focus:
-    - "Authentication Flow"
     - "Project Creation Modal"
     - "Task Creation Modal"
-    - "Kanban View"
-  stuck_tasks: []
-  test_all: true
-  test_priority: "high_first"
+    - "Modal Overlay Issue"
+  stuck_tasks:
+    - "Project Creation Modal"
+    - "Task Creation Modal"
+    - "Modal Overlay Issue"
+  test_all: false
+  test_priority: "stuck_first"
 
 agent_communication:
     - agent: "testing"
     - message: "Starting comprehensive frontend testing of 4Flow project management system. Will test authentication, project/task creation, and all view modes as requested."
+    - agent: "testing"
+    - message: "TESTING COMPLETED: Found critical issues with project/task creation and modal overlays. Authentication, views (Kanban, Calendar, Workload), and Settings work correctly. Main issues: 1) Created projects/tasks don't appear in UI after successful API calls, 2) Modal overlays block interactions with other UI elements."
