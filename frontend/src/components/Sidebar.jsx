@@ -176,6 +176,12 @@ const Sidebar = ({ currentBoard, onBoardChange, onNewBoard }) => {
           <span className="font-normal">Ayarlar</span>
         </Link>
       </div>
+
+      {/* New Project Modal */}
+      <NewProjectModal
+        isOpen={showNewProjectModal}
+        onClose={() => setShowNewProjectModal(false)}
+      />
     </div>
   );
 };
