@@ -152,13 +152,12 @@ const MainTable = ({ boardId }) => {
                   </div>
                   <div className="w-48 px-4 py-4 border-r border-gray-100">
                     <div className="flex flex-wrap gap-1">
-                      {taskLabels.map(label => (
+                      {taskLabels.map((label, idx) => (
                         <span
-                          key={label.id}
-                          className="px-2 py-1 rounded text-xs font-normal text-white"
-                          style={{ backgroundColor: label.color }}
+                          key={idx}
+                          className="px-2 py-1 rounded text-xs font-normal text-white bg-blue-500"
                         >
-                          {label.name}
+                          {label}
                         </span>
                       ))}
                     </div>
