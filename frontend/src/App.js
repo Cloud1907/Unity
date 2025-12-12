@@ -38,8 +38,16 @@ const ProtectedRoute = ({ children }) => {
 };
 
 const Dashboard = () => {
-  const [currentBoard, setCurrentBoard] = useState('1');
+  const { projects } = useData();
+  const [currentBoard, setCurrentBoard] = useState(null);
   const [currentView, setCurrentView] = useState('main');
+
+  // İlk projeyi otomatik seç
+  React.useEffect(() => {
+    if (projects.length > 0 && !currentBoard) {
+      setCurrentBoard(projects[0]._id);
+    }
+  }, [projects, currentBoard]);
 
   const handleBoardChange = (boardId) => {
     setCurrentBoard(boardId);
