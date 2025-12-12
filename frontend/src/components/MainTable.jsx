@@ -1,14 +1,31 @@
 import React, { useState } from 'react';
 import { MoreHorizontal, Plus, Calendar, User, Tag, TrendingUp } from 'lucide-react';
-import { tasks, users, statuses, priorities, labels } from '../mockData';
+import { useData } from '../contexts/DataContext';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
 import TaskModal from './TaskModal';
 
+// Status ve priority tanımları
+const statuses = [
+  { id: 'todo', label: 'Yapılacak', color: '#c4c4c4' },
+  { id: 'working', label: 'Devam Ediyor', color: '#fdab3d' },
+  { id: 'stuck', label: 'Takıldı', color: '#e2445c' },
+  { id: 'done', label: 'Tamamlandı', color: '#00c875' },
+  { id: 'review', label: 'İncelemede', color: '#579bfc' }
+];
+
+const priorities = [
+  { id: 'low', label: 'Düşük', color: '#c4c4c4', icon: '↓' },
+  { id: 'medium', label: 'Orta', color: '#fdab3d', icon: '−' },
+  { id: 'high', label: 'Yüksek', color: '#e2445c', icon: '↑' },
+  { id: 'urgent', label: 'Acil', color: '#df2f4a', icon: '⇈' }
+];
+
 const MainTable = ({ boardId }) => {
+  const { tasks, users } = useData();
   const [selectedTask, setSelectedTask] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   
-  const boardTasks = tasks.filter(t => t.boardId === boardId);
+  const boardTasks = tasks.filter(t => t.projectId === boardId);
 
   const getStatusColor = (statusId) => {
     return statuses.find(s => s.id === statusId)?.color || '#c4c4c4';
