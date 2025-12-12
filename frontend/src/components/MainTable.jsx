@@ -96,12 +96,12 @@ const MainTable = ({ boardId }) => {
           <div>
             {boardTasks.map((task, index) => {
               const taskAssignees = getAssignees(task.assignees);
-              const taskLabels = getLabels(task.labels);
+              const taskLabels = task.labels || [];
               const priority = getPriorityData(task.priority);
               
               return (
                 <div
-                  key={task.id}
+                  key={task._id}
                   className="flex hover:bg-gray-50 transition-colors border-b border-gray-100 group cursor-pointer"
                   onClick={() => openTaskModal(task)}
                 >
