@@ -139,12 +139,12 @@ const Sidebar = ({ currentBoard, onBoardChange, onNewBoard }) => {
           </button>
           {expandedSections.boards && (
             <div className="mt-1">
-              {boards.map(board => (
+              {allBoards.map(board => (
                 <button
-                  key={board.id}
-                  onClick={() => onBoardChange(board.id)}
+                  key={board._id}
+                  onClick={() => onBoardChange(board._id)}
                   className={`w-full flex items-center gap-3 px-6 py-2 rounded-lg transition-colors ${
-                    currentBoard === board.id
+                    currentBoard === board._id
                       ? 'bg-white text-gray-900 font-semibold'
                       : 'text-gray-700 hover:bg-white font-normal'
                   }`}
@@ -157,7 +157,7 @@ const Sidebar = ({ currentBoard, onBoardChange, onNewBoard }) => {
                 </button>
               ))}
               <button
-                onClick={onNewBoard}
+                onClick={() => setShowNewProjectModal(true)}
                 className="w-full flex items-center gap-3 px-6 py-2 rounded-lg hover:bg-white transition-colors text-gray-500 hover:text-gray-700"
               >
                 <Plus size={16} />
