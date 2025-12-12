@@ -50,10 +50,12 @@ const UserProfile = () => {
 };
 
 const Sidebar = ({ currentBoard, onBoardChange, onNewBoard }) => {
+  const { projects, toggleFavorite } = useData();
   const [expandedSections, setExpandedSections] = useState({
     favorites: true,
     boards: true
   });
+  const [showNewProjectModal, setShowNewProjectModal] = useState(false);
 
   const toggleSection = (section) => {
     setExpandedSections(prev => ({
@@ -62,8 +64,13 @@ const Sidebar = ({ currentBoard, onBoardChange, onNewBoard }) => {
     }));
   };
 
-  const favoriteBoards = boards.filter(b => b.favorite);
-  const otherBoards = boards.filter(b => !b.favorite);
+  const handleToggleFavorite = async (e, projectId) => {
+    e.stopPropagation();
+    await toggleFavorite(projectId);
+  };
+
+  const favoriteBoards = projects.filter(b => b.favorite);
+  const allBoards = projects;
 
   return (
     <div className="w-64 bg-[#f6f7fb] border-r border-gray-200 h-screen flex flex-col">
