@@ -71,10 +71,10 @@ const BoardHeader = ({ boardId, currentView, onViewChange }) => {
             <button
               key={view.id}
               onClick={() => onViewChange(view.id)}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+              className={`px-4 py-2 rounded-lg text-sm transition-all ${
                 currentView === view.id
-                  ? 'bg-[#0086c0] text-white shadow-sm'
-                  : 'text-gray-600 hover:bg-gray-100'
+                  ? 'bg-[#0086c0] text-white shadow-sm font-semibold'
+                  : 'text-gray-600 hover:bg-gray-100 font-medium'
               }`}
             >
               <span className="mr-2">{view.icon}</span>
