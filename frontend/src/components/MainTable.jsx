@@ -159,10 +159,10 @@ const MainTable = ({ boardId }) => {
                   <div className="w-48 px-4 py-4 border-r border-gray-100">
                     <div className="flex items-center -space-x-2">
                       {taskAssignees.map(assignee => (
-                        <Avatar key={assignee.id} className="w-7 h-7 border-2 border-white hover:scale-110 transition-transform">
-                          <AvatarImage src={assignee.avatar} alt={assignee.name} />
+                        <Avatar key={assignee._id} className="w-7 h-7 border-2 border-white hover:scale-110 transition-transform">
+                          <AvatarImage src={assignee.avatar} alt={assignee.fullName} />
                           <AvatarFallback style={{ backgroundColor: assignee.color }}>
-                            {assignee.name.charAt(0)}
+                            {assignee.fullName?.charAt(0) || 'U'}
                           </AvatarFallback>
                         </Avatar>
                       ))}
