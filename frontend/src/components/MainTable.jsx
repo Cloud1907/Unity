@@ -40,11 +40,7 @@ const MainTable = ({ boardId }) => {
   };
 
   const getAssignees = (assigneeIds) => {
-    return users.filter(u => assigneeIds.includes(u.id));
-  };
-
-  const getLabels = (labelIds) => {
-    return labels.filter(l => labelIds.includes(l.id));
+    return users.filter(u => assigneeIds?.includes(u._id));
   };
 
   const formatDate = (dateString) => {
