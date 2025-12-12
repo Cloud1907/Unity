@@ -61,7 +61,11 @@ const NewTaskModal = ({ isOpen, onClose, projectId, defaultStatus = 'todo' }) =>
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4" onClick={onClose}>
+    <div 
+      className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4" 
+      style={{ zIndex: 9999 }}
+      onClick={onClose}
+    >
       <div
         className="bg-white rounded-lg shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-auto"
         onClick={(e) => e.stopPropagation()}
