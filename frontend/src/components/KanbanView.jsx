@@ -199,10 +199,13 @@ const KanbanView = ({ boardId }) => {
 
       {/* Task Modal */}
       {isModalOpen && selectedTask && (
-        <TaskModal
+        <ModernTaskModal
           task={selectedTask}
           isOpen={isModalOpen}
           onClose={() => setIsModalOpen(false)}
+          onUpdate={(updatedTask) => {
+            fetchTasks(boardId);
+          }}
         />
       )}
 
