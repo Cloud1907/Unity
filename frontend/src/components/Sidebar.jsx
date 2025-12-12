@@ -77,9 +77,14 @@ const Sidebar = ({ currentBoard, onBoardChange, onNewBoard }) => {
       {/* Logo */}
       <div className="p-4 border-b border-gray-200">
         <div className="flex items-center gap-3">
-          <div className="flex items-center">
-            <span className="text-2xl font-bold text-[#6366f1]">4</span>
-            <span className="text-2xl font-semibold text-gray-800">Task</span>
+          <div className="flex items-center gap-1 group cursor-pointer">
+            <div className="w-10 h-10 bg-gradient-to-br from-[#6366f1] to-[#8b5cf6] rounded-xl flex items-center justify-center shadow-lg group-hover:shadow-xl transition-all duration-300 group-hover:scale-105">
+              <span className="text-2xl font-black text-white">4</span>
+            </div>
+            <div className="flex flex-col">
+              <span className="text-xl font-bold text-gray-900 leading-none tracking-tight">Flow</span>
+              <span className="text-[10px] text-gray-500 tracking-wider">PROJECT MANAGEMENT</span>
+            </div>
           </div>
         </div>
       </div>
