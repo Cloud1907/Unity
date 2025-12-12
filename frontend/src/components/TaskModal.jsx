@@ -170,18 +170,18 @@ const TaskModal = ({ task, isOpen, onClose }) => {
 
                 {/* Comments List */}
                 <div className="space-y-4 mt-6">
-                  {task.comments.map(comment => {
+                  {(task.comments || []).map(comment => {
                     const commentUser = getCommentUser(comment.userId);
                     return (
-                      <div key={comment.id} className="flex gap-3">
+                      <div key={comment._id || comment.id} className="flex gap-3">
                         <Avatar className="w-8 h-8">
                           <AvatarImage src={commentUser?.avatar} />
-                          <AvatarFallback>{commentUser?.name.charAt(0)}</AvatarFallback>
+                          <AvatarFallback>{commentUser?.fullName?.charAt(0)}</AvatarFallback>
                         </Avatar>
                         <div className="flex-1">
                           <div className="bg-gray-50 rounded-lg p-3">
                             <div className="flex items-center gap-2 mb-1">
-                              <span className="font-semibold text-sm">{commentUser?.name}</span>
+                              <span className="font-semibold text-sm">{commentUser?.fullName}</span>
                               <span className="text-xs text-gray-500">
                                 {new Date(comment.createdAt).toLocaleDateString('tr-TR')}
                               </span>
