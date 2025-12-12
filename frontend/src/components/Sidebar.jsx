@@ -23,10 +23,10 @@ const Sidebar = ({ currentBoard, onBoardChange, onNewBoard }) => {
       {/* Logo */}
       <div className="p-4 border-b border-gray-200">
         <div className="flex items-center gap-2">
-          <div className="w-8 h-8 bg-gradient-to-br from-[#ff5a5f] to-[#ff009e] rounded-lg flex items-center justify-center text-white font-bold text-sm">
-            M
+          <div className="w-8 h-8 bg-gradient-to-br from-[#6366f1] to-[#8b5cf6] rounded-lg flex items-center justify-center text-white font-bold text-sm">
+            4
           </div>
-          <span className="font-bold text-lg">monday</span>
+          <span className="font-bold text-lg" style={{ fontFamily: 'Poppins, sans-serif' }}>4Task</span>
         </div>
       </div>
 
