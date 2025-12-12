@@ -36,7 +36,7 @@ const Login = () => {
         <div className="text-center mb-8">
           <div className="flex items-center justify-center gap-2 mb-2">
             <span className="text-4xl font-bold text-[#6366f1]">4</span>
-            <span className="text-4xl font-semibold text-gray-800">Task</span>
+            <span className="text-4xl font-semibold text-gray-800">Flow</span>
           </div>
           <p className="text-gray-600">Proje ve görev yönetim platformu</p>
         </div>
@@ -51,7 +51,7 @@ const Login = () => {
               <Input
                 id="email"
                 type="email"
-                placeholder="ornek@4task.com"
+                placeholder="ornek@4flow.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
@@ -94,7 +94,7 @@ const Login = () => {
         {/* Demo Info */}
         <div className="mt-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
           <p className="text-sm text-blue-800 font-medium mb-2">Demo Hesap:</p>
-          <p className="text-xs text-blue-700">E-posta: test@4task.com</p>
+          <p className="text-xs text-blue-700">E-posta: test@4flow.com</p>
           <p className="text-xs text-blue-700">Şifre: test123</p>
         </div>
       </div>
