@@ -1,14 +1,23 @@
 import React, { useState } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
-import { tasks, statuses } from '../mockData';
+import { useData } from '../contexts/DataContext';
 import TaskModal from './TaskModal';
 
+const statuses = [
+  { id: 'todo', label: 'Yapılacak', color: '#c4c4c4' },
+  { id: 'working', label: 'Devam Ediyor', color: '#fdab3d' },
+  { id: 'stuck', label: 'Takıldı', color: '#e2445c' },
+  { id: 'done', label: 'Tamamlandı', color: '#00c875' },
+  { id: 'review', label: 'İncelemede', color: '#579bfc' }
+];
+
 const CalendarView = ({ boardId }) => {
+  const { tasks } = useData();
   const [selectedTask, setSelectedTask] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [currentDate, setCurrentDate] = useState(new Date());
 
-  const boardTasks = tasks.filter(t => t.boardId === boardId);
+  const boardTasks = tasks.filter(t => t.projectId === boardId);
 
   const getStatusColor = (statusId) => {
     return statuses.find(s => s.id === statusId)?.color || '#c4c4c4';
@@ -37,7 +46,11 @@ const CalendarView = ({ boardId }) => {
 
   const getTasksForDate = (day) => {
     const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-    return boardTasks.filter(task => task.dueDate === dateStr);
+    return boardTasks.filter(task => {
+      if (!task.dueDate) return false;
+      const taskDate = new Date(task.dueDate).toISOString().split('T')[0];
+      return taskDate === dateStr;
+    });
   };
 
   const previousMonth = () => {
@@ -123,7 +136,7 @@ const CalendarView = ({ boardId }) => {
                   <div className="space-y-1">
                     {dayTasks.slice(0, 3).map(task => (
                       <div
-                        key={task.id}
+                        key={task._id}
                         onClick={() => openTaskModal(task)}
                         className="text-xs p-1.5 rounded cursor-pointer hover:opacity-80 transition-opacity text-white truncate"
                         style={{ backgroundColor: getStatusColor(task.status) }}

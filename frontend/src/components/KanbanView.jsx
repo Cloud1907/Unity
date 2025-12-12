@@ -1,15 +1,34 @@
 import React, { useState } from 'react';
 import { Plus, MoreHorizontal } from 'lucide-react';
-import { tasks, users, statuses, priorities, labels } from '../mockData';
+import { useData } from '../contexts/DataContext';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
 import TaskModal from './TaskModal';
+import NewTaskModal from './NewTaskModal';
+
+const statuses = [
+  { id: 'todo', label: 'Yapılacak', color: '#c4c4c4' },
+  { id: 'working', label: 'Devam Ediyor', color: '#fdab3d' },
+  { id: 'stuck', label: 'Takıldı', color: '#e2445c' },
+  { id: 'done', label: 'Tamamlandı', color: '#00c875' },
+  { id: 'review', label: 'İncelemede', color: '#579bfc' }
+];
+
+const priorities = [
+  { id: 'low', label: 'Düşük', color: '#c4c4c4', icon: '↓' },
+  { id: 'medium', label: 'Orta', color: '#fdab3d', icon: '−' },
+  { id: 'high', label: 'Yüksek', color: '#e2445c', icon: '↑' },
+  { id: 'urgent', label: 'Acil', color: '#df2f4a', icon: '⇈' }
+];
 
 const KanbanView = ({ boardId }) => {
+  const { tasks, users, updateTaskStatus } = useData();
   const [selectedTask, setSelectedTask] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [showNewTaskModal, setShowNewTaskModal] = useState(false);
+  const [newTaskStatus, setNewTaskStatus] = useState('todo');
   const [draggedTask, setDraggedTask] = useState(null);
 
-  const boardTasks = tasks.filter(t => t.boardId === boardId);
+  const boardTasks = tasks.filter(t => t.projectId === boardId);
 
   const getStatusData = (statusId) => {
     return statuses.find(s => s.id === statusId) || statuses[0];
@@ -20,11 +39,7 @@ const KanbanView = ({ boardId }) => {
   };
 
   const getAssignees = (assigneeIds) => {
-    return users.filter(u => assigneeIds.includes(u.id));
-  };
-
-  const getLabels = (labelIds) => {
-    return labels.filter(l => labelIds.includes(l.id));
+    return users.filter(u => assigneeIds?.includes(u._id));
   };
 
   const openTaskModal = (task) => {
@@ -42,13 +57,17 @@ const KanbanView = ({ boardId }) => {
     e.dataTransfer.dropEffect = 'move';
   };
 
-  const handleDrop = (e, statusId) => {
+  const handleDrop = async (e, statusId) => {
     e.preventDefault();
-    if (draggedTask) {
-      console.log(`Moving task ${draggedTask.id} to status ${statusId}`);
-      // Mock status update
-      setDraggedTask(null);
+    if (draggedTask && draggedTask.status !== statusId) {
+      await updateTaskStatus(draggedTask._id, statusId);
     }
+    setDraggedTask(null);
+  };
+
+  const handleAddTask = (statusId) => {
+    setNewTaskStatus(statusId);
+    setShowNewTaskModal(true);
   };
 
   return (
@@ -87,32 +106,16 @@ const KanbanView = ({ boardId }) => {
                   <div className="space-y-3">
                     {statusTasks.map(task => {
                       const taskAssignees = getAssignees(task.assignees);
-                      const taskLabels = getLabels(task.labels);
                       const priority = getPriorityData(task.priority);
 
                       return (
                         <div
-                          key={task.id}
+                          key={task._id}
                           draggable
                           onDragStart={(e) => handleDragStart(e, task)}
                           onClick={() => openTaskModal(task)}
                           className="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-lg transition-all cursor-move group"
                         >
-                          {/* Task Labels */}
-                          {taskLabels.length > 0 && (
-                            <div className="flex flex-wrap gap-1 mb-3">
-                              {taskLabels.map(label => (
-                                <span
-                                  key={label.id}
-                                  className="px-2 py-1 rounded text-xs font-medium text-white"
-                                  style={{ backgroundColor: label.color }}
-                                >
-                                  {label.name}
-                                </span>
-                              ))}
-                            </div>
-                          )}
-
                           {/* Task Title */}
                           <h4 className="font-medium text-gray-900 mb-3 group-hover:text-[#0086c0] transition-colors">
                             {task.title}
@@ -135,10 +138,10 @@ const KanbanView = ({ boardId }) => {
                             {taskAssignees.length > 0 && (
                               <div className="flex items-center -space-x-2">
                                 {taskAssignees.slice(0, 3).map(assignee => (
-                                  <Avatar key={assignee.id} className="w-6 h-6 border-2 border-white">
-                                    <AvatarImage src={assignee.avatar} alt={assignee.name} />
+                                  <Avatar key={assignee._id} className="w-6 h-6 border-2 border-white">
+                                    <AvatarImage src={assignee.avatar} alt={assignee.fullName} />
                                     <AvatarFallback style={{ backgroundColor: assignee.color }}>
-                                      {assignee.name.charAt(0)}
+                                      {assignee.fullName?.charAt(0)}
                                     </AvatarFallback>
                                   </Avatar>
                                 ))}
@@ -170,7 +173,10 @@ const KanbanView = ({ boardId }) => {
                   </div>
 
                   {/* Add Task Button */}
-                  <button className="w-full mt-3 p-3 border-2 border-dashed border-gray-200 rounded-lg text-sm text-gray-500 hover:border-[#0086c0] hover:text-[#0086c0] transition-colors flex items-center justify-center gap-2">
+                  <button 
+                    onClick={() => handleAddTask(status.id)}
+                    className="w-full mt-3 p-3 border-2 border-dashed border-gray-200 rounded-lg text-sm text-gray-500 hover:border-[#0086c0] hover:text-[#0086c0] transition-colors flex items-center justify-center gap-2"
+                  >
                     <Plus size={16} />
                     Görev Ekle
                   </button>
@@ -189,6 +195,14 @@ const KanbanView = ({ boardId }) => {
           onClose={() => setIsModalOpen(false)}
         />
       )}
+
+      {/* New Task Modal */}
+      <NewTaskModal
+        isOpen={showNewTaskModal}
+        onClose={() => setShowNewTaskModal(false)}
+        projectId={boardId}
+        defaultStatus={newTaskStatus}
+      />
     </>
   );
 };

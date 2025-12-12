@@ -1,29 +1,37 @@
 import React from 'react';
-import { users, tasks, statuses } from '../mockData';
+import { useData } from '../contexts/DataContext';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
 
+const statuses = [
+  { id: 'todo', label: 'Yapılacak', color: '#c4c4c4' },
+  { id: 'working', label: 'Devam Ediyor', color: '#fdab3d' },
+  { id: 'stuck', label: 'Takıldı', color: '#e2445c' },
+  { id: 'done', label: 'Tamamlandı', color: '#00c875' },
+  { id: 'review', label: 'İncelemede', color: '#579bfc' }
+];
+
 const WorkloadView = ({ boardId }) => {
-  const boardTasks = tasks.filter(t => t.boardId === boardId);
+  const { tasks, users } = useData();
+  const boardTasks = tasks.filter(t => t.projectId === boardId);
 
   const getStatusColor = (statusId) => {
     return statuses.find(s => s.id === statusId)?.color || '#c4c4c4';
   };
 
   const getUserTasks = (userId) => {
-    return boardTasks.filter(task => task.assignees.includes(userId));
+    return boardTasks.filter(task => task.assignees?.includes(userId));
   };
 
   const getWorkloadPercentage = (userTasks) => {
-    // Calculate workload based on number of tasks and their progress
     const totalTasks = userTasks.length;
     const activeTasks = userTasks.filter(t => t.status !== 'done').length;
-    return totalTasks > 0 ? Math.round((activeTasks / 10) * 100) : 0; // Assuming 10 tasks is 100% workload
+    return totalTasks > 0 ? Math.round((activeTasks / 10) * 100) : 0;
   };
 
   const getWorkloadColor = (percentage) => {
-    if (percentage >= 80) return '#e2445c'; // High workload - red
-    if (percentage >= 50) return '#fdab3d'; // Medium workload - orange
-    return '#00c875'; // Low workload - green
+    if (percentage >= 80) return '#e2445c';
+    if (percentage >= 50) return '#fdab3d';
+    return '#00c875';
   };
 
   return (
@@ -38,25 +46,25 @@ const WorkloadView = ({ boardId }) => {
         {/* Workload Cards */}
         <div className="space-y-6">
           {users.map(user => {
-            const userTasks = getUserTasks(user.id);
+            const userTasks = getUserTasks(user._id);
             const workloadPercentage = getWorkloadPercentage(userTasks);
             const workloadColor = getWorkloadColor(workloadPercentage);
             const activeTasks = userTasks.filter(t => t.status !== 'done');
             const completedTasks = userTasks.filter(t => t.status === 'done');
 
             return (
-              <div key={user.id} className="bg-white border border-gray-200 rounded-lg p-6 hover:shadow-lg transition-shadow">
+              <div key={user._id} className="bg-white border border-gray-200 rounded-lg p-6 hover:shadow-lg transition-shadow">
                 {/* User Info */}
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center gap-4">
                     <Avatar className="w-12 h-12">
-                      <AvatarImage src={user.avatar} alt={user.name} />
+                      <AvatarImage src={user.avatar} alt={user.fullName} />
                       <AvatarFallback style={{ backgroundColor: user.color }}>
-                        {user.name.charAt(0)}
+                        {user.fullName?.charAt(0)}
                       </AvatarFallback>
                     </Avatar>
                     <div>
-                      <h3 className="font-semibold text-gray-900">{user.name}</h3>
+                      <h3 className="font-semibold text-gray-900">{user.fullName}</h3>
                       <p className="text-sm text-gray-500">{user.email}</p>
                     </div>
                   </div>
@@ -97,7 +105,7 @@ const WorkloadView = ({ boardId }) => {
                     </div>
                     <div className="space-y-2 max-h-40 overflow-y-auto">
                       {userTasks.map(task => (
-                        <div key={task.id} className="flex items-center justify-between p-2 hover:bg-gray-50 rounded transition-colors">
+                        <div key={task._id} className="flex items-center justify-between p-2 hover:bg-gray-50 rounded transition-colors">
                           <div className="flex items-center gap-3 flex-1">
                             <div
                               className="w-2 h-2 rounded-full flex-shrink-0"
@@ -110,12 +118,12 @@ const WorkloadView = ({ boardId }) => {
                               <div
                                 className="h-1.5 rounded-full"
                                 style={{
-                                  width: `${task.progress}%`,
+                                  width: `${task.progress || 0}%`,
                                   backgroundColor: getStatusColor(task.status)
                                 }}
                               />
                             </div>
-                            <span className="text-xs text-gray-500 w-8 text-right">{task.progress}%</span>
+                            <span className="text-xs text-gray-500 w-8 text-right">{task.progress || 0}%</span>
                           </div>
                         </div>
                       ))}
