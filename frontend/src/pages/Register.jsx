@@ -63,7 +63,7 @@ const Register = () => {
         <div className="text-center mb-8">
           <div className="flex items-center justify-center gap-2 mb-2">
             <span className="text-4xl font-bold text-[#6366f1]">4</span>
-            <span className="text-4xl font-semibold text-gray-800">Task</span>
+            <span className="text-4xl font-semibold text-gray-800">Flow</span>
           </div>
           <p className="text-gray-600">Proje ve görev yönetim platformu</p>
         </div>
