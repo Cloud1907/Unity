@@ -189,79 +189,182 @@ const ModernTaskModal = ({ task, isOpen, onClose }) => {
 
           {/* Main Content Area */}
           <div className="flex-1 flex">
-            {/* Updates / Activity Feed */}
+            {/* Dynamic Content based on activeSection */}
             <div className="flex-1 overflow-y-auto p-8">
               <div className="max-w-3xl">
-                {/* Add Update Section */}
-                <div className="mb-8">
-                  <div className="flex gap-3">
-                    <Avatar className="w-10 h-10">
-                      <AvatarImage src={currentUser?.avatar} />
-                      <AvatarFallback>{currentUser?.fullName?.charAt(0)}</AvatarFallback>
-                    </Avatar>
-                    <div className="flex-1">
-                      <Textarea
-                        value={newUpdate}
-                        onChange={(e) => setNewUpdate(e.target.value)}
-                        placeholder="Güncelleme yaz..."
-                        className="min-h-[100px] resize-none border-2 focus:border-[#0086c0]"
-                      />
-                      <div className="mt-3 flex items-center gap-2">
-                        <Button 
-                          onClick={handleAddUpdate}
-                          disabled={!newUpdate.trim()}
-                          className="bg-[#0086c0] hover:bg-[#006a99]"
-                        >
-                          Güncelle
-                        </Button>
-                        <Button variant="ghost" className="text-gray-600">
-                          <Paperclip size={18} className="mr-2" />
-                          Dosya Ekle
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Activity Timeline */}
-                <div className="space-y-6">
-                  <div className="flex items-start gap-3">
-                    <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">
-                      <CheckCircle2 size={18} className="text-blue-600" />
-                    </div>
-                    <div className="flex-1">
-                      <div className="bg-gray-50 rounded-lg p-4">
-                        <div className="flex items-center justify-between mb-2">
-                          <span className="font-semibold text-gray-900">Görev Oluşturuldu</span>
-                          <span className="text-sm text-gray-500">
-                            {new Date(taskData.createdAt).toLocaleDateString('tr-TR')}
-                          </span>
-                        </div>
-                        <p className="text-sm text-gray-600">
-                          {currentUser?.fullName} görevi oluşturdu
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Comments */}
-                  {(taskData.comments || []).map((comment, idx) => (
-                    <div key={idx} className="flex items-start gap-3">
-                      <Avatar className="w-10 h-10">
-                        <AvatarFallback>U</AvatarFallback>
-                      </Avatar>
-                      <div className="flex-1">
-                        <div className="bg-gray-50 rounded-lg p-4">
-                          <div className="flex items-center justify-between mb-2">
-                            <span className="font-semibold text-gray-900">Kullanıcı</span>
-                            <span className="text-sm text-gray-500">Bugün</span>
+                
+                {/* Activity Section */}
+                {activeSection === 'activity' && (
+                  <>
+                    <div className="mb-8">
+                      <div className="flex gap-3">
+                        <Avatar className="w-10 h-10">
+                          <AvatarImage src={currentUser?.avatar} />
+                          <AvatarFallback>{currentUser?.fullName?.charAt(0)}</AvatarFallback>
+                        </Avatar>
+                        <div className="flex-1">
+                          <Textarea
+                            value={newUpdate}
+                            onChange={(e) => setNewUpdate(e.target.value)}
+                            placeholder="Güncelleme yaz..."
+                            className="min-h-[100px] resize-none border-2 focus:border-[#0086c0]"
+                          />
+                          <div className="mt-3 flex items-center gap-2">
+                            <Button 
+                              onClick={handleAddUpdate}
+                              disabled={!newUpdate.trim()}
+                              className="bg-[#0086c0] hover:bg-[#006a99]"
+                            >
+                              Güncelle
+                            </Button>
                           </div>
-                          <p className="text-sm text-gray-600">{comment.text}</p>
                         </div>
                       </div>
                     </div>
-                  ))}
-                </div>
+
+                    <div className="space-y-6">
+                      <div className="flex items-start gap-3">
+                        <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">
+                          <CheckCircle2 size={18} className="text-blue-600" />
+                        </div>
+                        <div className="flex-1">
+                          <div className="bg-gray-50 rounded-lg p-4">
+                            <div className="flex items-center justify-between mb-2">
+                              <span className="font-semibold text-gray-900">Görev Oluşturuldu</span>
+                              <span className="text-sm text-gray-500">
+                                {new Date(taskData.createdAt).toLocaleDateString('tr-TR')}
+                              </span>
+                            </div>
+                            <p className="text-sm text-gray-600">
+                              {currentUser?.fullName} görevi oluşturdu
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </>
+                )}
+
+                {/* Subtasks Section */}
+                {activeSection === 'subtasks' && (
+                  <>
+                    <h3 className="text-lg font-semibold text-gray-900 mb-4">Alt Görevler</h3>
+                    <div className="mb-6">
+                      <div className="flex gap-2">
+                        <Input
+                          value={newSubtask}
+                          onChange={(e) => setNewSubtask(e.target.value)}
+                          placeholder="Yeni alt görev ekle..."
+                          onKeyPress={(e) => e.key === 'Enter' && handleAddSubtask()}
+                          className="flex-1"
+                        />
+                        <Button 
+                          onClick={handleAddSubtask}
+                          disabled={!newSubtask.trim()}
+                          className="bg-[#6366f1] hover:bg-[#5558e3]"
+                        >
+                          <Plus size={18} />
+                        </Button>
+                      </div>
+                    </div>
+
+                    <div className="space-y-3">
+                      {subtasks.map((subtask) => (
+                        <div key={subtask.id} className="flex items-center gap-3 bg-gray-50 p-4 rounded-lg hover:bg-gray-100 transition-colors">
+                          <input
+                            type="checkbox"
+                            checked={subtask.completed}
+                            onChange={() => toggleSubtask(subtask.id)}
+                            className="w-5 h-5 rounded border-gray-300 text-[#6366f1] focus:ring-[#6366f1]"
+                          />
+                          <span className={`flex-1 ${subtask.completed ? 'line-through text-gray-500' : 'text-gray-900'}`}>
+                            {subtask.title}
+                          </span>
+                          <button 
+                            onClick={() => deleteSubtask(subtask.id)}
+                            className="text-red-500 hover:text-red-700 p-1"
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        </div>
+                      ))}
+                      {subtasks.length === 0 && (
+                        <p className="text-center text-gray-500 py-8">Henüz alt görev eklenmedi</p>
+                      )}
+                    </div>
+                  </>
+                )}
+
+                {/* Comments Section */}
+                {activeSection === 'comments' && (
+                  <>
+                    <h3 className="text-lg font-semibold text-gray-900 mb-4">Yorumlar</h3>
+                    <div className="mb-6">
+                      <div className="flex gap-3">
+                        <Avatar className="w-10 h-10">
+                          <AvatarImage src={currentUser?.avatar} />
+                          <AvatarFallback>{currentUser?.fullName?.charAt(0)}</AvatarFallback>
+                        </Avatar>
+                        <div className="flex-1">
+                          <Textarea
+                            value={newComment}
+                            onChange={(e) => setNewComment(e.target.value)}
+                            placeholder="Yorum yaz..."
+                            className="min-h-[80px] resize-none border-2 focus:border-[#0086c0]"
+                          />
+                          <div className="mt-2">
+                            <Button 
+                              onClick={handleAddComment}
+                              disabled={!newComment.trim()}
+                              className="bg-[#0086c0] hover:bg-[#006a99]"
+                              size="sm"
+                            >
+                              Yorum Ekle
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="space-y-4">
+                      {comments.map((comment) => (
+                        <div key={comment.id} className="flex items-start gap-3">
+                          <Avatar className="w-10 h-10">
+                            <AvatarImage src={comment.userAvatar} />
+                            <AvatarFallback>{comment.userName?.charAt(0)}</AvatarFallback>
+                          </Avatar>
+                          <div className="flex-1">
+                            <div className="bg-gray-50 rounded-lg p-4">
+                              <div className="flex items-center justify-between mb-2">
+                                <span className="font-semibold text-gray-900">{comment.userName || 'Kullanıcı'}</span>
+                                <span className="text-sm text-gray-500">
+                                  {new Date(comment.createdAt).toLocaleDateString('tr-TR')}
+                                </span>
+                              </div>
+                              <p className="text-sm text-gray-600">{comment.text}</p>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                      {comments.length === 0 && (
+                        <p className="text-center text-gray-500 py-8">Henüz yorum yapılmadı</p>
+                      )}
+                    </div>
+                  </>
+                )}
+
+                {/* Files Section */}
+                {activeSection === 'files' && (
+                  <>
+                    <h3 className="text-lg font-semibold text-gray-900 mb-4">Dosyalar</h3>
+                    <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-[#6366f1] transition-colors cursor-pointer">
+                      <Paperclip size={48} className="mx-auto text-gray-400 mb-3" />
+                      <p className="text-gray-600 mb-2">Dosya yüklemek için tıklayın veya sürükleyin</p>
+                      <p className="text-sm text-gray-500">PDF, JPG, PNG, DOC (Max 10MB)</p>
+                    </div>
+                  </>
+                )}
+
               </div>
             </div>
 
