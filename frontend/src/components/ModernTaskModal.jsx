@@ -121,12 +121,13 @@ const ModernTaskModal = ({ task, isOpen, onClose }) => {
   return (
     <div 
       className="fixed inset-0 bg-black bg-opacity-60 flex items-end justify-center" 
-      style={{ zIndex: 9999 }}
+      style={{ zIndex: 9999, pointerEvents: 'auto' }}
       onClick={onClose}
     >
       <div
         className="bg-white rounded-t-2xl w-full max-w-6xl h-[90vh] overflow-hidden animate-in slide-in-from-bottom duration-300"
         onClick={(e) => e.stopPropagation()}
+        style={{ pointerEvents: 'auto' }}
       >
         {/* Header */}
         <div className="flex items-center justify-between px-8 py-4 border-b border-gray-200">
