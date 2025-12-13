@@ -157,20 +157,33 @@ const ModernTaskModal = ({ task, isOpen, onClose }) => {
         <div className="flex h-[calc(90vh-80px)]">
           {/* Left Sidebar - Quick Actions */}
           <div className="w-20 bg-gray-50 border-r border-gray-200 flex flex-col items-center py-6 gap-4">
-            <button className="p-3 hover:bg-white rounded-lg transition-colors" title="Durum">
-              <CheckCircle2 size={20} className="text-gray-600" />
+            <button 
+              onClick={() => setActiveSection('activity')}
+              className={`p-3 hover:bg-white rounded-lg transition-colors ${activeSection === 'activity' ? 'bg-white shadow-md' : ''}`} 
+              title="Aktivite"
+            >
+              <CheckCircle2 size={20} className={activeSection === 'activity' ? 'text-[#6366f1]' : 'text-gray-600'} />
             </button>
-            <button className="p-3 hover:bg-white rounded-lg transition-colors" title="Öncelik">
-              <BarChart3 size={20} className="text-gray-600" />
+            <button 
+              onClick={() => setActiveSection('subtasks')}
+              className={`p-3 hover:bg-white rounded-lg transition-colors ${activeSection === 'subtasks' ? 'bg-white shadow-md' : ''}`} 
+              title="Alt Görevler"
+            >
+              <ListTodo size={20} className={activeSection === 'subtasks' ? 'text-[#6366f1]' : 'text-gray-600'} />
             </button>
-            <button className="p-3 hover:bg-white rounded-lg transition-colors" title="Atananlar">
-              <User size={20} className="text-gray-600" />
+            <button 
+              onClick={() => setActiveSection('comments')}
+              className={`p-3 hover:bg-white rounded-lg transition-colors ${activeSection === 'comments' ? 'bg-white shadow-md' : ''}`} 
+              title="Yorumlar"
+            >
+              <MessageSquare size={20} className={activeSection === 'comments' ? 'text-[#6366f1]' : 'text-gray-600'} />
             </button>
-            <button className="p-3 hover:bg-white rounded-lg transition-colors" title="Tarih">
-              <Calendar size={20} className="text-gray-600" />
-            </button>
-            <button className="p-3 hover:bg-white rounded-lg transition-colors" title="Dosyalar">
-              <Paperclip size={20} className="text-gray-600" />
+            <button 
+              onClick={() => setActiveSection('files')}
+              className={`p-3 hover:bg-white rounded-lg transition-colors ${activeSection === 'files' ? 'bg-white shadow-md' : ''}`} 
+              title="Dosyalar"
+            >
+              <Paperclip size={20} className={activeSection === 'files' ? 'text-[#6366f1]' : 'text-gray-600'} />
             </button>
           </div>
 
