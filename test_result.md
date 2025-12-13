@@ -344,8 +344,9 @@ metadata:
 
 test_plan:
   current_focus:
-    - "Backend API Testing Complete"
-  stuck_tasks: []
+    - "Avatar & Subtasks Features in ModernTaskModal"
+  stuck_tasks:
+    - "Avatar & Subtasks Features in ModernTaskModal"
   test_all: false
   test_priority: "high_first"
 
