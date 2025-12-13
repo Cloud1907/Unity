@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Calendar, User, MessageSquare, Paperclip, BarChart3, Clock, Plus, CheckCircle2 } from 'lucide-react';
+import { X, Calendar, User as UserIcon, MessageSquare, Paperclip, BarChart3, Clock, Plus, CheckCircle2, ListTodo, Trash2 } from 'lucide-react';
 import { useData } from '../contexts/DataContext';
 import { useAuth } from '../contexts/AuthContext';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
@@ -29,7 +29,12 @@ const ModernTaskModal = ({ task, isOpen, onClose }) => {
   const [activeTab, setActiveTab] = useState('updates');
   const [taskData, setTaskData] = useState(task);
   const [newUpdate, setNewUpdate] = useState('');
+  const [newComment, setNewComment] = useState('');
+  const [newSubtask, setNewSubtask] = useState('');
+  const [subtasks, setSubtasks] = useState(task.subtasks || []);
+  const [comments, setComments] = useState(task.comments || []);
   const [isEditing, setIsEditing] = useState(false);
+  const [activeSection, setActiveSection] = useState('activity');
 
   if (!isOpen) return null;
 
