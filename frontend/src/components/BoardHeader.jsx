@@ -111,17 +111,21 @@ const BoardHeader = ({ boardId, currentView, onViewChange }) => {
         </div>
 
         <div className="flex items-center gap-3">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={16} />
+          <div className="relative group">
+            <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 group-hover:text-[#6366f1] transition-colors" size={18} />
             <input
               type="text"
               placeholder="Görev ara..."
-              className="pl-10 pr-4 py-2.5 bg-white border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#6366f1] focus:border-transparent transition-all w-64"
+              className="pl-12 pr-5 py-3 bg-white border-2 border-gray-200 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-[#6366f1] focus:border-transparent hover:border-gray-300 transition-all w-72 shadow-sm"
             />
           </div>
-          <Button variant="outline" size="sm" className="gap-2 rounded-xl">
-            <Filter size={16} />
-            Filtrele
+          <Button 
+            variant="outline" 
+            size="sm" 
+            className="gap-2 rounded-2xl px-5 py-3 border-2 border-gray-200 hover:border-[#6366f1] hover:bg-gradient-to-r hover:from-[#6366f1]/5 hover:to-[#8b5cf6]/5 transition-all shadow-sm"
+          >
+            <Filter size={18} />
+            <span className="font-semibold">Filtrele</span>
           </Button>
         </div>
       </div>
