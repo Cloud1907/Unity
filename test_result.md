@@ -347,9 +347,8 @@ metadata:
 
 test_plan:
   current_focus:
-    - "Avatar & Subtasks Features in ModernTaskModal"
-  stuck_tasks:
-    - "Avatar & Subtasks Features in ModernTaskModal"
+    - "All features tested and working"
+  stuck_tasks: []
   test_all: false
   test_priority: "high_first"
 
