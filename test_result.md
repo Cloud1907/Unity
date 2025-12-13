@@ -322,6 +322,21 @@ frontend:
         - agent: "testing"
         - comment: "COMPREHENSIVE TESTING COMPLETED (Dec 12, 2025): Full end-to-end testing of 4Flow application. ✅ Authentication: test@4flow.com/test123 credentials work perfectly ✅ Branding: 4Flow logo correctly displayed throughout app ✅ Project Management: New project creation works, 'Test Project 4Flow' appears in sidebar immediately ✅ Task Creation: Both header 'Yeni Öğe' and footer 'Yeni görev ekle' buttons functional, tasks appear immediately ✅ View Switching: All views (Ana Tablo, Kanban, Takvim, Gantt, İş Yükü) working ✅ Kanban: 5 'Görev Ekle' buttons found, tasks display in correct columns ✅ Task Modal: ModernTaskModal opens properly, status changes work, closes correctly ✅ UI/UX: Professional design, smooth animations, hover effects functional. Application meets all requirements with excellent user experience."
 
+  - task: "Avatar & Subtasks Features in ModernTaskModal"
+    implemented: true
+    working: false
+    file: "/app/frontend/src/components/ModernTaskModal.jsx, /app/frontend/src/components/ui/avatar.jsx"
+    stuck_count: 1
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: "NA"
+        - agent: "testing"
+        - comment: "Initial assessment - testing new avatar display and subtasks functionality in ModernTaskModal"
+        - working: false
+        - agent: "testing"
+        - comment: "TESTED (Dec 13, 2025): New features partially working. ✅ Avatar Display: Default User icon correctly shown in header, sidebar, and modal when no avatar set ✅ ModernTaskModal: Opens successfully on task click ✅ Left Sidebar Icons: All 4 icons present (Activity, Subtasks, Comments, Files) ✅ Section Navigation: Activity and Subtasks sections load correctly ✅ UI Implementation: Subtasks input field, comments textarea, files upload area all present. ❌ CRITICAL ISSUE: Modal overlay (.fixed.inset-0.bg-black.bg-opacity-60) intercepts pointer events, preventing interaction with sidebar buttons and form elements. This blocks testing of subtask add/delete/toggle, comment posting, and full section navigation. The features are implemented but overlay z-index needs fixing for full functionality."
+
 metadata:
   created_by: "testing_agent"
   version: "1.0"
