@@ -74,6 +74,46 @@ const ModernTaskModal = ({ task, isOpen, onClose }) => {
     }
   };
 
+  const handleAddComment = () => {
+    if (newComment.trim()) {
+      const comment = {
+        id: Date.now(),
+        text: newComment,
+        userId: currentUser?._id,
+        userName: currentUser?.fullName,
+        createdAt: new Date().toISOString()
+      };
+      setComments([...comments, comment]);
+      setNewComment('');
+      toast.success('Yorum eklendi');
+    }
+  };
+
+  const handleAddSubtask = () => {
+    if (newSubtask.trim()) {
+      const subtask = {
+        id: Date.now(),
+        title: newSubtask,
+        completed: false,
+        createdAt: new Date().toISOString()
+      };
+      setSubtasks([...subtasks, subtask]);
+      setNewSubtask('');
+      toast.success('Alt görev eklendi');
+    }
+  };
+
+  const toggleSubtask = (subtaskId) => {
+    setSubtasks(subtasks.map(st => 
+      st.id === subtaskId ? { ...st, completed: !st.completed } : st
+    ));
+  };
+
+  const deleteSubtask = (subtaskId) => {
+    setSubtasks(subtasks.filter(st => st.id !== subtaskId));
+    toast.success('Alt görev silindi');
+  };
+
   const statusData = getStatusData(taskData.status);
   const priorityData = getPriorityData(taskData.priority);
   const taskAssignees = getAssignees(taskData.assignees);
