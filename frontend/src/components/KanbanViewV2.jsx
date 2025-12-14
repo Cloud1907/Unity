@@ -403,7 +403,14 @@ const KanbanViewV2 = ({ boardId }) => {
                 </div>
 
                 {/* Tasks */}
-                <div className="flex-1 overflow-y-auto px-3 pb-3 space-y-2.5">
+                <div 
+                  className="flex-1 overflow-y-auto px-3 pb-3 space-y-2.5 rounded-b-xl"
+                  style={{ 
+                    background: isDropTarget 
+                      ? `linear-gradient(to bottom, transparent 0%, ${column.color}20 100%)`
+                      : `linear-gradient(to bottom, transparent 0%, ${column.lightBg} 100%)`
+                  }}
+                >
                   {columnTasks.map(task => (
                     <CompactTaskCard
                       key={task._id}
