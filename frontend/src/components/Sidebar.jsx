@@ -75,15 +75,15 @@ const Sidebar = ({ currentBoard, onBoardChange, onNewBoard }) => {
   return (
     <div className="w-64 bg-[#f6f7fb] border-r border-gray-200 h-screen flex flex-col">
       {/* Logo */}
-      <div className="p-4 border-b border-gray-200">
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-1 group cursor-pointer">
-            <div className="w-10 h-10 bg-gradient-to-br from-[#6366f1] to-[#8b5cf6] rounded-xl flex items-center justify-center shadow-lg group-hover:shadow-xl transition-all duration-300 group-hover:scale-105">
-              <span className="text-2xl font-black text-white">4</span>
+      <div className="p-3 border-b border-gray-200">
+        <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 group cursor-pointer">
+            <div className="w-7 h-7 bg-gradient-to-br from-[#6366f1] to-[#8b5cf6] rounded-lg flex items-center justify-center">
+              <span className="text-base font-black text-white">4</span>
             </div>
             <div className="flex flex-col">
-              <span className="text-xl font-bold text-gray-900 leading-none tracking-tight">Flow</span>
-              <span className="text-[10px] text-gray-500 tracking-wider">PROJECT MANAGEMENT</span>
+              <span className="text-sm font-bold text-gray-900 leading-none">Flow</span>
+              <span className="text-[9px] text-gray-500 tracking-wide">PROJECT MANAGEMENT</span>
             </div>
           </div>
         </div>
@@ -92,14 +92,14 @@ const Sidebar = ({ currentBoard, onBoardChange, onNewBoard }) => {
       {/* Navigation */}
       <div className="flex-1 overflow-y-auto py-4">
         {/* Main Items */}
-        <div className="px-3 mb-6">
-          <button className="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-white transition-colors text-gray-700">
-            <Home size={20} />
-            <span className="font-normal">Ana Sayfa</span>
+        <div className="px-2 mb-4">
+          <button className="w-full flex items-center gap-2 px-2 py-1.5 rounded hover:bg-white transition-colors text-gray-700 text-xs">
+            <Home size={16} />
+            <span>Ana Sayfa</span>
           </button>
-          <button className="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-white transition-colors text-gray-700">
-            <Users size={20} />
-            <span className="font-normal">Ekibim</span>
+          <button className="w-full flex items-center gap-2 px-2 py-1.5 rounded hover:bg-white transition-colors text-gray-700 text-xs">
+            <Users size={16} />
+            <span>Ekibim</span>
           </button>
         </div>
 
