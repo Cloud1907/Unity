@@ -98,6 +98,60 @@ const Dashboard = () => {
 };
 
 function App() {
+  // 🛡️ Emergent Preview Body Lock Fix
+  // Preview ortamında body'nin pointer-events: none olmasını engeller
+  useEffect(() => {
+    const isPreviewEnv = window.location.hostname.includes('emergent') || 
+                         window.location.hostname.includes('preview');
+    
+    if (!isPreviewEnv) return; // Sadece preview ortamında çalışsın
+
+    console.log('🛡️ Emergent Preview body lock protection enabled');
+
+    // İlk render'da body kilidini kaldır
+    const unlockBody = () => {
+      if (document.body) {
+        document.body.style.pointerEvents = 'auto';
+        document.body.style.overflow = 'auto';
+        document.body.removeAttribute('data-scroll-locked');
+      }
+    };
+
+    // Hemen uygula
+    unlockBody();
+
+    // MutationObserver ile body attribute değişikliklerini izle
+    const observer = new MutationObserver((mutations) => {
+      mutations.forEach((mutation) => {
+        if (mutation.type === 'attributes' && mutation.target === document.body) {
+          const hasLock = document.body.hasAttribute('data-scroll-locked') ||
+                         document.body.style.pointerEvents === 'none';
+          
+          if (hasLock) {
+            console.warn('⚠️ Body locked detected! Auto-unlocking...');
+            unlockBody();
+          }
+        }
+      });
+    });
+
+    // Body'deki attribute ve style değişikliklerini izle
+    observer.observe(document.body, {
+      attributes: true,
+      attributeFilter: ['style', 'data-scroll-locked', 'class']
+    });
+
+    // Periyodik kontrol (ekstra güvence)
+    const intervalId = setInterval(unlockBody, 1000);
+
+    // Cleanup
+    return () => {
+      observer.disconnect();
+      clearInterval(intervalId);
+      console.log('🛡️ Body lock protection cleaned up');
+    };
+  }, []);
+
   return (
     <div className="App">
       <BrowserRouter>
