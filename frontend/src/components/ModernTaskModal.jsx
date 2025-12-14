@@ -486,6 +486,9 @@ const ModernTaskModal = ({ task, isOpen, onClose }) => {
       </div>
     </div>
   );
+
+  // Use React Portal to render modal at body level
+  return ReactDOM.createPortal(modalContent, document.body);
 };
 
 export default ModernTaskModal;
