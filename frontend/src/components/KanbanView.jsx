@@ -194,19 +194,19 @@ const KanbanView = ({ boardId }) => {
                           {task.title}
                         </h4>
 
-                        {/* Labels/Tags */}
+                        {/* Labels/Tags - Monday.com style */}
                         {task.labels && task.labels.length > 0 && (
-                          <div className="flex flex-wrap gap-1 mb-2">
+                          <div className="flex flex-wrap gap-1.5 mb-2">
                             {task.labels.slice(0, 2).map((label, idx) => (
                               <span 
                                 key={idx} 
-                                className="px-2 py-0.5 bg-blue-100 text-blue-700 text-xs rounded-full font-medium"
+                                className="px-2.5 py-1 bg-gradient-to-r from-blue-500 to-purple-500 text-white text-[10px] rounded-md font-bold shadow-sm hover:shadow-md transition-all hover:scale-105"
                               >
                                 {label}
                               </span>
                             ))}
                             {task.labels.length > 2 && (
-                              <span className="px-2 py-0.5 bg-gray-100 text-gray-600 text-xs rounded-full font-medium">
+                              <span className="px-2.5 py-1 bg-gradient-to-r from-gray-200 to-gray-300 text-gray-700 text-[10px] rounded-md font-bold hover:scale-105 transition-transform">
                                 +{task.labels.length - 2}
                               </span>
                             )}
