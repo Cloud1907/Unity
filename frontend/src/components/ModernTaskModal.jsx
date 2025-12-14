@@ -119,16 +119,16 @@ const ModernTaskModal = ({ task, isOpen, onClose }) => {
   const priorityData = getPriorityData(taskData.priority);
   const taskAssignees = getAssignees(taskData.assignees);
 
-  return (
+  const modalContent = (
     <div 
       className="fixed inset-0 bg-black bg-opacity-60 flex items-end justify-center" 
-      style={{ zIndex: 99999, pointerEvents: 'auto' }}
+      style={{ zIndex: 999999, pointerEvents: 'auto' }}
       onClick={onClose}
     >
       <div
         className="bg-white rounded-t-2xl w-full max-w-6xl h-[90vh] overflow-hidden animate-in slide-in-from-bottom duration-300"
         onClick={(e) => e.stopPropagation()}
-        style={{ pointerEvents: 'auto', zIndex: 100000 }}
+        style={{ pointerEvents: 'auto', zIndex: 1000000 }}
       >
         {/* Header */}
         <div className="flex items-center justify-between px-8 py-4 border-b border-gray-200">
