@@ -119,10 +119,32 @@ const InlineStatusDropdown = ({ currentStatus, onStatusChange, taskId }) => {
 };
 
 // Kompakt Task Card - Monday.com stili
-const CompactTaskCard = ({ task, onDragStart, onDragEnd, isDragging, users, onStatusChange, onTaskClick }) => {
-  // Match users with task assignees  
+const CompactTaskCard = ({ task, onDragStart, onDragEnd, isDragging, users, onStatusChange, onTaskClick, onUpdate }) => {
   const assignees = users.filter(u => task.assignees?.includes(u.id || u._id));
   const [isHovered, setIsHovered] = useState(false);
+  const [showAssigneeMenu, setShowAssigneeMenu] = useState(false);
+  const assigneeMenuRef = useRef(null);
+
+  // Close assignee menu on outside click
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (assigneeMenuRef.current && !assigneeMenuRef.current.contains(event.target)) {
+        setShowAssigneeMenu(false);
+      }
+    };
+    if (showAssigneeMenu) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [showAssigneeMenu]);
+
+  const toggleAssignee = (userId) => {
+    const currentAssignees = task.assignees || [];
+    const newAssignees = currentAssignees.includes(userId)
+      ? currentAssignees.filter(id => id !== userId)
+      : [...currentAssignees, userId];
+    onUpdate(task._id, { assignees: newAssignees });
+  };
 
   return (
     <div
@@ -133,7 +155,7 @@ const CompactTaskCard = ({ task, onDragStart, onDragEnd, isDragging, users, onSt
       onMouseLeave={() => setIsHovered(false)}
       onClick={(e) => {
         // Sadece kart alanına tıklanırsa detay aç
-        if (e.target.closest('button')) return;
+        if (e.target.closest('button') || e.target.closest('[role="menu"]')) return;
         onTaskClick(task);
       }}
       className={`bg-white rounded-lg p-3 border transition-all duration-200 cursor-pointer group ${
@@ -166,29 +188,73 @@ const CompactTaskCard = ({ task, onDragStart, onDragEnd, isDragging, users, onSt
 
       {/* Bottom Section - Assignee & Status */}
       <div className="flex items-center justify-between gap-2">
-        {/* Assignee */}
-        <div className="flex items-center -space-x-1.5">
-          {assignees.slice(0, 2).map((assignee, idx) => (
-            <Avatar 
-              key={assignee.id} 
-              className="w-6 h-6 border-2 border-white ring-1 ring-gray-200 hover:ring-blue-400 transition-all hover:z-10 hover:scale-110"
-              style={{ zIndex: 2 - idx }}
+        {/* Assignee - Clickable to add/remove */}
+        <div ref={assigneeMenuRef} className="relative">
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              setShowAssigneeMenu(!showAssigneeMenu);
+            }}
+            className="flex items-center -space-x-1.5 hover:scale-105 transition-transform"
+          >
+            {assignees.slice(0, 2).map((assignee, idx) => (
+              <Avatar 
+                key={assignee.id || assignee._id} 
+                className="w-6 h-6 border-2 border-white ring-1 ring-gray-200 hover:ring-blue-400 transition-all hover:z-10"
+                style={{ zIndex: 2 - idx }}
+              >
+                <AvatarImage src={assignee.avatar} />
+                <AvatarFallback className="text-[10px] font-bold bg-gradient-to-br from-blue-400 to-purple-500 text-white">
+                  {assignee.fullName?.charAt(0)}
+                </AvatarFallback>
+              </Avatar>
+            ))}
+            {assignees.length > 2 && (
+              <div className="w-6 h-6 rounded-full bg-gradient-to-br from-gray-200 to-gray-300 border-2 border-white flex items-center justify-center text-[9px] font-bold text-gray-700">
+                +{assignees.length - 2}
+              </div>
+            )}
+            {assignees.length === 0 && (
+              <div className="w-6 h-6 rounded-full border-2 border-dashed border-gray-300 flex items-center justify-center hover:border-blue-400 hover:bg-blue-50 transition-all">
+                <User size={12} className="text-gray-400" />
+              </div>
+            )}
+          </button>
+
+          {/* Assignee Menu */}
+          {showAssigneeMenu && (
+            <div 
+              role="menu"
+              className="absolute top-full left-0 mt-1 bg-white rounded-lg shadow-2xl border border-gray-200 z-[9999] min-w-[200px] py-2 animate-in fade-in slide-in-from-top-2 duration-200"
+              onClick={(e) => e.stopPropagation()}
             >
-              <AvatarImage src={assignee.avatar} />
-              <AvatarFallback className="text-[10px] font-bold bg-gradient-to-br from-blue-400 to-purple-500 text-white">
-                {assignee.fullName?.charAt(0)}
-              </AvatarFallback>
-            </Avatar>
-          ))}
-          {assignees.length > 2 && (
-            <div className="w-6 h-6 rounded-full bg-gradient-to-br from-gray-200 to-gray-300 border-2 border-white flex items-center justify-center text-[9px] font-bold text-gray-700">
-              +{assignees.length - 2}
+              <div className="px-3 py-1.5 text-xs font-semibold text-gray-500 border-b border-gray-100">
+                Kişi Ata
+              </div>
+              <div className="max-h-48 overflow-y-auto">
+                {users.map(user => (
+                  <button
+                    key={user.id || user._id}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      toggleAssignee(user.id || user._id);
+                    }}
+                    className="w-full flex items-center gap-2 px-3 py-2 text-xs hover:bg-gray-50 transition-colors"
+                  >
+                    <Avatar className="w-6 h-6">
+                      <AvatarImage src={user.avatar} />
+                      <AvatarFallback className="text-[10px]">
+                        {user.fullName?.charAt(0)}
+                      </AvatarFallback>
+                    </Avatar>
+                    <span className="flex-1 text-left text-gray-900">{user.fullName}</span>
+                    {(task.assignees || []).includes(user.id || user._id) && (
+                      <span className="text-blue-600 text-sm">✓</span>
+                    )}
+                  </button>
+                ))}
+              </div>
             </div>
-          )}
-          {assignees.length === 0 && (
-            <button className="w-6 h-6 rounded-full border-2 border-dashed border-gray-300 flex items-center justify-center hover:border-blue-400 hover:bg-blue-50 transition-all">
-              <User size={12} className="text-gray-400" />
-            </button>
           )}
         </div>
 
