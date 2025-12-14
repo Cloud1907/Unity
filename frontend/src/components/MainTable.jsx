@@ -1,24 +1,24 @@
-import React, { useState } from 'react';
-import { MoreHorizontal, Plus, Calendar, User, Tag, TrendingUp } from 'lucide-react';
+import React, { useState, useRef, useEffect } from 'react';
+import { MoreHorizontal, Plus, Calendar, User, Tag, TrendingUp, ChevronDown, X } from 'lucide-react';
 import { useData } from '../contexts/DataContext';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
 import ModernTaskModal from './ModernTaskModal';
 import NewTaskModal from './NewTaskModal';
 
-// Status ve priority tanımları
+// Monday.com renk paleti
 const statuses = [
-  { id: 'todo', label: 'Yapılacak', color: '#c4c4c4' },
-  { id: 'working', label: 'Devam Ediyor', color: '#fdab3d' },
-  { id: 'stuck', label: 'Takıldı', color: '#e2445c' },
-  { id: 'done', label: 'Tamamlandı', color: '#00c875' },
-  { id: 'review', label: 'İncelemede', color: '#579bfc' }
+  { id: 'todo', label: 'Yapılacak', color: '#C4C4C4' },
+  { id: 'working', label: 'Devam Ediyor', color: '#FDAB3D' },
+  { id: 'stuck', label: 'Takıldı', color: '#E2445C' },
+  { id: 'done', label: 'Tamamlandı', color: '#00C875' },
+  { id: 'review', label: 'İncelemede', color: '#579BFC' }
 ];
 
 const priorities = [
-  { id: 'low', label: 'Düşük', color: '#c4c4c4', icon: '↓' },
-  { id: 'medium', label: 'Orta', color: '#fdab3d', icon: '−' },
-  { id: 'high', label: 'Yüksek', color: '#e2445c', icon: '↑' },
-  { id: 'urgent', label: 'Acil', color: '#df2f4a', icon: '⇈' }
+  { id: 'low', label: 'Düşük', color: '#C4C4C4', icon: '↓' },
+  { id: 'medium', label: 'Orta', color: '#FDAB3D', icon: '−' },
+  { id: 'high', label: 'Yüksek', color: '#E2445C', icon: '↑' },
+  { id: 'urgent', label: 'Acil', color: '#DF2F4A', icon: '⇈' }
 ];
 
 const MainTable = ({ boardId }) => {
