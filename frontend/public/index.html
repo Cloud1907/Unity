@@ -8,15 +8,32 @@
         <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate, max-age=0" />
         <meta http-equiv="Pragma" content="no-cache" />
         <meta http-equiv="Expires" content="0" />
-        <!-- 🔥 AGGRESSIVE CACHE CLEAR - Run Once -->
+        <!-- 🔥 CACHE CLEAR - One Time Only -->
         <script>
-          const cacheCleared = sessionStorage.getItem('cache-cleared-v2');
-          if (!cacheCleared) {
-            console.log('🧹 First load - running cache clear');
-            sessionStorage.setItem('cache-cleared-v2', 'true');
-            const script = document.createElement('script');
-            script.src = '/clear-cache.js?v=' + Date.now();
-            document.head.appendChild(script);
+          const BUILD_VERSION = 'v0.2.0';
+          const lastVersion = localStorage.getItem('app-version');
+          
+          if (lastVersion !== BUILD_VERSION) {
+            console.log('🧹 New version detected - clearing cache');
+            
+            // Clear caches
+            if ('caches' in window) {
+              caches.keys().then(names => {
+                names.forEach(name => caches.delete(name));
+              });
+            }
+            
+            // Unregister service workers
+            if ('serviceWorker' in navigator) {
+              navigator.serviceWorker.getRegistrations().then(registrations => {
+                registrations.forEach(reg => reg.unregister());
+              });
+            }
+            
+            // Mark as cleared
+            localStorage.setItem('app-version', BUILD_VERSION);
+            
+            console.log('✅ Cache cleared for ' + BUILD_VERSION);
           }
         </script>
         <!--
