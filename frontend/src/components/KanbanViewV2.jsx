@@ -119,8 +119,12 @@ const InlineStatusDropdown = ({ currentStatus, onStatusChange, taskId }) => {
 
 // Kompakt Task Card - Monday.com stili
 const CompactTaskCard = ({ task, onDragStart, onDragEnd, isDragging, users, onStatusChange, onTaskClick }) => {
-  const assignees = users.filter(u => task.assignedTo?.includes(u.id));
+  // Match users with task assignees
+  const assignees = users.filter(u => task.assignedTo?.includes(u.id || u._id));
   const [isHovered, setIsHovered] = useState(false);
+  
+  // Debug log
+  console.log('Task:', task.title, 'AssignedTo:', task.assignedTo, 'Found assignees:', assignees.length);
 
   return (
     <div
