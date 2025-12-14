@@ -118,8 +118,8 @@ const InlineStatusDropdown = ({ currentStatus, onStatusChange, taskId }) => {
 };
 
 // Kompakt Task Card - Monday.com stili
-const CompactTaskCard = ({ task, onDragStart, onDragEnd, isDragging, users, onStatusChange }) => {
-  const assignees = users.filter(u => task.assignedTo?.includes(u._id));
+const CompactTaskCard = ({ task, onDragStart, onDragEnd, isDragging, users, onStatusChange, onTaskClick }) => {
+  const assignees = users.filter(u => task.assignedTo?.includes(u.id));
   const [isHovered, setIsHovered] = useState(false);
 
   return (
@@ -129,7 +129,12 @@ const CompactTaskCard = ({ task, onDragStart, onDragEnd, isDragging, users, onSt
       onDragEnd={onDragEnd}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
-      className={`bg-white rounded-lg p-3 border transition-all duration-200 cursor-grab active:cursor-grabbing group ${
+      onClick={(e) => {
+        // Sadece kart alanına tıklanırsa detay aç
+        if (e.target.closest('button')) return;
+        onTaskClick(task);
+      }}
+      className={`bg-white rounded-lg p-3 border transition-all duration-200 cursor-pointer group ${
         isDragging 
           ? 'opacity-50 scale-95 shadow-2xl rotate-2' 
           : 'opacity-100 hover:shadow-xl hover:scale-[1.02] border-gray-200 hover:border-blue-400'
@@ -148,6 +153,10 @@ const CompactTaskCard = ({ task, onDragStart, onDragEnd, isDragging, users, onSt
           className={`p-1 rounded hover:bg-gray-100 transition-opacity ${
             isHovered ? 'opacity-100' : 'opacity-0'
           }`}
+          onClick={(e) => {
+            e.stopPropagation();
+            onTaskClick(task);
+          }}
         >
           <MoreHorizontal size={14} className="text-gray-400" />
         </button>
@@ -159,7 +168,7 @@ const CompactTaskCard = ({ task, onDragStart, onDragEnd, isDragging, users, onSt
         <div className="flex items-center -space-x-1.5">
           {assignees.slice(0, 2).map((assignee, idx) => (
             <Avatar 
-              key={assignee._id} 
+              key={assignee.id} 
               className="w-6 h-6 border-2 border-white ring-1 ring-gray-200 hover:ring-blue-400 transition-all hover:z-10 hover:scale-110"
               style={{ zIndex: 2 - idx }}
             >
