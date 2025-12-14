@@ -248,12 +248,12 @@ const KanbanView = ({ boardId }) => {
                               </div>
                             )}
                             
-                            {/* Due Date with warning */}
+                            {/* Due Date with warning - Monday.com style */}
                             {task.dueDate && (
-                              <div className={`flex items-center gap-1 text-xs ml-auto ${
+                              <div className={`flex items-center gap-1.5 text-xs ml-auto px-2 py-1 rounded-md transition-all hover:scale-105 ${
                                 new Date(task.dueDate) < new Date(Date.now() + 3 * 24 * 60 * 60 * 1000)
-                                  ? 'text-red-500 font-semibold'
-                                  : 'text-gray-500'
+                                  ? 'text-red-600 font-bold bg-red-50 border border-red-200'
+                                  : 'text-gray-600 font-semibold hover:bg-gray-100'
                               }`}>
                                 <Calendar size={13} />
                                 <span>
