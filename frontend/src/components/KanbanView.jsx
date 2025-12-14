@@ -186,10 +186,10 @@ const KanbanView = ({ boardId }) => {
                           </div>
                         </div>
 
-                        {/* Task Title - Click to open modal */}
+                        {/* Task Title - Click to open modal - Monday.com style */}
                         <h4 
                           onClick={() => openTaskPanel(task)}
-                          className="text-sm font-semibold text-gray-900 mb-2 line-clamp-2 leading-snug cursor-pointer hover:text-[#6366f1] transition-colors"
+                          className="text-sm font-bold text-gray-900 mb-3 line-clamp-2 leading-snug cursor-pointer hover:text-[#6366f1] transition-all hover:translate-x-1"
                         >
                           {task.title}
                         </h4>
