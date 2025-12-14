@@ -286,7 +286,7 @@ const CompactTaskCard = ({ task, onDragStart, onDragEnd, isDragging, users, onSt
       }}
     >
       {/* Task Title */}
-      <div className="flex items-start justify-between gap-2 mb-3">
+      <div className="flex items-start justify-between gap-2 mb-2">
         <h4 className="text-sm font-semibold text-gray-900 leading-tight flex-1 line-clamp-2">
           {task.title}
         </h4>
@@ -301,6 +301,21 @@ const CompactTaskCard = ({ task, onDragStart, onDragEnd, isDragging, users, onSt
         >
           <MoreHorizontal size={14} className="text-gray-400" />
         </button>
+      </div>
+
+      {/* Priority & Date Row */}
+      <div className="flex items-center gap-2 mb-3">
+        {/* Priority */}
+        <InlinePriorityDropdown
+          currentPriority={task.priority}
+          onChange={(newPriority) => onUpdate(task._id, { priority: newPriority })}
+        />
+
+        {/* Date */}
+        <InlineDatePickerSmall
+          value={task.dueDate}
+          onChange={(newDate) => onUpdate(task._id, { dueDate: newDate })}
+        />
       </div>
 
       {/* Bottom Section - Assignee & Status */}
