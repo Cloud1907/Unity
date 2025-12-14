@@ -7,20 +7,20 @@ import { Textarea } from './ui/textarea';
 import { Input } from './ui/input';
 import { toast } from './ui/sonner';
 
-// Monday.com renk paleti
+// Monday.com renk paleti - Tam eşleşme
 const STATUS_COLORS = {
-  todo: { bg: '#C4C4C4', text: '#323338', label: 'Yapılacak' },
-  doing: { bg: '#FDAB3D', text: '#FFFFFF', label: 'Devam Ediyor' },
-  review: { bg: '#579BFC', text: '#FFFFFF', label: 'İncelemede' },
-  done: { bg: '#00C875', text: '#FFFFFF', label: 'Tamamlandı' },
-  stuck: { bg: '#E2445C', text: '#FFFFFF', label: 'Takıldı' }
+  todo: { bg: '#C4C4C4', text: '#323338', label: 'Yapılacak', lightBg: '#f0f0f0' },
+  working: { bg: '#FDAB3D', text: '#FFFFFF', label: 'Devam Ediyor', lightBg: '#fff4e6' },
+  review: { bg: '#579BFC', text: '#FFFFFF', label: 'İncelemede', lightBg: '#e8f2ff' },
+  done: { bg: '#00C875', text: '#FFFFFF', label: 'Tamamlandı', lightBg: '#e6f7ed' },
+  stuck: { bg: '#E2445C', text: '#FFFFFF', label: 'Takıldı', lightBg: '#ffe6ea' }
 };
 
 const PRIORITY_CONFIG = {
-  urgent: { color: '#E2445C', label: 'Acil', dot: '#E2445C' },
-  high: { color: '#FDAB3D', label: 'Yüksek', dot: '#FDAB3D' },
-  medium: { color: '#579BFC', label: 'Orta', dot: '#579BFC' },
-  low: { color: '#C4C4C4', label: 'Düşük', dot: '#C4C4C4' }
+  urgent: { color: '#DF2F4A', label: 'Acil', dot: '#DF2F4A', icon: '⇈' },
+  high: { color: '#E2445C', label: 'Yüksek', dot: '#E2445C', icon: '↑' },
+  medium: { color: '#FDAB3D', label: 'Orta', dot: '#FDAB3D', icon: '−' },
+  low: { color: '#C4C4C4', label: 'Düşük', dot: '#C4C4C4', icon: '↓' }
 };
 
 const KanbanView = ({ boardId }) => {
