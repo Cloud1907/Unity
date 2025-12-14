@@ -55,6 +55,13 @@ const KanbanView = ({ boardId }) => {
   const handleDragStart = (e, task) => {
     setDraggedTask(task);
     e.dataTransfer.effectAllowed = 'move';
+    // Drag görselini güzelleştir
+    e.currentTarget.style.opacity = '0.5';
+  };
+
+  const handleDragEnd = (e) => {
+    e.currentTarget.style.opacity = '1';
+    setDraggedTask(null);
   };
 
   const handleDragOver = (e) => {
@@ -66,8 +73,8 @@ const KanbanView = ({ boardId }) => {
     e.preventDefault();
     if (draggedTask && draggedTask.status !== newStatus) {
       await updateTaskStatus(draggedTask._id, newStatus);
-      setDraggedTask(null);
     }
+    setDraggedTask(null);
   };
 
   const openTaskPanel = (task) => {
