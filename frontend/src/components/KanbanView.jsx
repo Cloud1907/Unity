@@ -1,57 +1,54 @@
-import React, { useState } from 'react';
-import { Plus, MoreHorizontal } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Plus, X, Calendar, User, Flag, MessageSquare, Paperclip, MoreHorizontal } from 'lucide-react';
 import { useData } from '../contexts/DataContext';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
-import ModernTaskModal from './ModernTaskModal';
-import NewTaskModal from './NewTaskModal';
+import { Button } from './ui/button';
+import { Textarea } from './ui/textarea';
+import { Input } from './ui/input';
 
-const statuses = [
-  { id: 'todo', label: 'Yapılacak', color: '#c4c4c4' },
-  { id: 'working', label: 'Devam Ediyor', color: '#fdab3d' },
-  { id: 'stuck', label: 'Takıldı', color: '#e2445c' },
-  { id: 'done', label: 'Tamamlandı', color: '#00c875' },
-  { id: 'review', label: 'İncelemede', color: '#579bfc' }
-];
+// Monday.com renk paleti
+const STATUS_COLORS = {
+  todo: { bg: '#C4C4C4', text: '#323338', label: 'Yapılacak' },
+  doing: { bg: '#FDAB3D', text: '#FFFFFF', label: 'Devam Ediyor' },
+  review: { bg: '#579BFC', text: '#FFFFFF', label: 'İncelemede' },
+  done: { bg: '#00C875', text: '#FFFFFF', label: 'Tamamlandı' },
+  stuck: { bg: '#E2445C', text: '#FFFFFF', label: 'Takıldı' }
+};
 
-const priorities = [
-  { id: 'low', label: 'Düşük', color: '#c4c4c4', icon: '↓' },
-  { id: 'medium', label: 'Orta', color: '#fdab3d', icon: '−' },
-  { id: 'high', label: 'Yüksek', color: '#e2445c', icon: '↑' },
-  { id: 'urgent', label: 'Acil', color: '#df2f4a', icon: '⇈' }
-];
+const PRIORITY_CONFIG = {
+  urgent: { color: '#E2445C', label: 'Acil', dot: '#E2445C' },
+  high: { color: '#FDAB3D', label: 'Yüksek', dot: '#FDAB3D' },
+  medium: { color: '#579BFC', label: 'Orta', dot: '#579BFC' },
+  low: { color: '#C4C4C4', label: 'Düşük', dot: '#C4C4C4' }
+};
 
 const KanbanView = ({ boardId }) => {
-  const { tasks, users, updateTaskStatus, fetchTasks } = useData();
+  const { tasks, users, fetchTasks, updateTaskStatus, updateTask } = useData();
+  const [filteredTasks, setFilteredTasks] = useState([]);
   const [selectedTask, setSelectedTask] = useState(null);
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [showNewTaskModal, setShowNewTaskModal] = useState(false);
-  const [newTaskStatus, setNewTaskStatus] = useState('todo');
+  const [isPanelOpen, setIsPanelOpen] = useState(false);
   const [draggedTask, setDraggedTask] = useState(null);
 
-  // Fetch tasks when boardId changes
-  React.useEffect(() => {
+  useEffect(() => {
     if (boardId) {
       fetchTasks(boardId);
     }
-  }, [boardId]);
+  }, [boardId, fetchTasks]);
 
-  const boardTasks = tasks.filter(t => t.projectId === boardId);
+  useEffect(() => {
+    const filtered = tasks.filter(task => task.projectId === boardId);
+    setFilteredTasks(filtered);
+  }, [tasks, boardId]);
 
-  const getStatusData = (statusId) => {
-    return statuses.find(s => s.id === statusId) || statuses[0];
-  };
+  const columns = [
+    { id: 'todo', title: 'Yapılacak', color: STATUS_COLORS.todo.bg },
+    { id: 'doing', title: 'Devam Ediyor', color: STATUS_COLORS.doing.bg },
+    { id: 'review', title: 'İncelemede', color: STATUS_COLORS.review.bg },
+    { id: 'done', title: 'Tamamlandı', color: STATUS_COLORS.done.bg }
+  ];
 
-  const getPriorityData = (priorityId) => {
-    return priorities.find(p => p.id === priorityId) || priorities[0];
-  };
-
-  const getAssignees = (assigneeIds) => {
-    return users.filter(u => assigneeIds?.includes(u._id));
-  };
-
-  const openTaskModal = (task) => {
-    setSelectedTask(task);
-    setIsModalOpen(true);
+  const getTasksByStatus = (status) => {
+    return filteredTasks.filter(task => task.status === status);
   };
 
   const handleDragStart = (e, task) => {
@@ -64,138 +61,170 @@ const KanbanView = ({ boardId }) => {
     e.dataTransfer.dropEffect = 'move';
   };
 
-  const handleDrop = async (e, statusId) => {
+  const handleDrop = async (e, newStatus) => {
     e.preventDefault();
-    if (draggedTask && draggedTask.status !== statusId) {
-      // Optimistic UI update
-      const oldStatus = draggedTask.status;
-      setDraggedTask({ ...draggedTask, status: statusId });
-      
-      // API call
-      const result = await updateTaskStatus(draggedTask._id, statusId);
-      if (!result.success) {
-        // Rollback on failure
-        setDraggedTask({ ...draggedTask, status: oldStatus });
-      }
+    if (draggedTask && draggedTask.status !== newStatus) {
+      await updateTaskStatus(draggedTask._id, newStatus);
+      setDraggedTask(null);
     }
-    setTimeout(() => setDraggedTask(null), 300);
   };
 
-  const handleAddTask = (statusId) => {
-    setNewTaskStatus(statusId);
-    setShowNewTaskModal(true);
+  const openTaskPanel = (task) => {
+    setSelectedTask(task);
+    setIsPanelOpen(true);
+  };
+
+  const closeTaskPanel = () => {
+    setIsPanelOpen(false);
+    setTimeout(() => setSelectedTask(null), 300);
+  };
+
+  const getAssignees = (assigneeIds) => {
+    if (!assigneeIds || assigneeIds.length === 0) return [];
+    return users.filter(u => assigneeIds.includes(u._id));
+  };
+
+  const getPriorityConfig = (priority) => {
+    return PRIORITY_CONFIG[priority] || PRIORITY_CONFIG.medium;
   };
 
   return (
-    <>
-      <div className="flex-1 overflow-x-auto bg-gray-50 p-6">
-        <div className="flex gap-4 h-full min-w-max">
-          {statuses.map(status => {
-            const statusTasks = boardTasks.filter(t => t.status === status.id);
+    <div className="h-full bg-[#f6f7fb] relative">
+      {/* Kanban Board */}
+      <div className="h-full overflow-x-auto">
+        <div className="flex gap-4 p-6 h-full min-w-max">
+          {columns.map(column => {
+            const columnTasks = getTasksByStatus(column.id);
             
             return (
               <div
-                key={status.id}
-                className="flex-shrink-0 w-80"
+                key={column.id}
+                className="flex flex-col w-80 bg-[#f6f7fb] rounded-lg"
                 onDragOver={handleDragOver}
-                onDrop={(e) => handleDrop(e, status.id)}
+                onDrop={(e) => handleDrop(e, column.id)}
               >
                 {/* Column Header */}
-                <div className="bg-white rounded-t-lg border border-gray-200 border-b-0 p-4">
-                  <div className="flex items-center justify-between mb-2">
+                <div className="mb-3">
+                  <div className="flex items-center justify-between px-3 py-2">
                     <div className="flex items-center gap-2">
-                      <div
-                        className="w-3 h-3 rounded-full"
-                        style={{ backgroundColor: status.color }}
+                      <div 
+                        className="w-3 h-3 rounded-full" 
+                        style={{ backgroundColor: column.color }}
                       />
-                      <h3 className="font-semibold text-gray-900">{status.label}</h3>
-                      <span className="text-sm text-gray-500">({statusTasks.length})</span>
+                      <span className="text-sm font-bold text-gray-900">
+                        {column.title}
+                      </span>
+                      <span className="text-xs text-gray-500 font-semibold">
+                        ({columnTasks.length})
+                      </span>
                     </div>
-                    <button className="p-1 hover:bg-gray-100 rounded transition-colors">
-                      <MoreHorizontal size={18} className="text-gray-500" />
+                    <button className="p-1 hover:bg-gray-200 rounded transition-colors">
+                      <MoreHorizontal size={16} className="text-gray-600" />
                     </button>
                   </div>
                 </div>
 
-                {/* Column Content */}
-                <div className="bg-white border border-gray-200 rounded-b-lg p-2 min-h-[calc(100vh-300px)] max-h-[calc(100vh-300px)] overflow-y-auto">
-                  <div className="space-y-3">
-                    {statusTasks.map(task => {
-                      const taskAssignees = getAssignees(task.assignees);
-                      const priority = getPriorityData(task.priority);
+                {/* Tasks */}
+                <div className="flex-1 overflow-y-auto space-y-3 px-2 pb-2">
+                  {columnTasks.map(task => {
+                    const assignees = getAssignees(task.assignedTo);
+                    const priority = getPriorityConfig(task.priority);
+                    
+                    return (
+                      <div
+                        key={task._id}
+                        draggable
+                        onDragStart={(e) => handleDragStart(e, task)}
+                        onClick={() => openTaskPanel(task)}
+                        className="bg-white rounded-lg p-4 shadow-md hover:shadow-lg cursor-pointer transition-all duration-200 hover:scale-[1.02] border border-gray-100"
+                      >
+                        {/* Task Title */}
+                        <h4 className="text-sm font-semibold text-gray-900 mb-3 line-clamp-2">
+                          {task.title}
+                        </h4>
 
-                      return (
-                        <div
-                          key={task._id}
-                          draggable
-                          onDragStart={(e) => handleDragStart(e, task)}
-                          onClick={() => openTaskModal(task)}
-                          className="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-lg hover:scale-[1.02] transition-all duration-200 cursor-move group"
-                          style={{
-                            opacity: draggedTask?._id === task._id ? 0.5 : 1
-                          }}
-                        >
-                          {/* Task Title */}
-                          <h4 className="font-medium text-gray-900 mb-3 group-hover:text-[#0086c0] transition-colors">
-                            {task.title}
-                          </h4>
+                        {/* Priority Badge */}
+                        {task.priority && (
+                          <div className="flex items-center gap-1.5 mb-3">
+                            <div 
+                              className="w-2 h-2 rounded-full" 
+                              style={{ backgroundColor: priority.dot }}
+                            />
+                            <span className="text-xs text-gray-600">{priority.label}</span>
+                          </div>
+                        )}
 
-                          {/* Task Meta */}
-                          <div className="flex items-center justify-between">
-                            {/* Priority */}
-                            <div
-                              className="px-2 py-1 rounded text-xs font-medium"
-                              style={{
-                                backgroundColor: `${priority.color}15`,
-                                color: priority.color
-                              }}
-                            >
-                              {priority.icon} {priority.label}
-                            </div>
-
-                            {/* Assignees */}
-                            {taskAssignees.length > 0 && (
-                              <div className="flex items-center -space-x-2">
-                                {taskAssignees.slice(0, 3).map(assignee => (
-                                  <Avatar key={assignee._id} className="w-6 h-6 border-2 border-white">
-                                    <AvatarImage src={assignee.avatar} alt={assignee.fullName} />
-                                    <AvatarFallback style={{ backgroundColor: assignee.color }}>
-                                      {assignee.fullName?.charAt(0)}
-                                    </AvatarFallback>
-                                  </Avatar>
-                                ))}
+                        {/* Task Meta */}
+                        <div className="flex items-center justify-between">
+                          {/* Assignees */}
+                          <div className="flex items-center -space-x-2">
+                            {assignees.slice(0, 3).map(assignee => (
+                              <Avatar key={assignee._id} className="w-6 h-6 border-2 border-white">
+                                <AvatarImage src={assignee.avatar} />
+                                <AvatarFallback className="text-xs">
+                                  {assignee.fullName?.charAt(0)}
+                                </AvatarFallback>
+                              </Avatar>
+                            ))}
+                            {assignees.length > 3 && (
+                              <div className="w-6 h-6 rounded-full bg-gray-200 border-2 border-white flex items-center justify-center">
+                                <span className="text-xs font-semibold text-gray-600">
+                                  +{assignees.length - 3}
+                                </span>
                               </div>
                             )}
                           </div>
 
-                          {/* Progress Bar */}
-                          {task.progress > 0 && (
-                            <div className="mt-3">
-                              <div className="flex items-center justify-between mb-1">
-                                <span className="text-xs text-gray-500">İlerleme</span>
-                                <span className="text-xs font-medium text-gray-700">{task.progress}%</span>
+                          {/* Icons */}
+                          <div className="flex items-center gap-2 text-gray-500">
+                            {task.dueDate && (
+                              <div className="flex items-center gap-1">
+                                <Calendar size={14} />
+                                <span className="text-xs">
+                                  {new Date(task.dueDate).toLocaleDateString('tr-TR', { month: 'short', day: 'numeric' })}
+                                </span>
                               </div>
-                              <div className="w-full bg-gray-100 rounded-full h-1.5">
-                                <div
-                                  className="h-1.5 rounded-full transition-all duration-500"
-                                  style={{
-                                    width: `${task.progress}%`,
-                                    backgroundColor: task.progress === 100 ? '#00c875' : '#0086c0'
-                                  }}
-                                />
+                            )}
+                            {(task.comments?.length > 0) && (
+                              <div className="flex items-center gap-1">
+                                <MessageSquare size={14} />
+                                <span className="text-xs">{task.comments.length}</span>
                               </div>
-                            </div>
-                          )}
+                            )}
+                          </div>
                         </div>
-                      );
-                    })}
-                  </div>
+
+                        {/* Progress Bar */}
+                        {task.progress > 0 && (
+                          <div className="mt-3">
+                            <div className="flex items-center justify-between mb-1">
+                              <span className="text-xs text-gray-600">İlerleme</span>
+                              <span className="text-xs font-semibold text-gray-900">{task.progress}%</span>
+                            </div>
+                            <div className="w-full bg-gray-200 rounded-full h-1.5">
+                              <div
+                                className="h-1.5 rounded-full transition-all"
+                                style={{
+                                  width: `${task.progress}%`,
+                                  backgroundColor: task.progress === 100 ? '#00C875' : '#579BFC'
+                                }}
+                              />
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+
+                  {/* Empty State */}
+                  {columnTasks.length === 0 && (
+                    <div className="text-center py-8 px-4">
+                      <p className="text-sm text-gray-400">Buraya görev sürükleyin</p>
+                    </div>
+                  )}
 
                   {/* Add Task Button */}
-                  <button 
-                    onClick={() => handleAddTask(status.id)}
-                    className="w-full mt-3 p-3 border-2 border-dashed border-gray-200 rounded-lg text-sm text-gray-500 hover:border-[#0086c0] hover:text-[#0086c0] transition-colors flex items-center justify-center gap-2"
-                  >
+                  <button className="w-full py-3 px-4 border-2 border-dashed border-gray-300 rounded-lg hover:border-[#6366f1] hover:bg-gray-50 transition-all text-sm text-gray-600 hover:text-[#6366f1] font-medium flex items-center justify-center gap-2">
                     <Plus size={16} />
                     Görev Ekle
                   </button>
@@ -206,22 +235,242 @@ const KanbanView = ({ boardId }) => {
         </div>
       </div>
 
-      {/* Task Modal */}
-      {isModalOpen && selectedTask && (
-        <ModernTaskModal
+      {/* Slide-in Detail Panel */}
+      {isPanelOpen && selectedTask && (
+        <TaskDetailPanel
           task={selectedTask}
-          isOpen={isModalOpen}
-          onClose={() => setIsModalOpen(false)}
+          users={users}
+          onClose={closeTaskPanel}
+          onUpdate={updateTask}
+          onStatusChange={updateTaskStatus}
         />
       )}
+    </div>
+  );
+};
 
-      {/* New Task Modal */}
-      <NewTaskModal
-        isOpen={showNewTaskModal}
-        onClose={() => setShowNewTaskModal(false)}
-        projectId={boardId}
-        defaultStatus={newTaskStatus}
+// Task Detail Panel Component
+const TaskDetailPanel = ({ task, users, onClose, onUpdate, onStatusChange }) => {
+  const [editedTask, setEditedTask] = useState(task);
+  const [newComment, setNewComment] = useState('');
+
+  const handleStatusChange = async (newStatus) => {
+    await onStatusChange(task._id, newStatus);
+    setEditedTask({ ...editedTask, status: newStatus });
+  };
+
+  const handleAddComment = () => {
+    if (newComment.trim()) {
+      // Add comment logic here
+      setNewComment('');
+    }
+  };
+
+  const getAssignees = (assigneeIds) => {
+    if (!assigneeIds || assigneeIds.length === 0) return [];
+    return users.filter(u => assigneeIds.includes(u._id));
+  };
+
+  const assignees = getAssignees(editedTask.assignedTo);
+
+  return (
+    <>
+      {/* Overlay */}
+      <div 
+        className="fixed inset-0 bg-black bg-opacity-30 z-40 transition-opacity duration-300"
+        onClick={onClose}
       />
+
+      {/* Panel */}
+      <div className="fixed right-0 top-0 h-full w-[600px] bg-white shadow-2xl z-50 transform transition-transform duration-300 ease-out animate-in slide-in-from-right">
+        <div className="h-full flex flex-col">
+          {/* Header */}
+          <div className="flex items-center justify-between p-6 border-b border-gray-200">
+            <h2 className="text-xl font-bold text-gray-900">Görev Detayları</h2>
+            <button
+              onClick={onClose}
+              className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+            >
+              <X size={20} className="text-gray-600" />
+            </button>
+          </div>
+
+          {/* Content */}
+          <div className="flex-1 overflow-y-auto p-6 space-y-6">
+            {/* Task Title */}
+            <div>
+              <Input
+                value={editedTask.title}
+                onChange={(e) => setEditedTask({ ...editedTask, title: e.target.value })}
+                className="text-2xl font-bold border-0 px-0 focus:ring-0 text-gray-900"
+                placeholder="Görev başlığı"
+              />
+            </div>
+
+            {/* Status */}
+            <div>
+              <label className="text-sm font-semibold text-gray-700 mb-2 block">Durum</label>
+              <div className="flex gap-2 flex-wrap">
+                {Object.entries(STATUS_COLORS).map(([status, config]) => (
+                  <button
+                    key={status}
+                    onClick={() => handleStatusChange(status)}
+                    className="px-4 py-2 rounded-lg text-sm font-bold transition-all hover:scale-105"
+                    style={{
+                      backgroundColor: editedTask.status === status ? config.bg : `${config.bg}20`,
+                      color: editedTask.status === status ? config.text : '#323338',
+                      border: editedTask.status === status ? 'none' : `2px solid ${config.bg}`
+                    }}
+                  >
+                    {config.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Assignees */}
+            <div>
+              <label className="text-sm font-semibold text-gray-700 mb-2 block flex items-center gap-2">
+                <User size={16} />
+                Atananlar
+              </label>
+              <div className="flex items-center gap-2 flex-wrap">
+                {assignees.map(assignee => (
+                  <div key={assignee._id} className="flex items-center gap-2 bg-gray-100 rounded-full pl-1 pr-3 py-1">
+                    <Avatar className="w-6 h-6">
+                      <AvatarImage src={assignee.avatar} />
+                      <AvatarFallback className="text-xs">
+                        {assignee.fullName?.charAt(0)}
+                      </AvatarFallback>
+                    </Avatar>
+                    <span className="text-sm text-gray-900">{assignee.fullName}</span>
+                  </div>
+                ))}
+                <Button variant="outline" size="sm" className="rounded-full">
+                  <Plus size={14} />
+                </Button>
+              </div>
+            </div>
+
+            {/* Due Date */}
+            <div>
+              <label className="text-sm font-semibold text-gray-700 mb-2 block flex items-center gap-2">
+                <Calendar size={16} />
+                Son Tarih
+              </label>
+              <Input
+                type="date"
+                value={editedTask.dueDate ? new Date(editedTask.dueDate).toISOString().split('T')[0] : ''}
+                onChange={(e) => setEditedTask({ ...editedTask, dueDate: e.target.value })}
+                className="max-w-xs"
+              />
+            </div>
+
+            {/* Description */}
+            <div>
+              <label className="text-sm font-semibold text-gray-700 mb-2 block">Açıklama</label>
+              <Textarea
+                value={editedTask.description || ''}
+                onChange={(e) => setEditedTask({ ...editedTask, description: e.target.value })}
+                placeholder="Görev açıklamasını buraya yazın..."
+                className="min-h-[120px]"
+              />
+            </div>
+
+            {/* Progress */}
+            <div>
+              <label className="text-sm font-semibold text-gray-700 mb-2 block">İlerleme</label>
+              <div className="flex items-center gap-4">
+                <input
+                  type="range"
+                  min="0"
+                  max="100"
+                  value={editedTask.progress || 0}
+                  onChange={(e) => setEditedTask({ ...editedTask, progress: parseInt(e.target.value) })}
+                  className="flex-1"
+                />
+                <span className="text-sm font-bold text-gray-900 w-12">{editedTask.progress || 0}%</span>
+              </div>
+              <div className="w-full bg-gray-200 rounded-full h-2 mt-2">
+                <div
+                  className="h-2 rounded-full transition-all"
+                  style={{
+                    width: `${editedTask.progress || 0}%`,
+                    backgroundColor: (editedTask.progress || 0) === 100 ? '#00C875' : '#579BFC'
+                  }}
+                />
+              </div>
+            </div>
+
+            {/* Comments */}
+            <div>
+              <label className="text-sm font-semibold text-gray-700 mb-3 block flex items-center gap-2">
+                <MessageSquare size={16} />
+                Yorumlar
+              </label>
+              
+              {/* Add Comment */}
+              <div className="flex gap-3 mb-4">
+                <Avatar className="w-8 h-8">
+                  <AvatarFallback>K</AvatarFallback>
+                </Avatar>
+                <div className="flex-1">
+                  <Textarea
+                    value={newComment}
+                    onChange={(e) => setNewComment(e.target.value)}
+                    placeholder="Yorum ekle..."
+                    className="min-h-[80px] text-sm"
+                  />
+                  <Button
+                    onClick={handleAddComment}
+                    size="sm"
+                    className="mt-2 bg-[#6366f1] hover:bg-[#5558e3]"
+                    disabled={!newComment.trim()}
+                  >
+                    Yorum Ekle
+                  </Button>
+                </div>
+              </div>
+
+              {/* Comments List */}
+              <div className="space-y-3">
+                {(task.comments || []).map((comment, idx) => (
+                  <div key={idx} className="flex gap-3">
+                    <Avatar className="w-8 h-8">
+                      <AvatarFallback className="text-xs">K</AvatarFallback>
+                    </Avatar>
+                    <div className="flex-1 bg-gray-50 rounded-lg p-3">
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-sm font-semibold text-gray-900">Kullanıcı</span>
+                        <span className="text-xs text-gray-500">Bugün</span>
+                      </div>
+                      <p className="text-sm text-gray-700">{comment.text || comment}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Footer */}
+          <div className="p-6 border-t border-gray-200 bg-gray-50">
+            <div className="flex justify-end gap-3">
+              <Button variant="outline" onClick={onClose}>
+                İptal
+              </Button>
+              <Button
+                onClick={() => {
+                  onUpdate(task._id, editedTask);
+                  onClose();
+                }}
+                className="bg-[#6366f1] hover:bg-[#5558e3]"
+              >
+                Kaydet
+              </Button>
+            </div>
+          </div>
+        </div>
+      </div>
     </>
   );
 };
