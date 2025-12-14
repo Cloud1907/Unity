@@ -42,10 +42,10 @@ const KanbanView = ({ boardId }) => {
   }, [tasks, boardId]);
 
   const columns = [
-    { id: 'todo', title: 'Yapılacak', color: STATUS_COLORS.todo.bg },
-    { id: 'doing', title: 'Devam Ediyor', color: STATUS_COLORS.doing.bg },
-    { id: 'review', title: 'İncelemede', color: STATUS_COLORS.review.bg },
-    { id: 'done', title: 'Tamamlandı', color: STATUS_COLORS.done.bg }
+    { id: 'todo', title: 'Yapılacak', color: STATUS_COLORS.todo.bg, lightBg: STATUS_COLORS.todo.lightBg },
+    { id: 'working', title: 'Devam Ediyor', color: STATUS_COLORS.working.bg, lightBg: STATUS_COLORS.working.lightBg },
+    { id: 'review', title: 'İncelemede', color: STATUS_COLORS.review.bg, lightBg: STATUS_COLORS.review.lightBg },
+    { id: 'done', title: 'Tamamlandı', color: STATUS_COLORS.done.bg, lightBg: STATUS_COLORS.done.lightBg }
   ];
 
   const getTasksByStatus = (status) => {
