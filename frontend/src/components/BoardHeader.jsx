@@ -31,52 +31,52 @@ const BoardHeader = ({ boardId, currentView, onViewChange }) => {
   return (
     <div className="bg-white border-b border-gray-200 shadow-sm">
       {/* Board Info */}
-      <div className="px-8 py-5 flex items-center justify-between">
-        <div className="flex items-center gap-5">
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-xl flex items-center justify-center text-3xl shadow-md" style={{ backgroundColor: board.color + '20' }}>
+      <div className="px-6 py-3 flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-lg flex items-center justify-center text-lg" style={{ backgroundColor: board.color + '20' }}>
               {board.icon}
             </div>
             <div>
-              <div className="flex items-center gap-3">
-                <h1 className="text-2xl font-bold text-gray-900 tracking-tight">{board.name}</h1>
-                <button onClick={handleToggleFavorite} className="p-1.5 hover:bg-gray-100 rounded-lg transition-all hover:scale-110">
-                  <Star size={20} className={board.favorite ? 'text-yellow-500 fill-yellow-500' : 'text-gray-400'} />
+              <div className="flex items-center gap-2">
+                <h1 className="text-base font-semibold text-gray-900">{board.name}</h1>
+                <button onClick={handleToggleFavorite} className="p-1 hover:bg-gray-100 rounded transition-all">
+                  <Star size={14} className={board.favorite ? 'text-yellow-500 fill-yellow-500' : 'text-gray-400'} />
                 </button>
               </div>
               {board.description && (
-                <p className="text-sm text-gray-600 mt-1 font-normal">{board.description}</p>
+                <p className="text-xs text-gray-500 mt-0.5">{board.description}</p>
               )}
             </div>
           </div>
         </div>
 
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2">
           {/* Members */}
           <div className="flex items-center gap-2">
-            <div className="flex items-center -space-x-3">
+            <div className="flex items-center -space-x-2">
               {boardMembers?.slice(0, 5).map(member => (
-                <Avatar key={member._id} className="w-9 h-9 border-3 border-white ring-1 ring-gray-200 hover:z-10 transition-all hover:scale-110">
+                <Avatar key={member._id} className="w-6 h-6 border-2 border-white hover:z-10 transition-all">
                   <AvatarImage src={member.avatar} alt={member.fullName} />
-                  <AvatarFallback style={{ backgroundColor: member.color }}>{member.fullName?.charAt(0)}</AvatarFallback>
+                  <AvatarFallback>{member.fullName?.charAt(0)}</AvatarFallback>
                 </Avatar>
               ))}
               {boardMembers.length > 5 && (
-                <div className="w-9 h-9 rounded-full bg-gray-200 border-3 border-white ring-1 ring-gray-200 flex items-center justify-center text-xs font-semibold text-gray-700">
+                <div className="w-6 h-6 rounded-full bg-gray-200 border-2 border-white flex items-center justify-center text-xs font-semibold text-gray-700">
                   +{boardMembers.length - 5}
                 </div>
               )}
             </div>
-            <Button variant="outline" size="sm" className="gap-2 ml-2 hover:bg-gray-50">
-              <UsersIcon size={16} />
+            <Button variant="outline" size="sm" className="gap-1 text-xs h-7 px-2 hover:bg-gray-50">
+              <UsersIcon size={13} />
               Davet Et
             </Button>
           </div>
 
-          <div className="h-8 w-px bg-gray-300"></div>
+          <div className="h-6 w-px bg-gray-300"></div>
 
-          <Button onClick={() => setShowNewTaskModal(true)} size="sm" className="gap-2 bg-gradient-to-r from-[#6366f1] to-[#8b5cf6] hover:from-[#5558e3] hover:to-[#7c3aed] text-white shadow-lg hover:shadow-xl transition-all">
-            <span className="text-lg">+</span>
+          <Button onClick={() => setShowNewTaskModal(true)} size="sm" className="gap-1 bg-[#6366f1] hover:bg-[#5558e3] text-white text-xs h-7 px-3">
+            <span className="text-sm">+</span>
             Yeni Öğe
           </Button>
         </div>
