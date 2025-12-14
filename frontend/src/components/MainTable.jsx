@@ -90,35 +90,30 @@ const MainTable = ({ boardId }) => {
       <div className="flex-1 overflow-auto bg-white">
         <div className="min-w-max">
           {/* Table Header */}
-          <div className="sticky top-0 bg-gradient-to-r from-gray-50 to-gray-100 border-b-2 border-gray-300 z-10 shadow-sm">
+          <div className="sticky top-0 bg-gray-50 border-b border-gray-200 z-10">
             <div className="flex">
-              <div className="w-12 flex items-center justify-center py-4 border-r border-gray-300">
-                <input type="checkbox" className="rounded w-4 h-4" />
+              <div className="w-10 flex items-center justify-center py-2 border-r border-gray-200">
+                <input type="checkbox" className="rounded w-3 h-3" />
               </div>
-              <div className="w-80 px-4 py-4 font-bold text-xs text-gray-700 border-r border-gray-300 uppercase tracking-wider">
+              <div className="w-72 px-3 py-2 font-semibold text-xs text-gray-600 border-r border-gray-200">
                 Görev
               </div>
-              <div className="w-48 px-4 py-4 font-bold text-xs text-gray-700 border-r border-gray-300 flex items-center gap-2 uppercase tracking-wider">
-                <div className="w-3 h-3 rounded-full bg-gradient-to-br from-[#6366f1] to-[#8b5cf6]"></div>
+              <div className="w-40 px-3 py-2 font-semibold text-xs text-gray-600 border-r border-gray-200">
                 Durum
               </div>
-              <div className="w-40 px-4 py-4 font-bold text-xs text-gray-700 border-r border-gray-300 flex items-center gap-2 uppercase tracking-wider">
-                <TrendingUp size={14} className="text-[#6366f1]" />
+              <div className="w-32 px-3 py-2 font-semibold text-xs text-gray-600 border-r border-gray-200">
                 Öncelik
               </div>
-              <div className="w-48 px-4 py-4 font-bold text-xs text-gray-700 border-r border-gray-300 flex items-center gap-2 uppercase tracking-wider">
-                <User size={14} className="text-[#6366f1]" />
+              <div className="w-40 px-3 py-2 font-semibold text-xs text-gray-600 border-r border-gray-200">
                 Atanan
               </div>
-              <div className="w-32 px-4 py-4 font-bold text-xs text-gray-700 border-r border-gray-300 flex items-center gap-2 uppercase tracking-wider">
-                <Calendar size={14} className="text-[#6366f1]" />
+              <div className="w-28 px-3 py-2 font-semibold text-xs text-gray-600 border-r border-gray-200">
                 Son Tarih
               </div>
-              <div className="w-48 px-4 py-4 font-bold text-xs text-gray-700 border-r border-gray-300 flex items-center gap-2 uppercase tracking-wider">
-                <Tag size={14} className="text-[#6366f1]" />
+              <div className="w-40 px-3 py-2 font-semibold text-xs text-gray-600 border-r border-gray-200">
                 Etiketler
               </div>
-              <div className="w-32 px-4 py-4 font-bold text-xs text-gray-700 flex items-center gap-2 uppercase tracking-wider">
+              <div className="w-28 px-3 py-2 font-semibold text-xs text-gray-600">
                 İlerleme
               </div>
             </div>
