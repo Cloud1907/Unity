@@ -96,7 +96,7 @@ const BoardHeader = ({ boardId, currentView, onViewChange }) => {
               }`}
             >
               <div className="flex items-center gap-1.5">
-                <span className="text-sm">{view.icon}</span>
+                {view.icon}
                 <span>{view.label}</span>
               </div>
               {currentView === view.id && (
