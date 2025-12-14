@@ -142,7 +142,7 @@ const MainTable = ({ boardId }) => {
                   </div>
                   <div className="w-40 px-3 py-2 border-r border-gray-100">
                     <button
-                      className="px-2 py-1 rounded-full text-xs text-white transition-all"
+                      className="px-3 py-1.5 rounded-lg text-xs font-bold text-white transition-all hover:scale-105"
                       style={{ backgroundColor: getStatusColor(task.status) }}
                       onClick={(e) => e.stopPropagation()}
                     >
