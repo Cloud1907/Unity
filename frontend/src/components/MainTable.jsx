@@ -210,15 +210,14 @@ const MainTable = ({ boardId }) => {
           {/* Add New Task Row */}
           <div 
             onClick={() => setShowNewTaskModal(true)}
-            className="flex hover:bg-gradient-to-r hover:from-blue-50 hover:to-indigo-50 transition-all duration-200 border-b border-gray-100 group cursor-pointer"
+            className="flex hover:bg-gray-50 transition-colors border-b border-gray-100 group cursor-pointer"
           >
-            <div className="w-12 flex items-center justify-center py-4 border-r border-gray-100">
-              <Plus size={16} className="text-[#6366f1] group-hover:scale-110 transition-transform" />
+            <div className="w-10 flex items-center justify-center py-2 border-r border-gray-100">
+              <Plus size={14} className="text-[#6366f1]" />
             </div>
-            <div className="flex-1 px-4 py-4">
-              <button className="text-sm font-medium text-[#6366f1] hover:text-[#4f46e5] transition-colors flex items-center gap-2 group-hover:translate-x-1 transition-transform">
-                <span>Yeni görev ekle</span>
-                <div className="w-2 h-2 rounded-full bg-[#6366f1] opacity-0 group-hover:opacity-100 transition-opacity"></div>
+            <div className="flex-1 px-3 py-2">
+              <button className="text-xs font-medium text-[#6366f1] hover:text-[#4f46e5] transition-colors">
+                Yeni görev ekle
               </button>
             </div>
           </div>
