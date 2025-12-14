@@ -535,6 +535,15 @@ const TaskDetailPanel = ({ task, users, onClose, onUpdate, onStatusChange }) => 
               </div>
             </div>
           )}
+
+          {/* Subtasks - Monday.com Style */}
+          <div>
+            <SubtaskList
+              subtasks={editedTask.subtasks || []}
+              taskId={task._id}
+              onUpdate={onUpdate}
+            />
+          </div>
         </div>
 
         {/* Footer */}
