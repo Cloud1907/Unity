@@ -326,16 +326,20 @@ const KanbanView = ({ boardId }) => {
                     );
                   })}
 
-                  {/* Empty State */}
+                  {/* Empty State - Monday.com style */}
                   {columnTasks.length === 0 && (
-                    <div className="text-center py-8 px-4">
-                      <p className="text-sm text-gray-400">Buraya görev sürükleyin</p>
+                    <div className="text-center py-12 px-4">
+                      <div className="w-16 h-16 mx-auto mb-3 rounded-full bg-gray-100 flex items-center justify-center">
+                        <Plus size={24} className="text-gray-400" />
+                      </div>
+                      <p className="text-sm text-gray-400 font-medium">Buraya görev sürükleyin</p>
+                      <p className="text-xs text-gray-300 mt-1">veya hızlıca ekleyin</p>
                     </div>
                   )}
 
-                  {/* Add Task Button */}
-                  <button className="w-full py-3 px-4 border-2 border-dashed border-gray-300 rounded-lg hover:border-[#6366f1] hover:bg-gray-50 transition-all text-sm text-gray-600 hover:text-[#6366f1] font-medium flex items-center justify-center gap-2">
-                    <Plus size={16} />
+                  {/* Add Task Button - Monday.com style */}
+                  <button className="w-full py-3 px-4 border-2 border-dashed border-gray-300 rounded-xl hover:border-[#6366f1] hover:bg-white transition-all duration-200 text-sm text-gray-600 hover:text-[#6366f1] font-semibold flex items-center justify-center gap-2 hover:shadow-sm">
+                    <Plus size={18} className="transition-transform group-hover:rotate-90 duration-200" />
                     Görev Ekle
                   </button>
                 </div>
