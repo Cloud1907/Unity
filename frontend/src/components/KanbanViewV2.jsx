@@ -402,7 +402,7 @@ const TaskDetailPanel = ({ task, users, onClose, onUpdate, onStatusChange }) => 
     onClose();
   };
 
-  const assignees = users.filter(u => editedTask.assignedTo?.includes(u.id));
+  const assignees = users.filter(u => editedTask.assignees?.includes(u.id || u._id));
 
   return (
     <>
