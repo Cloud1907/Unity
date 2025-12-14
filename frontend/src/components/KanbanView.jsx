@@ -288,24 +288,19 @@ const KanbanView = ({ boardId }) => {
                               )}
                             </div>
                             
-                            {/* Status badge mini - click to change */}
-                            <select
-                              value={task.status}
-                              onChange={(e) => {
-                                e.stopPropagation();
-                                updateTaskStatus(task._id, e.target.value);
-                              }}
-                              onClick={(e) => e.stopPropagation()}
-                              className="px-2 py-0.5 rounded text-xs font-bold border-0 cursor-pointer transition-all hover:scale-105"
-                              style={{ 
-                                backgroundColor: STATUS_COLORS[task.status]?.bg || '#C4C4C4',
-                                color: STATUS_COLORS[task.status]?.text || '#FFFFFF'
-                              }}
-                            >
-                              {Object.entries(STATUS_COLORS).map(([status, config]) => (
-                                <option key={status} value={status}>{config.label}</option>
-                              ))}
-                            </select>
+                            {/* Status badge mini - Monday.com style */}
+                            <div className="relative group/status">
+                              <button
+                                onClick={(e) => e.stopPropagation()}
+                                className="px-2.5 py-1 rounded-lg text-xs font-bold border-0 cursor-pointer transition-all hover:scale-105 hover:shadow-md"
+                                style={{ 
+                                  backgroundColor: STATUS_COLORS[task.status]?.bg || '#C4C4C4',
+                                  color: STATUS_COLORS[task.status]?.text || '#FFFFFF'
+                                }}
+                              >
+                                {STATUS_COLORS[task.status]?.label || 'Bilinmiyor'}
+                              </button>
+                            </div>
                           </div>
                         </div>
 
