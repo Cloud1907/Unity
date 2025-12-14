@@ -368,9 +368,8 @@ const KanbanViewV2 = ({ boardId }) => {
                   isDropTarget
                     ? 'ring-4 ring-blue-400 ring-opacity-50 scale-105 shadow-2xl'
                     : 'scale-100'
-                }`}
+                } bg-transparent`}
                 style={{ 
-                  backgroundColor: isDropTarget ? `${column.color}20` : column.lightBg,
                   minHeight: '500px'
                 }}
                 onDragOver={(e) => handleDragOver(e, column.id)}
