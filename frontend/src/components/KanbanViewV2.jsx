@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Plus, MoreHorizontal, User } from 'lucide-react';
 import { useData } from '../contexts/DataContext';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
-import SubtaskList from './SubtaskList';
+import ModernTaskModal from './ModernTaskModal';
 import confetti from 'canvas-confetti';
 
 // Monday.com renk paleti - TAM eşleşme
