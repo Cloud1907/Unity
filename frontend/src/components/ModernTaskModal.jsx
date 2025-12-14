@@ -48,7 +48,7 @@ const ModernTaskModal = ({ task, isOpen, onClose }) => {
   };
 
   const getAssignees = (assigneeIds) => {
-    return users.filter(u => assigneeIds?.includes(u._id));
+    return users.filter(u => assigneeIds?.includes(u.id || u._id));
   };
 
   const handleStatusChange = async (newStatus) => {
