@@ -6,7 +6,7 @@ import { DataProvider, useData } from './contexts/DataContext';
 import Sidebar from './components/Sidebar';
 import BoardHeader from './components/BoardHeader';
 import MainTable from './components/MainTable';
-import KanbanView from './components/KanbanView';
+import KanbanView from './components/KanbanViewV2';
 import CalendarView from './components/CalendarView';
 import GanttView from './components/GanttView';
 import WorkloadView from './components/WorkloadView';
