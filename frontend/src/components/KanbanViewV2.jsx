@@ -202,10 +202,12 @@ const CompactTaskCard = ({ task, onDragStart, onDragEnd, isDragging, users, onSt
 };
 
 const KanbanViewV2 = ({ boardId }) => {
-  const { tasks, users, fetchTasks, updateTaskStatus } = useData();
+  const { tasks, users, fetchTasks, updateTaskStatus, updateTask } = useData();
   const [filteredTasks, setFilteredTasks] = useState([]);
   const [draggedTask, setDraggedTask] = useState(null);
   const [dragOverColumn, setDragOverColumn] = useState(null);
+  const [selectedTask, setSelectedTask] = useState(null);
+  const [isDetailOpen, setIsDetailOpen] = useState(false);
 
   useEffect(() => {
     if (boardId) {
