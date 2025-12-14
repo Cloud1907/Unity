@@ -205,8 +205,8 @@ const InlineAssigneePicker = ({ assigneeIds, allUsers, onChange }) => {
           <div className="max-h-48 overflow-y-auto">
             {allUsers.map(user => (
               <button
-                key={user._id}
-                onClick={() => toggleAssignee(user._id)}
+                key={user.id || user._id}
+                onClick={() => toggleAssignee(user.id || user._id)}
                 className="w-full flex items-center gap-2 px-3 py-2 text-xs hover:bg-gray-50 transition-colors"
               >
                 <Avatar className="w-6 h-6">
@@ -216,7 +216,7 @@ const InlineAssigneePicker = ({ assigneeIds, allUsers, onChange }) => {
                   </AvatarFallback>
                 </Avatar>
                 <span className="flex-1 text-left text-gray-900">{user.fullName}</span>
-                {assigneeIds?.includes(user._id) && (
+                {assigneeIds?.includes(user.id || user._id) && (
                   <span className="text-[#6366f1]">✓</span>
                 )}
               </button>
