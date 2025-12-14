@@ -268,7 +268,7 @@ const MainTable = ({ boardId }) => {
   };
 
   const getAssignees = (assigneeIds) => {
-    return users.filter(u => assigneeIds?.includes(u._id));
+    return users.filter(u => assigneeIds?.includes(u.id || u._id));
   };
 
   const formatDate = (dateString) => {
