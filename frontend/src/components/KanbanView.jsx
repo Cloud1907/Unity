@@ -304,19 +304,24 @@ const KanbanView = ({ boardId }) => {
                           </div>
                         </div>
 
-                        {/* Progress Bar */}
+                        {/* Progress Bar - Monday.com style */}
                         {task.progress > 0 && (
-                          <div className="mt-3">
-                            <div className="flex items-center justify-between mb-1">
-                              <span className="text-xs text-gray-600">İlerleme</span>
-                              <span className="text-xs font-semibold text-gray-900">{task.progress}%</span>
+                          <div className="mt-3 pt-3 border-t border-gray-100">
+                            <div className="flex items-center justify-between mb-2">
+                              <span className="text-xs text-gray-600 font-semibold">İlerleme</span>
+                              <span className="text-xs font-bold" style={{ 
+                                color: task.progress === 100 ? '#00C875' : '#579BFC' 
+                              }}>
+                                {task.progress}%
+                              </span>
                             </div>
-                            <div className="w-full bg-gray-200 rounded-full h-1.5">
+                            <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
                               <div
-                                className="h-1.5 rounded-full transition-all"
+                                className="h-2 rounded-full transition-all duration-500 ease-out"
                                 style={{
                                   width: `${task.progress}%`,
-                                  backgroundColor: task.progress === 100 ? '#00C875' : '#579BFC'
+                                  backgroundColor: task.progress === 100 ? '#00C875' : '#579BFC',
+                                  boxShadow: task.progress > 0 ? `0 0 8px ${task.progress === 100 ? '#00C87550' : '#579BFC50'}` : 'none'
                                 }}
                               />
                             </div>
