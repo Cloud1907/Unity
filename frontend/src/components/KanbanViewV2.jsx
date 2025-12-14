@@ -349,7 +349,42 @@ const KanbanViewV2 = ({ boardId }) => {
 
   const handleCloseDetail = () => {
     setIsDetailOpen(false);
-    setTimeout(() => setSelectedTask(null), 300);
+    setSelectedTask(null);
+  };
+
+  const handleAddTask = async (columnId) => {
+    // Quick add - create task with minimal data
+    const newTask = {
+      title: 'Yeni Görev',
+      projectId: boardId,
+      status: columnId,
+      priority: 'medium',
+      assignees: [],
+      progress: 0,
+      labels: [],
+      subtasks: []
+    };
+    
+    // Call backend API to create task
+    try {
+      const API_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8001';
+      const token = localStorage.getItem('token');
+      
+      const response = await fetch(`${API_URL}/api/tasks`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(newTask)
+      });
+      
+      if (response.ok) {
+        await fetchTasks(boardId);
+      }
+    } catch (error) {
+      console.error('Failed to create task:', error);
+    }
   };
 
   return (
