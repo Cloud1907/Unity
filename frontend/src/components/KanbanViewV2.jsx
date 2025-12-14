@@ -274,6 +274,16 @@ const KanbanViewV2 = ({ boardId }) => {
     await updateTaskStatus(taskId, newStatus);
   };
 
+  const handleTaskClick = (task) => {
+    setSelectedTask(task);
+    setIsDetailOpen(true);
+  };
+
+  const handleCloseDetail = () => {
+    setIsDetailOpen(false);
+    setTimeout(() => setSelectedTask(null), 300);
+  };
+
   return (
     <div className="h-full bg-gradient-to-br from-gray-50 to-gray-100 relative overflow-hidden">
       {/* Kanban Board */}
