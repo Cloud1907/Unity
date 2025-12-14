@@ -21,8 +21,215 @@ const priorities = [
   { id: 'urgent', label: 'Acil', color: '#DF2F4A', icon: '⇈' }
 ];
 
+// Inline dropdown component
+const InlineDropdown = ({ value, options, onChange, colorKey = 'color', labelKey = 'label' }) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const dropdownRef = useRef(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setIsOpen(false);
+      }
+    };
+
+    if (isOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isOpen]);
+
+  const currentOption = options.find(opt => opt.id === value) || options[0];
+
+  return (
+    <div ref={dropdownRef} className="relative" onClick={(e) => e.stopPropagation()}>
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        className="group inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold text-white transition-all hover:scale-105 hover:shadow-md"
+        style={{ backgroundColor: currentOption[colorKey] }}
+      >
+        <span>{currentOption[labelKey]}</span>
+        <ChevronDown size={12} className="opacity-70 group-hover:opacity-100 transition-opacity" />
+      </button>
+
+      {isOpen && (
+        <div className="absolute top-full left-0 mt-1 bg-white rounded-lg shadow-2xl border border-gray-200 z-50 min-w-[160px] py-1 animate-in fade-in slide-in-from-top-2 duration-200">
+          {options.map((option) => (
+            <button
+              key={option.id}
+              onClick={() => {
+                onChange(option.id);
+                setIsOpen(false);
+              }}
+              className="w-full flex items-center gap-2 px-3 py-2 text-xs font-semibold hover:bg-gray-50 transition-colors"
+            >
+              <div
+                className="w-3 h-3 rounded-full"
+                style={{ backgroundColor: option[colorKey] }}
+              />
+              <span className="text-gray-900">{option[labelKey]}</span>
+              {value === option.id && (
+                <span className="ml-auto text-[#6366f1]">✓</span>
+              )}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
+// Inline date picker component
+const InlineDatePicker = ({ value, onChange }) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const datePickerRef = useRef(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (datePickerRef.current && !datePickerRef.current.contains(event.target)) {
+        setIsOpen(false);
+      }
+    };
+
+    if (isOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isOpen]);
+
+  const formatDate = (dateString) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' });
+  };
+
+  const isOverdue = new Date(value) < new Date();
+
+  return (
+    <div ref={datePickerRef} className="relative" onClick={(e) => e.stopPropagation()}>
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        className={`group inline-flex items-center gap-1.5 px-2 py-1 rounded text-xs font-medium transition-all hover:bg-gray-100 ${
+          isOverdue ? 'text-red-600' : 'text-gray-600'
+        }`}
+      >
+        <Calendar size={12} />
+        <span>{formatDate(value)}</span>
+      </button>
+
+      {isOpen && (
+        <div className="absolute top-full left-0 mt-1 bg-white rounded-lg shadow-2xl border border-gray-200 z-50 p-3 animate-in fade-in slide-in-from-top-2 duration-200">
+          <input
+            type="date"
+            value={new Date(value).toISOString().split('T')[0]}
+            onChange={(e) => {
+              onChange(e.target.value);
+              setIsOpen(false);
+            }}
+            className="px-2 py-1 border border-gray-300 rounded text-xs focus:outline-none focus:ring-2 focus:ring-[#6366f1]"
+          />
+        </div>
+      )}
+    </div>
+  );
+};
+
+// Inline assignee picker component
+const InlineAssigneePicker = ({ assigneeIds, allUsers, onChange }) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const pickerRef = useRef(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (pickerRef.current && !pickerRef.current.contains(event.target)) {
+        setIsOpen(false);
+      }
+    };
+
+    if (isOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isOpen]);
+
+  const assignees = allUsers.filter(u => assigneeIds?.includes(u._id));
+
+  const toggleAssignee = (userId) => {
+    const newAssignees = assigneeIds?.includes(userId)
+      ? assigneeIds.filter(id => id !== userId)
+      : [...(assigneeIds || []), userId];
+    onChange(newAssignees);
+  };
+
+  return (
+    <div ref={pickerRef} className="relative" onClick={(e) => e.stopPropagation()}>
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        className="flex items-center -space-x-1.5 hover:scale-105 transition-transform"
+      >
+        {assignees.slice(0, 3).map(assignee => (
+          <Avatar key={assignee._id} className="w-5 h-5 border border-white ring-1 ring-gray-200 hover:z-10">
+            <AvatarImage src={assignee.avatar} alt={assignee.fullName} />
+            <AvatarFallback className="text-[10px]">
+              {assignee.fullName?.charAt(0) || 'U'}
+            </AvatarFallback>
+          </Avatar>
+        ))}
+        {assignees.length > 3 && (
+          <div className="w-5 h-5 rounded-full bg-gray-200 border border-white flex items-center justify-center">
+            <span className="text-[8px] font-semibold text-gray-600">
+              +{assignees.length - 3}
+            </span>
+          </div>
+        )}
+        {assignees.length === 0 && (
+          <div className="w-5 h-5 rounded-full border-2 border-dashed border-gray-300 flex items-center justify-center hover:border-[#6366f1] hover:bg-blue-50">
+            <Plus size={10} className="text-gray-400" />
+          </div>
+        )}
+      </button>
+
+      {isOpen && (
+        <div className="absolute top-full left-0 mt-1 bg-white rounded-lg shadow-2xl border border-gray-200 z-50 min-w-[200px] py-2 animate-in fade-in slide-in-from-top-2 duration-200">
+          <div className="px-3 py-1 text-xs font-semibold text-gray-500 border-b border-gray-100 mb-1">
+            Atanan Kişiler
+          </div>
+          <div className="max-h-48 overflow-y-auto">
+            {allUsers.map(user => (
+              <button
+                key={user._id}
+                onClick={() => toggleAssignee(user._id)}
+                className="w-full flex items-center gap-2 px-3 py-2 text-xs hover:bg-gray-50 transition-colors"
+              >
+                <Avatar className="w-6 h-6">
+                  <AvatarImage src={user.avatar} />
+                  <AvatarFallback className="text-[10px]">
+                    {user.fullName?.charAt(0)}
+                  </AvatarFallback>
+                </Avatar>
+                <span className="flex-1 text-left text-gray-900">{user.fullName}</span>
+                {assigneeIds?.includes(user._id) && (
+                  <span className="text-[#6366f1]">✓</span>
+                )}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
 const MainTable = ({ boardId }) => {
-  const { tasks, users, fetchTasks } = useData();
+  const { tasks, users, fetchTasks, updateTask, updateTaskStatus } = useData();
   const [selectedTask, setSelectedTask] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [showNewTaskModal, setShowNewTaskModal] = useState(false);
