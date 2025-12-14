@@ -346,6 +346,7 @@ const KanbanViewV2 = ({ boardId }) => {
                       onDragEnd={handleDragEnd}
                       isDragging={draggedTask?._id === task._id}
                       onStatusChange={handleStatusChange}
+                      onTaskClick={handleTaskClick}
                     />
                   ))}
 
