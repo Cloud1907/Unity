@@ -199,7 +199,7 @@ const InlineDatePickerSmall = ({ value, onChange }) => {
   }, [isOpen]);
 
   const formatDate = (dateString) => {
-    if (!dateString) return 'Tarih yok';
+    if (!dateString) return 'Tarih ekle';
     const date = new Date(dateString);
     return date.toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' });
   };
@@ -209,9 +209,12 @@ const InlineDatePickerSmall = ({ value, onChange }) => {
   return (
     <div ref={datePickerRef} className="relative z-[100]" onClick={(e) => e.stopPropagation()}>
       <button
-        onClick={() => setIsOpen(!isOpen)}
+        onClick={(e) => {
+          e.stopPropagation();
+          setIsOpen(!isOpen);
+        }}
         className={`flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium transition-all hover:bg-gray-100 ${
-          isOverdue ? 'text-red-600 bg-red-50' : 'text-gray-600'
+          isOverdue ? 'text-red-600 bg-red-50' : value ? 'text-gray-600' : 'text-gray-400'
         }`}
       >
         <Calendar size={11} />
@@ -219,15 +222,22 @@ const InlineDatePickerSmall = ({ value, onChange }) => {
       </button>
 
       {isOpen && (
-        <div className="absolute top-full left-0 mt-1 bg-white rounded-lg shadow-2xl border border-gray-200 z-[9999] p-2">
+        <div 
+          className="absolute top-full left-0 mt-1 bg-white rounded-lg shadow-2xl border border-gray-200 z-[9999] p-3"
+          onClick={(e) => e.stopPropagation()}
+        >
           <input
             type="date"
             value={value ? new Date(value).toISOString().split('T')[0] : ''}
             onChange={(e) => {
-              onChange(e.target.value);
-              setIsOpen(false);
+              if (e.target.value) {
+                onChange(new Date(e.target.value).toISOString());
+                setIsOpen(false);
+              }
             }}
-            className="px-2 py-1 border border-gray-300 rounded text-xs focus:outline-none focus:ring-2 focus:ring-blue-500"
+            onClick={(e) => e.stopPropagation()}
+            className="px-2 py-1.5 border border-gray-300 rounded text-xs focus:outline-none focus:ring-2 focus:ring-blue-500"
+            autoFocus
           />
         </div>
       )}
