@@ -165,14 +165,15 @@ const KanbanView = ({ boardId }) => {
                         {/* Card Header */}
                         <div className="flex items-start justify-between mb-2">
                           <div className="flex-1">
-                            {/* Priority Badge */}
+                            {/* Priority Badge - Monday.com style */}
                             {task.priority && (
-                              <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold mb-2" 
+                              <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold mb-2 transition-all hover:scale-105" 
                                 style={{ 
-                                  backgroundColor: `${priority.dot}20`,
-                                  color: priority.dot 
+                                  backgroundColor: `${priority.dot}15`,
+                                  color: priority.dot,
+                                  border: `1px solid ${priority.dot}30`
                                 }}>
-                                <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: priority.dot }} />
+                                <span className="text-sm">{priority.icon}</span>
                                 {priority.label}
                               </div>
                             )}
