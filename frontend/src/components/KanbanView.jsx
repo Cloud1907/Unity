@@ -151,7 +151,16 @@ const KanbanView = ({ boardId }) => {
                         key={task._id}
                         draggable
                         onDragStart={(e) => handleDragStart(e, task)}
-                        className="bg-white rounded-lg p-3 shadow-md hover:shadow-xl transition-all duration-200 hover:scale-[1.02] border border-gray-200 hover:border-[#6366f1] group"
+                        onDragEnd={handleDragEnd}
+                        className={`bg-white rounded-xl p-4 shadow-sm hover:shadow-2xl transition-all duration-200 hover:scale-[1.03] border border-gray-200 hover:border-[#6366f1] group cursor-grab active:cursor-grabbing ${
+                          draggedTask?._id === task._id ? 'opacity-50 scale-95' : ''
+                        }`}
+                        style={{
+                          transition: 'all 0.2s ease-in-out',
+                          boxShadow: draggedTask?._id === task._id 
+                            ? '0 8px 16px rgba(99, 102, 241, 0.2)' 
+                            : undefined
+                        }}
                       >
                         {/* Card Header */}
                         <div className="flex items-start justify-between mb-2">
