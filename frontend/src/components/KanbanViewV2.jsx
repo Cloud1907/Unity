@@ -431,7 +431,10 @@ const KanbanViewV2 = ({ boardId }) => {
                         {columnTasks.length}
                       </span>
                     </div>
-                    <button className="p-1.5 hover:bg-white/60 rounded-lg transition-all duration-200 hover:scale-110 hover:rotate-90">
+                    <button 
+                      onClick={() => handleAddTask(column.id)}
+                      className="p-1.5 hover:bg-white/60 rounded-lg transition-all duration-200 hover:scale-110 hover:rotate-90"
+                    >
                       <Plus size={16} className="text-gray-600" />
                     </button>
                   </div>
