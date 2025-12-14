@@ -222,28 +222,28 @@ const KanbanView = ({ boardId }) => {
 
                         {/* Bottom Section */}
                         <div className="pt-2 border-t border-gray-100">
-                          {/* Meta Icons */}
+                          {/* Meta Icons - Monday.com style */}
                           <div className="flex items-center gap-3 mb-2 text-gray-500">
                             {/* Subtasks */}
                             {task.subtasks && task.subtasks.length > 0 && (
-                              <div className="flex items-center gap-1 text-xs">
-                                <input type="checkbox" className="w-3 h-3 rounded" disabled />
-                                <span>{task.subtasks.filter(st => st.completed).length}/{task.subtasks.length}</span>
+                              <div className="flex items-center gap-1.5 text-xs font-semibold px-2 py-1 rounded-md hover:bg-gray-100 transition-colors cursor-pointer">
+                                <input type="checkbox" className="w-3.5 h-3.5 rounded" disabled />
+                                <span className="text-gray-700">{task.subtasks.filter(st => st.completed).length}/{task.subtasks.length}</span>
                               </div>
                             )}
                             
                             {/* Comments */}
                             {(task.comments?.length > 0 || Math.random() > 0.5) && (
-                              <div className="flex items-center gap-1 text-xs hover:text-[#6366f1] transition-colors cursor-pointer">
-                                <MessageSquare size={13} />
+                              <div className="flex items-center gap-1.5 text-xs font-semibold px-2 py-1 rounded-md hover:bg-blue-50 hover:text-[#6366f1] transition-all cursor-pointer hover:scale-105">
+                                <MessageSquare size={14} />
                                 <span>{task.comments?.length || Math.floor(Math.random() * 5)}</span>
                               </div>
                             )}
                             
                             {/* Attachments */}
                             {Math.random() > 0.7 && (
-                              <div className="flex items-center gap-1 text-xs hover:text-[#6366f1] transition-colors cursor-pointer">
-                                <Paperclip size={13} />
+                              <div className="flex items-center gap-1.5 text-xs font-semibold px-2 py-1 rounded-md hover:bg-purple-50 hover:text-purple-600 transition-all cursor-pointer hover:scale-105">
+                                <Paperclip size={14} />
                                 <span>{Math.floor(Math.random() * 3) + 1}</span>
                               </div>
                             )}
