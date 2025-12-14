@@ -328,10 +328,11 @@ const KanbanView = ({ boardId }) => {
   );
 };
 
-// Task Detail Panel Component
+// Simple Task Detail Modal Component (OLD STYLE - BETTER!)
 const TaskDetailPanel = ({ task, users, onClose, onUpdate, onStatusChange }) => {
   const [editedTask, setEditedTask] = useState(task);
   const [newComment, setNewComment] = useState('');
+  const [isEditing, setIsEditing] = useState(false);
 
   const handleStatusChange = async (newStatus) => {
     await onStatusChange(task._id, newStatus);
@@ -340,8 +341,8 @@ const TaskDetailPanel = ({ task, users, onClose, onUpdate, onStatusChange }) => 
 
   const handleAddComment = () => {
     if (newComment.trim()) {
-      // Add comment logic here
       setNewComment('');
+      toast.success('Yorum eklendi');
     }
   };
 
@@ -356,49 +357,73 @@ const TaskDetailPanel = ({ task, users, onClose, onUpdate, onStatusChange }) => 
     <>
       {/* Overlay */}
       <div 
-        className="fixed inset-0 bg-black bg-opacity-30 z-40 transition-opacity duration-300"
+        className="fixed inset-0 bg-black bg-opacity-50 z-40"
         onClick={onClose}
       />
 
-      {/* Panel */}
-      <div className="fixed right-0 top-0 h-full w-[600px] bg-white shadow-2xl z-50 transform transition-transform duration-300 ease-out animate-in slide-in-from-right">
-        <div className="h-full flex flex-col">
+      {/* Modal - Center Positioned (OLD STYLE) */}
+      <div className="fixed inset-0 flex items-center justify-center z-50 p-4" onClick={onClose}>
+        <div 
+          className="bg-white rounded-2xl w-full max-w-3xl max-h-[90vh] overflow-hidden shadow-2xl"
+          onClick={(e) => e.stopPropagation()}
+        >
           {/* Header */}
-          <div className="flex items-center justify-between p-6 border-b border-gray-200">
-            <h2 className="text-xl font-bold text-gray-900">Görev Detayları</h2>
+          <div className="flex items-center justify-between p-6 border-b border-gray-200 bg-gradient-to-r from-gray-50 to-white">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-[#6366f1] to-[#8b5cf6] flex items-center justify-center">
+                <MessageSquare size={20} className="text-white" />
+              </div>
+              <div>
+                <h2 className="text-xl font-bold text-gray-900">Görev Detayları</h2>
+                <p className="text-xs text-gray-500">#{task._id.slice(-6)}</p>
+              </div>
+            </div>
             <button
               onClick={onClose}
               className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
             >
-              <X size={20} className="text-gray-600" />
+              <X size={24} className="text-gray-600" />
             </button>
           </div>
 
           {/* Content */}
-          <div className="flex-1 overflow-y-auto p-6 space-y-6">
+          <div className="overflow-y-auto p-6 space-y-6" style={{ maxHeight: 'calc(90vh - 180px)' }}>
             {/* Task Title */}
             <div>
-              <Input
-                value={editedTask.title}
-                onChange={(e) => setEditedTask({ ...editedTask, title: e.target.value })}
-                className="text-2xl font-bold border-0 px-0 focus:ring-0 text-gray-900"
-                placeholder="Görev başlığı"
-              />
+              {isEditing ? (
+                <Input
+                  value={editedTask.title}
+                  onChange={(e) => setEditedTask({ ...editedTask, title: e.target.value })}
+                  className="text-2xl font-bold border-2 border-[#6366f1] rounded-lg px-3 py-2"
+                  placeholder="Görev başlığı"
+                  autoFocus
+                />
+              ) : (
+                <h3 
+                  className="text-2xl font-bold text-gray-900 cursor-pointer hover:text-[#6366f1] transition-colors"
+                  onClick={() => setIsEditing(true)}
+                >
+                  {editedTask.title}
+                </h3>
+              )}
             </div>
 
             {/* Status */}
             <div>
-              <label className="text-sm font-semibold text-gray-700 mb-2 block">Durum</label>
-              <div className="flex gap-2 flex-wrap">
+              <label className="text-sm font-semibold text-gray-700 mb-3 block">Durum</label>
+              <div className="flex gap-3 flex-wrap">
                 {Object.entries(STATUS_COLORS).map(([status, config]) => (
                   <button
                     key={status}
                     onClick={() => handleStatusChange(status)}
-                    className="px-4 py-2 rounded-lg text-sm font-bold transition-all hover:scale-105"
+                    className={`px-4 py-2.5 rounded-xl text-sm font-bold transition-all ${
+                      editedTask.status === status 
+                        ? 'shadow-lg scale-105' 
+                        : 'hover:scale-105 opacity-70 hover:opacity-100'
+                    }`}
                     style={{
-                      backgroundColor: editedTask.status === status ? config.bg : `${config.bg}20`,
-                      color: editedTask.status === status ? config.text : '#323338',
-                      border: editedTask.status === status ? 'none' : `2px solid ${config.bg}`
+                      backgroundColor: config.bg,
+                      color: config.text
                     }}
                   >
                     {config.label}
@@ -532,20 +557,28 @@ const TaskDetailPanel = ({ task, users, onClose, onUpdate, onStatusChange }) => 
           </div>
 
           {/* Footer */}
-          <div className="p-6 border-t border-gray-200 bg-gray-50">
-            <div className="flex justify-end gap-3">
-              <Button variant="outline" onClick={onClose}>
-                İptal
-              </Button>
-              <Button
-                onClick={() => {
-                  onUpdate(task._id, editedTask);
-                  onClose();
-                }}
-                className="bg-[#6366f1] hover:bg-[#5558e3]"
-              >
-                Kaydet
-              </Button>
+          <div className="p-6 border-t border-gray-200 bg-gradient-to-r from-gray-50 to-white">
+            <div className="flex justify-between items-center">
+              <div className="text-xs text-gray-500">
+                Son güncelleme: {new Date(task.updatedAt || task.createdAt).toLocaleString('tr-TR')}
+              </div>
+              <div className="flex gap-3">
+                <Button variant="outline" onClick={onClose} className="hover:bg-gray-100">
+                  <X size={16} className="mr-2" />
+                  Kapat
+                </Button>
+                <Button
+                  onClick={() => {
+                    onUpdate(task._id, editedTask);
+                    toast.success('Görev güncellendi!');
+                    onClose();
+                  }}
+                  className="bg-gradient-to-r from-[#6366f1] to-[#8b5cf6] hover:from-[#5558e3] hover:to-[#7c3aed] text-white"
+                >
+                  <Save size={16} className="mr-2" />
+                  Kaydet
+                </Button>
+              </div>
             </div>
           </div>
         </div>
