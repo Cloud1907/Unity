@@ -83,20 +83,20 @@ const BoardHeader = ({ boardId, currentView, onViewChange }) => {
       </div>
 
       {/* Views and Filters */}
-      <div className="px-8 py-2 flex items-center justify-between bg-white border-t border-gray-200">
-        <div className="flex items-center gap-1">
+      <div className="px-6 py-1.5 flex items-center justify-between bg-white border-t border-gray-200">
+        <div className="flex items-center">
           {views.map(view => (
             <button
               key={view.id}
               onClick={() => onViewChange(view.id)}
-              className={`relative px-4 py-2.5 text-sm font-medium transition-colors ${
+              className={`relative px-3 py-1.5 text-xs font-medium transition-colors ${
                 currentView === view.id
                   ? 'text-[#6366f1]'
                   : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
               }`}
             >
-              <div className="flex items-center gap-2">
-                <span className="text-base">{view.icon}</span>
+              <div className="flex items-center gap-1.5">
+                <span className="text-sm">{view.icon}</span>
                 <span>{view.label}</span>
               </div>
               {currentView === view.id && (
@@ -106,21 +106,21 @@ const BoardHeader = ({ boardId, currentView, onViewChange }) => {
           ))}
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5">
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={16} />
+            <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 text-gray-400" size={13} />
             <input
               type="text"
               placeholder="Görev ara..."
-              className="pl-9 pr-3 py-2 bg-white border border-gray-300 rounded text-sm focus:outline-none focus:border-[#6366f1] transition-colors w-64"
+              className="pl-7 pr-2 py-1 bg-white border border-gray-300 rounded text-xs focus:outline-none focus:border-[#6366f1] transition-colors w-48"
             />
           </div>
           <Button 
             variant="outline" 
             size="sm" 
-            className="gap-1.5 rounded px-3 py-2 border border-gray-300 hover:border-gray-400 hover:bg-gray-50 transition-colors text-sm"
+            className="gap-1 rounded px-2 py-1 border border-gray-300 hover:border-gray-400 hover:bg-gray-50 transition-colors text-xs h-6"
           >
-            <Filter size={16} />
+            <Filter size={13} />
             <span>Filtrele</span>
           </Button>
         </div>
