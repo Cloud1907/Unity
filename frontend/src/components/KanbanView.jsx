@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, X, Calendar, User, Flag, MessageSquare, Paperclip, MoreHorizontal } from 'lucide-react';
+import { Plus, X, Calendar, User, Flag, MessageSquare, Paperclip, MoreHorizontal, Save } from 'lucide-react';
 import { useData } from '../contexts/DataContext';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
 import { Button } from './ui/button';
 import { Textarea } from './ui/textarea';
 import { Input } from './ui/input';
+import { toast } from './ui/sonner';
 
 // Monday.com renk paleti
 const STATUS_COLORS = {
