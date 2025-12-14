@@ -118,6 +118,123 @@ const InlineStatusDropdown = ({ currentStatus, onStatusChange, taskId }) => {
   );
 };
 
+// Priority badges
+const PRIORITY_CONFIG = {
+  urgent: { color: '#DF2F4A', label: 'Acil', icon: '⇈' },
+  high: { color: '#E2445C', label: 'Yüksek', icon: '↑' },
+  medium: { color: '#FDAB3D', label: 'Orta', icon: '−' },
+  low: { color: '#C4C4C4', label: 'Düşük', icon: '↓' }
+};
+
+// Inline Priority Dropdown
+const InlinePriorityDropdown = ({ currentPriority, onChange }) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const dropdownRef = useRef(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setIsOpen(false);
+      }
+    };
+    if (isOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [isOpen]);
+
+  const currentConfig = PRIORITY_CONFIG[currentPriority] || PRIORITY_CONFIG.medium;
+
+  return (
+    <div ref={dropdownRef} className="relative z-[100]" onClick={(e) => e.stopPropagation()}>
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        className="px-2 py-0.5 rounded text-xs font-bold transition-all hover:scale-105"
+        style={{
+          backgroundColor: `${currentConfig.color}15`,
+          color: currentConfig.color,
+          border: `1px solid ${currentConfig.color}30`
+        }}
+      >
+        {currentConfig.icon} {currentConfig.label}
+      </button>
+
+      {isOpen && (
+        <div className="absolute top-full left-0 mt-1 bg-white rounded-lg shadow-2xl border border-gray-200 z-[9999] min-w-[140px] py-1">
+          {Object.entries(PRIORITY_CONFIG).map(([key, config]) => (
+            <button
+              key={key}
+              onClick={() => {
+                onChange(key);
+                setIsOpen(false);
+              }}
+              className="w-full flex items-center gap-2 px-3 py-2 text-xs font-bold hover:bg-gray-50"
+            >
+              <span>{config.icon}</span>
+              <span style={{ color: config.color }}>{config.label}</span>
+              {currentPriority === key && <span className="ml-auto text-blue-600">✓</span>}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
+// Inline Date Picker
+const InlineDatePickerSmall = ({ value, onChange }) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const datePickerRef = useRef(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (datePickerRef.current && !datePickerRef.current.contains(event.target)) {
+        setIsOpen(false);
+      }
+    };
+    if (isOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [isOpen]);
+
+  const formatDate = (dateString) => {
+    if (!dateString) return 'Tarih yok';
+    const date = new Date(dateString);
+    return date.toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' });
+  };
+
+  const isOverdue = value && new Date(value) < new Date();
+
+  return (
+    <div ref={datePickerRef} className="relative z-[100]" onClick={(e) => e.stopPropagation()}>
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        className={`flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium transition-all hover:bg-gray-100 ${
+          isOverdue ? 'text-red-600 bg-red-50' : 'text-gray-600'
+        }`}
+      >
+        <Calendar size={11} />
+        <span>{formatDate(value)}</span>
+      </button>
+
+      {isOpen && (
+        <div className="absolute top-full left-0 mt-1 bg-white rounded-lg shadow-2xl border border-gray-200 z-[9999] p-2">
+          <input
+            type="date"
+            value={value ? new Date(value).toISOString().split('T')[0] : ''}
+            onChange={(e) => {
+              onChange(e.target.value);
+              setIsOpen(false);
+            }}
+            className="px-2 py-1 border border-gray-300 rounded text-xs focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+        </div>
+      )}
+    </div>
+  );
+};
+
 // Kompakt Task Card - Monday.com stili
 const CompactTaskCard = ({ task, onDragStart, onDragEnd, isDragging, users, onStatusChange, onTaskClick, onUpdate }) => {
   const assignees = users.filter(u => task.assignees?.includes(u.id || u._id));
