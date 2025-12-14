@@ -263,27 +263,31 @@ const KanbanView = ({ boardId }) => {
                             )}
                           </div>
 
-                          {/* Assignees */}
+                          {/* Assignees - Monday.com style */}
                           <div className="flex items-center justify-between">
                             <div className="flex items-center -space-x-2">
-                              {assignees.slice(0, 3).map(assignee => (
-                                <Avatar key={assignee._id} className="w-6 h-6 border-2 border-white ring-1 ring-gray-200 hover:ring-[#6366f1] transition-all hover:z-10">
+                              {assignees.slice(0, 3).map((assignee, idx) => (
+                                <Avatar 
+                                  key={assignee._id} 
+                                  className="w-7 h-7 border-2 border-white ring-2 ring-gray-100 hover:ring-[#6366f1] transition-all hover:z-10 hover:scale-110 cursor-pointer"
+                                  style={{ zIndex: 3 - idx }}
+                                >
                                   <AvatarImage src={assignee.avatar} />
-                                  <AvatarFallback className="text-xs">
+                                  <AvatarFallback className="text-xs font-bold bg-gradient-to-br from-blue-400 to-purple-500 text-white">
                                     {assignee.fullName?.charAt(0)}
                                   </AvatarFallback>
                                 </Avatar>
                               ))}
                               {assignees.length > 3 && (
-                                <div className="w-6 h-6 rounded-full bg-gray-200 border-2 border-white flex items-center justify-center">
-                                  <span className="text-xs font-semibold text-gray-600">
+                                <div className="w-7 h-7 rounded-full bg-gradient-to-br from-gray-200 to-gray-300 border-2 border-white flex items-center justify-center hover:scale-110 transition-transform cursor-pointer">
+                                  <span className="text-[10px] font-bold text-gray-700">
                                     +{assignees.length - 3}
                                   </span>
                                 </div>
                               )}
                               {assignees.length === 0 && (
-                                <button className="w-6 h-6 rounded-full border-2 border-dashed border-gray-300 flex items-center justify-center hover:border-[#6366f1] hover:bg-blue-50 transition-all">
-                                  <Plus size={12} className="text-gray-400" />
+                                <button className="w-7 h-7 rounded-full border-2 border-dashed border-gray-300 flex items-center justify-center hover:border-[#6366f1] hover:bg-blue-50 transition-all hover:scale-110">
+                                  <Plus size={14} className="text-gray-400" />
                                 </button>
                               )}
                             </div>
@@ -292,10 +296,11 @@ const KanbanView = ({ boardId }) => {
                             <div className="relative group/status">
                               <button
                                 onClick={(e) => e.stopPropagation()}
-                                className="px-2.5 py-1 rounded-lg text-xs font-bold border-0 cursor-pointer transition-all hover:scale-105 hover:shadow-md"
+                                className="px-3 py-1.5 rounded-lg text-xs font-bold border-0 cursor-pointer transition-all hover:scale-110 hover:shadow-lg"
                                 style={{ 
                                   backgroundColor: STATUS_COLORS[task.status]?.bg || '#C4C4C4',
-                                  color: STATUS_COLORS[task.status]?.text || '#FFFFFF'
+                                  color: STATUS_COLORS[task.status]?.text || '#FFFFFF',
+                                  boxShadow: `0 2px 8px ${STATUS_COLORS[task.status]?.bg}40`
                                 }}
                               >
                                 {STATUS_COLORS[task.status]?.label || 'Bilinmiyor'}
