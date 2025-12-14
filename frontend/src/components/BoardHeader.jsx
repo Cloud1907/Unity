@@ -83,28 +83,24 @@ const BoardHeader = ({ boardId, currentView, onViewChange }) => {
       </div>
 
       {/* Views and Filters */}
-      <div className="px-8 py-4 flex items-center justify-between bg-gradient-to-r from-gray-50 to-gray-100/50 border-t border-gray-200">
-        <div className="flex items-center gap-3">
+      <div className="px-8 py-2 flex items-center justify-between bg-white border-t border-gray-200">
+        <div className="flex items-center gap-1">
           {views.map(view => (
             <button
               key={view.id}
               onClick={() => onViewChange(view.id)}
-              className={`group relative px-6 py-3 rounded-2xl text-sm font-semibold transition-all duration-300 ${
+              className={`relative px-4 py-2.5 text-sm font-medium transition-colors ${
                 currentView === view.id
-                  ? 'bg-gradient-to-r from-[#6366f1] to-[#8b5cf6] text-white shadow-lg shadow-purple-500/30 scale-105'
-                  : 'bg-white text-gray-700 hover:bg-gradient-to-r hover:from-gray-50 hover:to-white hover:shadow-md hover:scale-102'
+                  ? 'text-[#6366f1]'
+                  : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
               }`}
             >
-              <div className="flex items-center gap-2.5">
-                <span className={`text-xl transition-transform duration-300 ${
-                  currentView === view.id ? 'scale-110' : 'group-hover:scale-110'
-                }`}>
-                  {view.icon}
-                </span>
-                <span className="tracking-wide">{view.label}</span>
+              <div className="flex items-center gap-2">
+                <span className="text-base">{view.icon}</span>
+                <span>{view.label}</span>
               </div>
               {currentView === view.id && (
-                <div className="absolute -bottom-1 left-1/2 transform -translate-x-1/2 w-12 h-1 bg-gradient-to-r from-[#6366f1] to-[#8b5cf6] rounded-full"></div>
+                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#6366f1]"></div>
               )}
             </button>
           ))}
