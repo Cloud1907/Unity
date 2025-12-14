@@ -77,10 +77,10 @@ const InlineStatusDropdown = ({ currentStatus, onStatusChange, taskId }) => {
   const currentConfig = STATUS_COLORS[currentStatus] || STATUS_COLORS.todo;
 
   return (
-    <div ref={dropdownRef} className="relative" onClick={(e) => e.stopPropagation()}>
+    <div ref={dropdownRef} className="relative z-[100]" onClick={(e) => e.stopPropagation()}>
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="px-3 py-1 rounded-md text-xs font-bold transition-all hover:scale-105 hover:shadow-lg"
+        className="px-3 py-1 rounded-md text-xs font-bold transition-all hover:scale-105 hover:shadow-lg relative z-[100]"
         style={{
           backgroundColor: currentConfig.bg,
           color: currentConfig.text,
@@ -91,7 +91,7 @@ const InlineStatusDropdown = ({ currentStatus, onStatusChange, taskId }) => {
       </button>
 
       {isOpen && (
-        <div className="absolute top-full left-0 mt-1 bg-white rounded-xl shadow-2xl border border-gray-200 z-50 min-w-[180px] py-2 animate-in fade-in slide-in-from-top-2 duration-200">
+        <div className="absolute top-full left-0 mt-1 bg-white rounded-xl shadow-2xl border border-gray-200 z-[9999] min-w-[180px] py-2 animate-in fade-in slide-in-from-top-2 duration-200">
           <div className="px-3 py-1.5 text-xs font-semibold text-gray-500 border-b border-gray-100">
             Durum Değiştir
           </div>
