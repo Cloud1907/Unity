@@ -132,77 +132,74 @@ const MainTable = ({ boardId }) => {
                   className="flex hover:bg-gray-50 transition-colors border-b border-gray-100 group cursor-pointer"
                   onClick={() => openTaskModal(task)}
                 >
-                  <div className="w-12 flex items-center justify-center py-4 border-r border-gray-100">
-                    <input type="checkbox" className="rounded" onClick={(e) => e.stopPropagation()} />
+                  <div className="w-10 flex items-center justify-center py-2 border-r border-gray-100">
+                    <input type="checkbox" className="rounded w-3 h-3" onClick={(e) => e.stopPropagation()} />
                   </div>
-                  <div className="w-80 px-4 py-4 border-r border-gray-100">
-                    <div className="font-normal text-gray-900 hover:text-[#0086c0] transition-colors">
+                  <div className="w-72 px-3 py-2 border-r border-gray-100">
+                    <div className="text-xs text-gray-900 hover:text-[#6366f1] transition-colors">
                       {task.title}
                     </div>
                   </div>
-                  <div className="w-48 px-4 py-4 border-r border-gray-100">
+                  <div className="w-40 px-3 py-2 border-r border-gray-100">
                     <button
-                      className="px-3 py-1.5 rounded-full text-sm font-normal text-white transition-all hover:scale-105 hover:shadow-md"
+                      className="px-2 py-1 rounded-full text-xs text-white transition-all"
                       style={{ backgroundColor: getStatusColor(task.status) }}
                       onClick={(e) => e.stopPropagation()}
                     >
                       {getStatusLabel(task.status)}
                     </button>
                   </div>
-                  <div className="w-40 px-4 py-4 border-r border-gray-100">
+                  <div className="w-32 px-3 py-2 border-r border-gray-100">
                     <button
-                      className="px-3 py-1.5 rounded-lg text-sm font-normal transition-all hover:scale-105"
+                      className="px-2 py-1 rounded text-xs transition-all"
                       style={{
                         backgroundColor: `${priority.color}15`,
-                        color: priority.color,
-                        border: `1px solid ${priority.color}30`
+                        color: priority.color
                       }}
                       onClick={(e) => e.stopPropagation()}
                     >
                       {priority.icon} {priority.label}
                     </button>
                   </div>
-                  <div className="w-48 px-4 py-4 border-r border-gray-100">
-                    <div className="flex items-center -space-x-2">
+                  <div className="w-40 px-3 py-2 border-r border-gray-100">
+                    <div className="flex items-center -space-x-1.5">
                       {taskAssignees.map(assignee => (
-                        <Avatar key={assignee._id} className="w-7 h-7 border-2 border-white hover:scale-110 transition-transform">
+                        <Avatar key={assignee._id} className="w-5 h-5 border border-white">
                           <AvatarImage src={assignee.avatar} alt={assignee.fullName} />
-                          <AvatarFallback style={{ backgroundColor: assignee.color }}>
+                          <AvatarFallback>
                             {assignee.fullName?.charAt(0) || 'U'}
                           </AvatarFallback>
                         </Avatar>
                       ))}
                     </div>
                   </div>
-                  <div className="w-32 px-4 py-4 border-r border-gray-100">
-                    <span className="text-sm text-gray-600">{formatDate(task.dueDate)}</span>
+                  <div className="w-28 px-3 py-2 border-r border-gray-100">
+                    <span className="text-xs text-gray-600">{formatDate(task.dueDate)}</span>
                   </div>
-                  <div className="w-48 px-4 py-4 border-r border-gray-100">
+                  <div className="w-40 px-3 py-2 border-r border-gray-100">
                     <div className="flex flex-wrap gap-1">
                       {taskLabels.map((label, idx) => (
                         <span
                           key={idx}
-                          className="px-2 py-1 rounded text-xs font-normal text-white bg-blue-500"
+                          className="px-1.5 py-0.5 rounded text-xs text-white bg-blue-500"
                         >
                           {label}
                         </span>
                       ))}
                     </div>
                   </div>
-                  <div className="w-32 px-4 py-4">
-                    <div className="flex flex-col gap-1">
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs text-gray-500">{task.progress}%</span>
-                      </div>
-                      <div className="w-full bg-gray-200 rounded-full h-2">
+                  <div className="w-28 px-3 py-2">
+                    <div className="flex items-center gap-1.5">
+                      <div className="flex-1 bg-gray-200 rounded-full h-1.5">
                         <div
-                          className="h-2 rounded-full transition-all duration-500"
+                          className="h-1.5 rounded-full transition-all"
                           style={{
                             width: `${task.progress}%`,
-                            backgroundColor: task.progress === 100 ? '#00c875' : '#0086c0'
+                            backgroundColor: task.progress === 100 ? '#00c875' : '#6366f1'
                           }}
                         />
                       </div>
+                      <span className="text-xs text-gray-500 w-8">{task.progress}%</span>
                     </div>
                   </div>
                 </div>
