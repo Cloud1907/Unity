@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import ReactDOM from 'react-dom';
 import { X, Calendar, User as UserIcon, MessageSquare, Paperclip, BarChart3, Clock, Plus, CheckCircle2, ListTodo, Trash2 } from 'lucide-react';
 import { useData } from '../contexts/DataContext';
 import { useAuth } from '../contexts/AuthContext';
