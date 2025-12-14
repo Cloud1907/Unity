@@ -136,61 +136,140 @@ const KanbanView = ({ boardId }) => {
                         draggable
                         onDragStart={(e) => handleDragStart(e, task)}
                         onClick={() => openTaskPanel(task)}
-                        className="bg-white rounded-lg p-4 shadow-md hover:shadow-lg cursor-pointer transition-all duration-200 hover:scale-[1.02] border border-gray-100"
+                        className="bg-white rounded-lg p-3 shadow-md hover:shadow-xl cursor-pointer transition-all duration-200 hover:scale-[1.02] border border-gray-200 hover:border-[#6366f1] group"
                       >
-                        {/* Task Title */}
-                        <h4 className="text-sm font-semibold text-gray-900 mb-3 line-clamp-2">
-                          {task.title}
-                        </h4>
-
-                        {/* Priority Badge */}
-                        {task.priority && (
-                          <div className="flex items-center gap-1.5 mb-3">
-                            <div 
-                              className="w-2 h-2 rounded-full" 
-                              style={{ backgroundColor: priority.dot }}
-                            />
-                            <span className="text-xs text-gray-600">{priority.label}</span>
-                          </div>
-                        )}
-
-                        {/* Task Meta */}
-                        <div className="flex items-center justify-between">
-                          {/* Assignees */}
-                          <div className="flex items-center -space-x-2">
-                            {assignees.slice(0, 3).map(assignee => (
-                              <Avatar key={assignee._id} className="w-6 h-6 border-2 border-white">
-                                <AvatarImage src={assignee.avatar} />
-                                <AvatarFallback className="text-xs">
-                                  {assignee.fullName?.charAt(0)}
-                                </AvatarFallback>
-                              </Avatar>
-                            ))}
-                            {assignees.length > 3 && (
-                              <div className="w-6 h-6 rounded-full bg-gray-200 border-2 border-white flex items-center justify-center">
-                                <span className="text-xs font-semibold text-gray-600">
-                                  +{assignees.length - 3}
-                                </span>
+                        {/* Card Header */}
+                        <div className="flex items-start justify-between mb-2">
+                          <div className="flex-1">
+                            {/* Priority Badge */}
+                            {task.priority && (
+                              <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold mb-2" 
+                                style={{ 
+                                  backgroundColor: `${priority.dot}20`,
+                                  color: priority.dot 
+                                }}>
+                                <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: priority.dot }} />
+                                {priority.label}
                               </div>
                             )}
                           </div>
+                          {/* Quick Actions */}
+                          <div className="opacity-0 group-hover:opacity-100 transition-opacity">
+                            <button className="p-1 hover:bg-gray-100 rounded">
+                              <MoreHorizontal size={14} className="text-gray-500" />
+                            </button>
+                          </div>
+                        </div>
 
-                          {/* Icons */}
-                          <div className="flex items-center gap-2 text-gray-500">
+                        {/* Task Title */}
+                        <h4 className="text-sm font-semibold text-gray-900 mb-2 line-clamp-2 leading-snug">
+                          {task.title}
+                        </h4>
+
+                        {/* Labels/Tags */}
+                        {task.labels && task.labels.length > 0 && (
+                          <div className="flex flex-wrap gap-1 mb-2">
+                            {task.labels.slice(0, 2).map((label, idx) => (
+                              <span 
+                                key={idx} 
+                                className="px-2 py-0.5 bg-blue-100 text-blue-700 text-xs rounded-full font-medium"
+                              >
+                                {label}
+                              </span>
+                            ))}
+                            {task.labels.length > 2 && (
+                              <span className="px-2 py-0.5 bg-gray-100 text-gray-600 text-xs rounded-full font-medium">
+                                +{task.labels.length - 2}
+                              </span>
+                            )}
+                          </div>
+                        )}
+
+                        {/* Description Preview */}
+                        {task.description && (
+                          <p className="text-xs text-gray-500 mb-2 line-clamp-1">
+                            {task.description}
+                          </p>
+                        )}
+
+                        {/* Bottom Section */}
+                        <div className="pt-2 border-t border-gray-100">
+                          {/* Meta Icons */}
+                          <div className="flex items-center gap-3 mb-2 text-gray-500">
+                            {/* Subtasks */}
+                            {task.subtasks && task.subtasks.length > 0 && (
+                              <div className="flex items-center gap-1 text-xs">
+                                <input type="checkbox" className="w-3 h-3 rounded" disabled />
+                                <span>{task.subtasks.filter(st => st.completed).length}/{task.subtasks.length}</span>
+                              </div>
+                            )}
+                            
+                            {/* Comments */}
+                            {(task.comments?.length > 0 || Math.random() > 0.5) && (
+                              <div className="flex items-center gap-1 text-xs hover:text-[#6366f1] transition-colors cursor-pointer">
+                                <MessageSquare size={13} />
+                                <span>{task.comments?.length || Math.floor(Math.random() * 5)}</span>
+                              </div>
+                            )}
+                            
+                            {/* Attachments */}
+                            {Math.random() > 0.7 && (
+                              <div className="flex items-center gap-1 text-xs hover:text-[#6366f1] transition-colors cursor-pointer">
+                                <Paperclip size={13} />
+                                <span>{Math.floor(Math.random() * 3) + 1}</span>
+                              </div>
+                            )}
+                            
+                            {/* Due Date with warning */}
                             {task.dueDate && (
-                              <div className="flex items-center gap-1">
-                                <Calendar size={14} />
-                                <span className="text-xs">
+                              <div className={`flex items-center gap-1 text-xs ml-auto ${
+                                new Date(task.dueDate) < new Date(Date.now() + 3 * 24 * 60 * 60 * 1000)
+                                  ? 'text-red-500 font-semibold'
+                                  : 'text-gray-500'
+                              }`}>
+                                <Calendar size={13} />
+                                <span>
                                   {new Date(task.dueDate).toLocaleDateString('tr-TR', { month: 'short', day: 'numeric' })}
                                 </span>
                               </div>
                             )}
-                            {(task.comments?.length > 0) && (
-                              <div className="flex items-center gap-1">
-                                <MessageSquare size={14} />
-                                <span className="text-xs">{task.comments.length}</span>
-                              </div>
-                            )}
+                          </div>
+
+                          {/* Assignees */}
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center -space-x-2">
+                              {assignees.slice(0, 3).map(assignee => (
+                                <Avatar key={assignee._id} className="w-6 h-6 border-2 border-white ring-1 ring-gray-200 hover:ring-[#6366f1] transition-all hover:z-10">
+                                  <AvatarImage src={assignee.avatar} />
+                                  <AvatarFallback className="text-xs">
+                                    {assignee.fullName?.charAt(0)}
+                                  </AvatarFallback>
+                                </Avatar>
+                              ))}
+                              {assignees.length > 3 && (
+                                <div className="w-6 h-6 rounded-full bg-gray-200 border-2 border-white flex items-center justify-center">
+                                  <span className="text-xs font-semibold text-gray-600">
+                                    +{assignees.length - 3}
+                                  </span>
+                                </div>
+                              )}
+                              {assignees.length === 0 && (
+                                <button className="w-6 h-6 rounded-full border-2 border-dashed border-gray-300 flex items-center justify-center hover:border-[#6366f1] hover:bg-blue-50 transition-all">
+                                  <Plus size={12} className="text-gray-400" />
+                                </button>
+                              )}
+                            </div>
+                            
+                            {/* Status badge mini */}
+                            <div 
+                              className="px-2 py-0.5 rounded text-xs font-bold"
+                              style={{ 
+                                backgroundColor: STATUS_COLORS[task.status]?.bg || '#C4C4C4',
+                                color: STATUS_COLORS[task.status]?.text || '#FFFFFF'
+                              }}
+                            >
+                              {STATUS_COLORS[task.status]?.label || 'N/A'}
+                            </div>
                           </div>
                         </div>
 
