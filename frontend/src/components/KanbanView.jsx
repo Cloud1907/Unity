@@ -107,26 +107,34 @@ const KanbanView = ({ boardId }) => {
             return (
               <div
                 key={column.id}
-                className="flex flex-col w-80 bg-[#f6f7fb] rounded-lg"
+                className={`flex flex-col w-80 rounded-xl transition-all duration-300 ${
+                  draggedTask && draggedTask.status !== column.id
+                    ? 'ring-2 ring-[#6366f1] ring-opacity-50 bg-blue-50'
+                    : ''
+                }`}
+                style={{ backgroundColor: column.lightBg }}
                 onDragOver={handleDragOver}
                 onDrop={(e) => handleDrop(e, column.id)}
               >
-                {/* Column Header */}
-                <div className="mb-3">
-                  <div className="flex items-center justify-between px-3 py-2">
+                {/* Column Header - Monday.com style */}
+                <div className="mb-3 px-3 py-3 rounded-t-xl" style={{ backgroundColor: `${column.color}15` }}>
+                  <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <div 
-                        className="w-3 h-3 rounded-full" 
+                        className="w-2 h-8 rounded-full transition-all duration-200" 
                         style={{ backgroundColor: column.color }}
                       />
                       <span className="text-sm font-bold text-gray-900">
                         {column.title}
                       </span>
-                      <span className="text-xs text-gray-500 font-semibold">
-                        ({columnTasks.length})
+                      <span 
+                        className="px-2 py-0.5 rounded-full text-xs font-bold text-white"
+                        style={{ backgroundColor: column.color }}
+                      >
+                        {columnTasks.length}
                       </span>
                     </div>
-                    <button className="p-1 hover:bg-gray-200 rounded transition-colors">
+                    <button className="p-1.5 hover:bg-white/60 rounded-lg transition-all duration-200 hover:scale-110">
                       <MoreHorizontal size={16} className="text-gray-600" />
                     </button>
                   </div>
