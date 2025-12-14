@@ -369,9 +369,9 @@ const MainTable = ({ boardId }) => {
                   </div>
                   <div className="w-40 px-3 py-3 border-r border-gray-100">
                     <InlineAssigneePicker
-                      assigneeIds={task.assignedTo}
+                      assigneeIds={task.assignees}
                       allUsers={users}
-                      onChange={(newAssignees) => updateTask(task._id, { assignedTo: newAssignees })}
+                      onChange={(newAssignees) => updateTask(task._id, { assignees: newAssignees })}
                     />
                   </div>
                   <div className="w-28 px-3 py-3 border-r border-gray-100">
