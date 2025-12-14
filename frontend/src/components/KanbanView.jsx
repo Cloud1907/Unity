@@ -213,9 +213,9 @@ const KanbanView = ({ boardId }) => {
                           </div>
                         )}
 
-                        {/* Description Preview */}
+                        {/* Description Preview - Monday.com style */}
                         {task.description && (
-                          <p className="text-xs text-gray-500 mb-2 line-clamp-1">
+                          <p className="text-xs text-gray-600 mb-3 line-clamp-2 leading-relaxed font-normal bg-gray-50 px-2 py-1.5 rounded-md">
                             {task.description}
                           </p>
                         )}
