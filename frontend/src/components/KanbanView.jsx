@@ -135,8 +135,7 @@ const KanbanView = ({ boardId }) => {
                         key={task._id}
                         draggable
                         onDragStart={(e) => handleDragStart(e, task)}
-                        onClick={() => openTaskPanel(task)}
-                        className="bg-white rounded-lg p-3 shadow-md hover:shadow-xl cursor-pointer transition-all duration-200 hover:scale-[1.02] border border-gray-200 hover:border-[#6366f1] group"
+                        className="bg-white rounded-lg p-3 shadow-md hover:shadow-xl transition-all duration-200 hover:scale-[1.02] border border-gray-200 hover:border-[#6366f1] group"
                       >
                         {/* Card Header */}
                         <div className="flex items-start justify-between mb-2">
@@ -161,8 +160,11 @@ const KanbanView = ({ boardId }) => {
                           </div>
                         </div>
 
-                        {/* Task Title */}
-                        <h4 className="text-sm font-semibold text-gray-900 mb-2 line-clamp-2 leading-snug">
+                        {/* Task Title - Click to open modal */}
+                        <h4 
+                          onClick={() => openTaskPanel(task)}
+                          className="text-sm font-semibold text-gray-900 mb-2 line-clamp-2 leading-snug cursor-pointer hover:text-[#6366f1] transition-colors"
+                        >
                           {task.title}
                         </h4>
 
@@ -260,16 +262,24 @@ const KanbanView = ({ boardId }) => {
                               )}
                             </div>
                             
-                            {/* Status badge mini */}
-                            <div 
-                              className="px-2 py-0.5 rounded text-xs font-bold"
+                            {/* Status badge mini - click to change */}
+                            <select
+                              value={task.status}
+                              onChange={(e) => {
+                                e.stopPropagation();
+                                updateTaskStatus(task._id, e.target.value);
+                              }}
+                              onClick={(e) => e.stopPropagation()}
+                              className="px-2 py-0.5 rounded text-xs font-bold border-0 cursor-pointer transition-all hover:scale-105"
                               style={{ 
                                 backgroundColor: STATUS_COLORS[task.status]?.bg || '#C4C4C4',
                                 color: STATUS_COLORS[task.status]?.text || '#FFFFFF'
                               }}
                             >
-                              {STATUS_COLORS[task.status]?.label || 'N/A'}
-                            </div>
+                              {Object.entries(STATUS_COLORS).map(([status, config]) => (
+                                <option key={status} value={status}>{config.label}</option>
+                              ))}
+                            </select>
                           </div>
                         </div>
 
