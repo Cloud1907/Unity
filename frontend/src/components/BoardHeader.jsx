@@ -7,18 +7,20 @@ import NewTaskModal from './NewTaskModal';
 import LabelManager from './LabelManager';
 
 const BoardHeader = ({ boardId, currentView, onViewChange, onFilterChange }) => {
-  const { projects, users, toggleFavorite } = useData();
+  const { projects, users, toggleFavorite, labels } = useData();
   const [showNewTaskModal, setShowNewTaskModal] = useState(false);
   const [showLabelManager, setShowLabelManager] = useState(false);
   const [showFilterMenu, setShowFilterMenu] = useState(false);
   const [filters, setFilters] = useState({
     status: [],
     priority: [],
-    assignee: []
+    assignee: [],
+    labels: []
   });
   
   const board = projects.find(b => b._id === boardId);
   const boardMembers = users.filter(u => board?.members?.includes(u._id));
+  const projectLabels = labels?.filter(l => l.projectId === boardId) || [];
 
   const handleToggleFavorite = async () => {
     if (board) {
@@ -143,9 +145,9 @@ const BoardHeader = ({ boardId, currentView, onViewChange, onFilterChange }) => 
             >
               <Filter size={13} />
               <span>Filtrele</span>
-              {(filters.status.length > 0 || filters.priority.length > 0 || filters.assignee.length > 0) && (
+              {(filters.status.length > 0 || filters.priority.length > 0 || filters.assignee.length > 0 || filters.labels.length > 0) && (
                 <span className="ml-1 px-1.5 py-0.5 bg-blue-600 text-white rounded-full text-[10px]">
-                  {filters.status.length + filters.priority.length + filters.assignee.length}
+                  {filters.status.length + filters.priority.length + filters.assignee.length + filters.labels.length}
                 </span>
               )}
             </Button>
@@ -158,7 +160,7 @@ const BoardHeader = ({ boardId, currentView, onViewChange, onFilterChange }) => 
                     <h3 className="font-semibold text-sm">Filtreler</h3>
                     <button
                       onClick={() => {
-                        setFilters({ status: [], priority: [], assignee: [] });
+                        setFilters({ status: [], priority: [], assignee: [], labels: [] });
                         if (onFilterChange) onFilterChange(null);
                       }}
                       className="text-xs text-blue-600 hover:text-blue-700"
@@ -228,6 +230,40 @@ const BoardHeader = ({ boardId, currentView, onViewChange, onFilterChange }) => 
                       ))}
                     </div>
                   </div>
+
+                  {/* Labels Filter */}
+                  {projectLabels.length > 0 && (
+                    <div className="mb-4">
+                      <label className="text-xs font-semibold text-gray-700 mb-2 block">Etiketler</label>
+                      <div className="space-y-2">
+                        {projectLabels.map(label => (
+                          <label key={label.id} className="flex items-center gap-2 cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={filters.labels.includes(label.id)}
+                              onChange={(e) => {
+                                const newFilters = {
+                                  ...filters,
+                                  labels: e.target.checked
+                                    ? [...filters.labels, label.id]
+                                    : filters.labels.filter(l => l !== label.id)
+                                };
+                                setFilters(newFilters);
+                                if (onFilterChange) onFilterChange(newFilters);
+                              }}
+                              className="rounded border-gray-300"
+                            />
+                            <span
+                              className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold text-white"
+                              style={{ backgroundColor: label.color }}
+                            >
+                              {label.name}
+                            </span>
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+                  )}
 
                   <button
                     onClick={() => setShowFilterMenu(false)}
