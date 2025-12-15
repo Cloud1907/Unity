@@ -32,6 +32,24 @@ const Login = () => {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100">
       <div className="w-full max-w-md">
+        {/* 🎉 YENİ VERSİYON BANNER - v0.3.2 */}
+        <div className="mb-6 p-6 bg-gradient-to-r from-green-600 to-emerald-600 rounded-2xl shadow-2xl border-4 border-green-400">
+          <div className="text-center">
+            <h1 className="text-4xl font-black text-white mb-3 animate-bounce">
+              ✨ YENİ VERSİYON v0.3.2 ✨
+            </h1>
+            <p className="text-xl font-bold text-white mb-2">
+              Z-INDEX SORUNU DÜZELTİLDİ!
+            </p>
+            <p className="text-sm text-white font-semibold bg-white/20 rounded-lg p-2">
+              Bu banner'ı görüyorsanız YENİ KOD yüklendi ✅
+            </p>
+            <p className="text-xs text-white/80 mt-2">
+              Ctrl+Shift+R (veya Cmd+Shift+R Mac'te) yapın
+            </p>
+          </div>
+        </div>
+
         {/* Logo */}
         <div className="text-center mb-8">
           <div className="flex items-center justify-center gap-2 mb-2">
