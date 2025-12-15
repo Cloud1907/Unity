@@ -115,18 +115,18 @@ async def get_me(current_user: dict = Depends(get_current_active_user)):
     """Get current user"""
     return {k: v for k, v in current_user.items() if k != "password"}
 
+class ProfileUpdateRequest(BaseModel):
+    fullName: Optional[str] = None
+    email: Optional[str] = None
+    avatar: Optional[str] = None
+
 @router.put("/profile", response_model=UserResponse)
 async def update_profile(
-    fullName: Optional[str] = None,
-    avatar: Optional[str] = None,
+    profile_data: ProfileUpdateRequest,
     current_user: dict = Depends(get_current_active_user)
 ):
     """Update current user profile"""
-    update_data = {}
-    if fullName:
-        update_data["fullName"] = fullName
-    if avatar:
-        update_data["avatar"] = avatar
+    update_data = profile_data.dict(exclude_unset=True)
     
     if update_data:
         await db.users.update_one(
