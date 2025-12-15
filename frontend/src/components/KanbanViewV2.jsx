@@ -450,7 +450,7 @@ const InlineDatePickerSmall = ({ value, onChange }) => {
 };
 
 // Kompakt Task Card - Monday.com stili
-const CompactTaskCard = ({ task, onDragStart, onDragEnd, isDragging, users, onStatusChange, onTaskClick, onUpdate }) => {
+const CompactTaskCard = ({ task, onDragStart, onDragEnd, isDragging, users, projectId, onStatusChange, onTaskClick, onUpdate }) => {
   const assignees = users.filter(u => task.assignees?.includes(u.id || u._id));
   const [isHovered, setIsHovered] = useState(false);
   const [showAssigneeMenu, setShowAssigneeMenu] = useState(false);
@@ -551,7 +551,7 @@ const CompactTaskCard = ({ task, onDragStart, onDragEnd, isDragging, users, onSt
         <InlineLabelPicker
           taskId={task._id}
           currentLabels={task.labels || []}
-          projectId={project?._id}
+          projectId={projectId}
           onUpdate={(taskId, newLabels) => onUpdate(taskId, { labels: newLabels })}
         />
       </div>
@@ -838,6 +838,7 @@ const KanbanViewV2 = ({ boardId }) => {
                       key={task._id}
                       task={task}
                       users={users}
+                      projectId={boardId}
                       onDragStart={(e) => handleDragStart(e, task)}
                       onDragEnd={handleDragEnd}
                       isDragging={draggedTask?._id === task._id}
