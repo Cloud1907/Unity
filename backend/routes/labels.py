@@ -27,12 +27,15 @@ async def create_label(
 ):
     """Create a new label"""
     label_dict = label.dict()
-    label_dict["id"] = str(uuid4())
+    new_id = str(uuid4())
+    label_dict["id"] = new_id
     label_dict["createdAt"] = datetime.now(timezone.utc).isoformat()
     
-    await db.labels.insert_one(label_dict)
+    result = await db.labels.insert_one(label_dict)
     
-    return {k: v for k, v in label_dict.items() if k != "_id"}
+    # Return with id field, not _id
+    created_label = await db.labels.find_one({"id": new_id}, {"_id": 0})
+    return created_label
 
 @router.put("/{label_id}", response_model=Label)
 async def update_label(
