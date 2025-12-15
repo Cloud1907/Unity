@@ -129,6 +129,15 @@ const BoardHeader = ({ boardId, currentView, onViewChange }) => {
             <Filter size={13} />
             <span>Filtrele</span>
           </Button>
+          <Button 
+            onClick={() => setShowLabelManager(true)}
+            variant="outline" 
+            size="sm" 
+            className="gap-1 rounded px-2 py-1 border border-gray-300 hover:border-gray-400 hover:bg-gray-50 transition-colors text-xs h-6"
+          >
+            <Tag size={13} />
+            <span>Etiketler</span>
+          </Button>
         </div>
       </div>
 
@@ -138,6 +147,14 @@ const BoardHeader = ({ boardId, currentView, onViewChange }) => {
         onClose={() => setShowNewTaskModal(false)}
         projectId={boardId}
       />
+
+      {/* Label Manager Modal */}
+      {showLabelManager && (
+        <LabelManager
+          projectId={boardId}
+          onClose={() => setShowLabelManager(false)}
+        />
+      )}
     </div>
   );
 };
