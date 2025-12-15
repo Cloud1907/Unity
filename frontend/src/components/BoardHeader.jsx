@@ -6,10 +6,16 @@ import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
 import NewTaskModal from './NewTaskModal';
 import LabelManager from './LabelManager';
 
-const BoardHeader = ({ boardId, currentView, onViewChange }) => {
+const BoardHeader = ({ boardId, currentView, onViewChange, onFilterChange }) => {
   const { projects, users, toggleFavorite } = useData();
   const [showNewTaskModal, setShowNewTaskModal] = useState(false);
   const [showLabelManager, setShowLabelManager] = useState(false);
+  const [showFilterMenu, setShowFilterMenu] = useState(false);
+  const [filters, setFilters] = useState({
+    status: [],
+    priority: [],
+    assignee: []
+  });
   
   const board = projects.find(b => b._id === boardId);
   const boardMembers = users.filter(u => board?.members?.includes(u._id));
@@ -117,14 +123,111 @@ const BoardHeader = ({ boardId, currentView, onViewChange }) => {
               className="pl-7 pr-2 py-1 bg-white border border-gray-300 rounded text-xs focus:outline-none focus:border-[#6366f1] transition-colors w-48"
             />
           </div>
-          <Button 
-            variant="outline" 
-            size="sm" 
-            className="gap-1 rounded px-2 py-1 border border-gray-300 hover:border-gray-400 hover:bg-gray-50 transition-colors text-xs h-6"
-          >
-            <Filter size={13} />
-            <span>Filtrele</span>
-          </Button>
+          <div className="relative">
+            <Button 
+              onClick={() => setShowFilterMenu(!showFilterMenu)}
+              variant="outline" 
+              size="sm" 
+              className="gap-1 rounded px-2 py-1 border border-gray-300 hover:border-gray-400 hover:bg-gray-50 transition-colors text-xs h-6"
+            >
+              <Filter size={13} />
+              <span>Filtrele</span>
+              {(filters.status.length > 0 || filters.priority.length > 0 || filters.assignee.length > 0) && (
+                <span className="ml-1 px-1.5 py-0.5 bg-blue-600 text-white rounded-full text-[10px]">
+                  {filters.status.length + filters.priority.length + filters.assignee.length}
+                </span>
+              )}
+            </Button>
+
+            {/* Filter Dropdown */}
+            {showFilterMenu && (
+              <div className="absolute right-0 top-full mt-2 w-72 bg-white rounded-lg shadow-xl border border-gray-200 z-50">
+                <div className="p-4">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="font-semibold text-sm">Filtreler</h3>
+                    <button
+                      onClick={() => {
+                        setFilters({ status: [], priority: [], assignee: [] });
+                        if (onFilterChange) onFilterChange(null);
+                      }}
+                      className="text-xs text-blue-600 hover:text-blue-700"
+                    >
+                      Temizle
+                    </button>
+                  </div>
+
+                  {/* Status Filter */}
+                  <div className="mb-4">
+                    <label className="text-xs font-semibold text-gray-700 mb-2 block">Durum</label>
+                    <div className="space-y-2">
+                      {['todo', 'working', 'review', 'done'].map(status => (
+                        <label key={status} className="flex items-center gap-2 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={filters.status.includes(status)}
+                            onChange={(e) => {
+                              const newFilters = {
+                                ...filters,
+                                status: e.target.checked
+                                  ? [...filters.status, status]
+                                  : filters.status.filter(s => s !== status)
+                              };
+                              setFilters(newFilters);
+                              if (onFilterChange) onFilterChange(newFilters);
+                            }}
+                            className="rounded border-gray-300"
+                          />
+                          <span className="text-xs capitalize">
+                            {status === 'todo' ? 'Yapılacak' : 
+                             status === 'working' ? 'Devam Ediyor' :
+                             status === 'review' ? 'İnceleme' : 'Tamamlandı'}
+                          </span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Priority Filter */}
+                  <div className="mb-4">
+                    <label className="text-xs font-semibold text-gray-700 mb-2 block">Öncelik</label>
+                    <div className="space-y-2">
+                      {['critical', 'high', 'medium', 'low'].map(priority => (
+                        <label key={priority} className="flex items-center gap-2 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={filters.priority.includes(priority)}
+                            onChange={(e) => {
+                              const newFilters = {
+                                ...filters,
+                                priority: e.target.checked
+                                  ? [...filters.priority, priority]
+                                  : filters.priority.filter(p => p !== priority)
+                              };
+                              setFilters(newFilters);
+                              if (onFilterChange) onFilterChange(newFilters);
+                            }}
+                            className="rounded border-gray-300"
+                          />
+                          <span className="text-xs capitalize">
+                            {priority === 'critical' ? 'Kritik' :
+                             priority === 'high' ? 'Yüksek' :
+                             priority === 'medium' ? 'Orta' : 'Düşük'}
+                          </span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+
+                  <button
+                    onClick={() => setShowFilterMenu(false)}
+                    className="w-full px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-xs font-medium"
+                  >
+                    Uygula
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
           <Button 
             onClick={() => setShowLabelManager(true)}
             variant="outline" 
