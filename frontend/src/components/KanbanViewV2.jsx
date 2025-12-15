@@ -217,7 +217,7 @@ const InlineDatePickerSmall = ({ value, onChange }) => {
   const isOverdue = value && new Date(value) < new Date();
 
   return (
-    <div ref={datePickerRef} className="relative z-[100]" onClick={(e) => e.stopPropagation()}>
+    <div ref={datePickerRef} className="relative" onClick={(e) => e.stopPropagation()} style={{ zIndex: 99999 }}>
       <button
         onClick={(e) => {
           e.stopPropagation();
@@ -226,6 +226,7 @@ const InlineDatePickerSmall = ({ value, onChange }) => {
         className={`flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium transition-all hover:bg-gray-100 ${
           isOverdue ? 'text-red-600 bg-red-50' : value ? 'text-gray-600' : 'text-gray-400'
         }`}
+        style={{ position: 'relative', zIndex: 99999 }}
       >
         <Calendar size={11} />
         <span>{formatDate(value)}</span>
@@ -233,8 +234,9 @@ const InlineDatePickerSmall = ({ value, onChange }) => {
 
       {isOpen && (
         <div 
-          className="absolute top-full left-0 mt-1 bg-white rounded-lg shadow-2xl border border-gray-200 z-[9999] p-3"
+          className="absolute top-full left-0 mt-1 bg-white rounded-lg shadow-2xl border border-gray-200 p-3"
           onClick={(e) => e.stopPropagation()}
+          style={{ zIndex: 999999, position: 'absolute' }}
         >
           <input
             type="date"
