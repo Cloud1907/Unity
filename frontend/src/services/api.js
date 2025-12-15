@@ -103,6 +103,14 @@ export const commentsAPI = {
   delete: (id) => api.delete(`/tasks/comments/${id}`),
 };
 
+// Labels API
+export const labelsAPI = {
+  getByProject: (projectId) => api.get(`/labels/project/${projectId}`),
+  create: (data) => api.post('/labels', data),
+  update: (id, data) => api.put(`/labels/${id}`, data),
+  delete: (id) => api.delete(`/labels/${id}`),
+};
+
 // TimeLogs API
 export const timelogsAPI = {
   getAll: (params) => api.get('/timelogs', { params }),
