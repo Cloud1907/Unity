@@ -6,7 +6,7 @@ import { toast } from '../components/ui/sonner';
 import { Avatar, AvatarFallback, AvatarImage } from '../components/ui/avatar';
 
 const AdminPanel = () => {
-  const { users, fetchUsers } = useData();
+  const { users, projects, fetchUsers } = useData();
   const [searchTerm, setSearchTerm] = useState('');
   const [roleFilter, setRoleFilter] = useState('all');
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -187,6 +187,7 @@ const AdminPanel = () => {
           isOpen={isAddModalOpen}
           onClose={() => setIsAddModalOpen(false)}
           onSuccess={fetchUsers}
+          projects={projects}
         />
       )}
 
@@ -200,6 +201,7 @@ const AdminPanel = () => {
           }}
           onSuccess={fetchUsers}
           user={selectedUser}
+          projects={projects}
         />
       )}
 
@@ -233,16 +235,18 @@ const AdminPanel = () => {
 };
 
 // User Form Modal Component
-const UserFormModal = ({ isOpen, onClose, onSuccess, user = null }) => {
+const UserFormModal = ({ isOpen, onClose, onSuccess, user = null, projects = [] }) => {
   const [formData, setFormData] = useState({
     fullName: user?.fullName || '',
     email: user?.email || '',
     password: '',
     role: user?.role || 'member',
     avatar: user?.avatar || '',
-    department: user?.department || ''
+    department: user?.department || '',
+    projectIds: user?.projects || []
   });
   const [loading, setLoading] = useState(false);
+  const [selectAllProjects, setSelectAllProjects] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -332,6 +336,66 @@ const UserFormModal = ({ isOpen, onClose, onSuccess, user = null }) => {
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               placeholder="https://..."
             />
+          </div>
+
+          {/* Projects Selection */}
+          <div>
+            <div className="flex items-center justify-between mb-3">
+              <label className="block text-sm font-medium text-gray-700">Projeler</label>
+              <button
+                type="button"
+                onClick={() => {
+                  if (selectAllProjects) {
+                    setFormData({ ...formData, projectIds: [] });
+                  } else {
+                    setFormData({ ...formData, projectIds: projects.map(p => p._id) });
+                  }
+                  setSelectAllProjects(!selectAllProjects);
+                }}
+                className="text-xs text-blue-600 hover:text-blue-700 font-medium"
+              >
+                {selectAllProjects ? 'Hiçbirini Seçme' : 'Tüm Projeleri Seç'}
+              </button>
+            </div>
+            
+            {projects.length === 0 ? (
+              <p className="text-sm text-gray-500 italic py-2">Henüz proje yok</p>
+            ) : (
+              <div className="max-h-48 overflow-y-auto border border-gray-300 rounded-lg p-3 space-y-2">
+                {projects.map(project => (
+                  <label key={project._id} className="flex items-center gap-2 cursor-pointer hover:bg-gray-50 p-2 rounded">
+                    <input
+                      type="checkbox"
+                      checked={formData.projectIds.includes(project._id)}
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          setFormData({ 
+                            ...formData, 
+                            projectIds: [...formData.projectIds, project._id] 
+                          });
+                        } else {
+                          setFormData({ 
+                            ...formData, 
+                            projectIds: formData.projectIds.filter(id => id !== project._id) 
+                          });
+                        }
+                      }}
+                      className="rounded border-gray-300"
+                    />
+                    <div className="flex items-center gap-2 flex-1">
+                      <div 
+                        className="w-3 h-3 rounded-full" 
+                        style={{ backgroundColor: project.color || '#6366f1' }}
+                      />
+                      <span className="text-sm text-gray-700">{project.name}</span>
+                    </div>
+                  </label>
+                ))}
+              </div>
+            )}
+            <p className="text-xs text-gray-500 mt-2">
+              Seçilen: {formData.projectIds.length} / {projects.length}
+            </p>
           </div>
 
           <div className="flex gap-3 justify-end pt-4">
