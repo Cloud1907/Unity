@@ -161,8 +161,9 @@ function App() {
   return (
     <div className="App">
       <BrowserRouter>
-        <AuthProvider>
-          <DataProvider>
+        <ThemeProvider>
+          <AuthProvider>
+            <DataProvider>
             <Routes>
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />
