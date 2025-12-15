@@ -49,7 +49,9 @@ async def register(user_data: RegisterRequest):
     
     # Set default avatar if not provided
     if not user_dict.get("avatar"):
-        user_dict["avatar"] = f"https://i.pravatar.cc/150?u={user_dict['email']}"
+        # Use DiceBear API for consistent, professional avatars
+        # Style: avataaars (human-like avatars)
+        user_dict["avatar"] = f"https://api.dicebear.com/7.x/avataaars/svg?seed={user_dict['email']}"
     
     await db.users.insert_one(user_dict)
     
