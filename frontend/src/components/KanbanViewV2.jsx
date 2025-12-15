@@ -343,13 +343,14 @@ const CompactTaskCard = ({ task, onDragStart, onDragEnd, isDragging, users, onSt
       {/* Bottom Section - Assignee & Status */}
       <div className="flex items-center justify-between gap-2">
         {/* Assignee - Clickable to add/remove */}
-        <div ref={assigneeMenuRef} className="relative">
+        <div ref={assigneeMenuRef} className="relative" style={{ zIndex: 99999 }}>
           <button
             onClick={(e) => {
               e.stopPropagation();
               setShowAssigneeMenu(!showAssigneeMenu);
             }}
             className="flex items-center -space-x-1.5 hover:scale-105 transition-transform"
+            style={{ position: 'relative', zIndex: 99999 }}
           >
             {assignees.slice(0, 2).map((assignee, idx) => (
               <Avatar 
@@ -379,8 +380,9 @@ const CompactTaskCard = ({ task, onDragStart, onDragEnd, isDragging, users, onSt
           {showAssigneeMenu && (
             <div 
               role="menu"
-              className="absolute top-full left-0 mt-1 bg-white rounded-lg shadow-2xl border border-gray-200 z-[9999] min-w-[200px] py-2 animate-in fade-in slide-in-from-top-2 duration-200"
+              className="absolute top-full left-0 mt-1 bg-white rounded-lg shadow-2xl border border-gray-200 min-w-[200px] py-2 animate-in fade-in slide-in-from-top-2 duration-200"
               onClick={(e) => e.stopPropagation()}
+              style={{ zIndex: 999999, position: 'absolute' }}
             >
               <div className="px-3 py-1.5 text-xs font-semibold text-gray-500 border-b border-gray-100">
                 Kişi Ata
