@@ -139,9 +139,9 @@ const Sidebar = ({ currentBoard, onBoardChange, onNewBoard }) => {
           {expandedSections.favorites && (
             <div className="mt-1">
               {favoriteBoards.map(board => (
-                <button
+                <Link
                   key={board._id}
-                  onClick={() => onBoardChange(board._id)}
+                  to={`/board/${board._id}`}
                   className={`w-full flex items-center gap-3 px-6 py-2 rounded-lg transition-colors ${
                     currentBoard === board._id
                       ? 'bg-white text-gray-900 font-semibold'
@@ -151,7 +151,7 @@ const Sidebar = ({ currentBoard, onBoardChange, onNewBoard }) => {
                   <span className="text-lg">{board.icon}</span>
                   <span className="flex-1 text-left truncate text-sm">{board.name}</span>
                   <Star size={14} className="text-yellow-500 fill-yellow-500" onClick={(e) => handleToggleFavorite(e, board._id)} />
-                </button>
+                </Link>
               ))}
             </div>
           )}
@@ -169,9 +169,9 @@ const Sidebar = ({ currentBoard, onBoardChange, onNewBoard }) => {
           {expandedSections.boards && (
             <div className="mt-1">
               {allBoards.map(board => (
-                <button
+                <Link
                   key={board._id}
-                  onClick={() => onBoardChange(board._id)}
+                  to={`/board/${board._id}`}
                   className={`w-full flex items-center gap-3 px-6 py-2 rounded-lg transition-colors ${
                     currentBoard === board._id
                       ? 'bg-white text-gray-900 font-semibold'
