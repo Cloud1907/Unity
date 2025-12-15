@@ -13,6 +13,8 @@ import WorkloadView from './components/WorkloadView';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import Settings from './pages/Settings';
+import AdminPanel from './pages/AdminPanel';
+import ProfileSettings from './pages/ProfileSettings';
 import { Toaster } from './components/ui/sonner';
 
 // Protected Route Component
