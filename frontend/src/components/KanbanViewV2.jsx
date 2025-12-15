@@ -237,14 +237,27 @@ const InlinePriorityDropdown = ({ currentPriority, onChange }) => {
   );
 };
 
-// Inline Date Picker
+// Inline Date Picker with Portal and Calendar UI
 const InlineDatePickerSmall = ({ value, onChange }) => {
   const [isOpen, setIsOpen] = useState(false);
+  const [position, setPosition] = useState({ top: 0, left: 0 });
+  const buttonRef = useRef(null);
   const datePickerRef = useRef(null);
 
   useEffect(() => {
+    if (isOpen && buttonRef.current) {
+      const rect = buttonRef.current.getBoundingClientRect();
+      setPosition({
+        top: rect.bottom + window.scrollY + 4,
+        left: rect.left + window.scrollX
+      });
+    }
+  }, [isOpen]);
+
+  useEffect(() => {
     const handleClickOutside = (event) => {
-      if (datePickerRef.current && !datePickerRef.current.contains(event.target)) {
+      if (datePickerRef.current && !datePickerRef.current.contains(event.target) &&
+          buttonRef.current && !buttonRef.current.contains(event.target)) {
         setIsOpen(false);
       }
     };
@@ -262,9 +275,25 @@ const InlineDatePickerSmall = ({ value, onChange }) => {
 
   const isOverdue = value && new Date(value) < new Date();
 
+  // Quick date shortcuts
+  const shortcuts = [
+    { label: 'Bugün', days: 0 },
+    { label: 'Yarın', days: 1 },
+    { label: '1 Hafta', days: 7 },
+    { label: '1 Ay', days: 30 }
+  ];
+
+  const handleShortcut = (days) => {
+    const date = new Date();
+    date.setDate(date.getDate() + days);
+    onChange(date.toISOString());
+    setIsOpen(false);
+  };
+
   return (
-    <div ref={datePickerRef} className="relative" onClick={(e) => e.stopPropagation()} style={{ zIndex: 99999 }}>
+    <>
       <button
+        ref={buttonRef}
         onClick={(e) => {
           e.stopPropagation();
           setIsOpen(!isOpen);
@@ -272,18 +301,37 @@ const InlineDatePickerSmall = ({ value, onChange }) => {
         className={`flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium transition-all hover:bg-gray-100 ${
           isOverdue ? 'text-red-600 bg-red-50' : value ? 'text-gray-600' : 'text-gray-400'
         }`}
-        style={{ position: 'relative', zIndex: 99999 }}
       >
         <Calendar size={11} />
         <span>{formatDate(value)}</span>
       </button>
 
-      {isOpen && (
+      {isOpen && createPortal(
         <div 
-          className="absolute top-full left-0 mt-1 bg-white rounded-lg shadow-2xl border border-gray-200 p-3"
+          ref={datePickerRef}
+          className="bg-white rounded-lg shadow-2xl border border-gray-200 p-3 min-w-[220px]"
+          style={{
+            position: 'fixed',
+            top: `${position.top}px`,
+            left: `${position.left}px`,
+            zIndex: 999999
+          }}
           onClick={(e) => e.stopPropagation()}
-          style={{ zIndex: 999999, position: 'absolute' }}
         >
+          {/* Quick shortcuts */}
+          <div className="grid grid-cols-2 gap-1.5 mb-3">
+            {shortcuts.map(shortcut => (
+              <button
+                key={shortcut.label}
+                onClick={() => handleShortcut(shortcut.days)}
+                className="px-2 py-1.5 text-xs font-medium bg-gray-50 hover:bg-blue-50 hover:text-blue-600 rounded transition-colors"
+              >
+                {shortcut.label}
+              </button>
+            ))}
+          </div>
+
+          {/* Native date picker (takvim açılacak) */}
           <input
             type="date"
             value={value ? new Date(value).toISOString().split('T')[0] : ''}
@@ -294,12 +342,26 @@ const InlineDatePickerSmall = ({ value, onChange }) => {
               }
             }}
             onClick={(e) => e.stopPropagation()}
-            className="px-2 py-1.5 border border-gray-300 rounded text-xs focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full px-3 py-2 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             autoFocus
           />
-        </div>
+
+          {/* Clear button */}
+          {value && (
+            <button
+              onClick={() => {
+                onChange(null);
+                setIsOpen(false);
+              }}
+              className="w-full mt-2 px-2 py-1.5 text-xs text-red-600 hover:bg-red-50 rounded transition-colors"
+            >
+              Tarihi Temizle
+            </button>
+          )}
+        </div>,
+        document.body
       )}
-    </div>
+    </>
   );
 };
 
