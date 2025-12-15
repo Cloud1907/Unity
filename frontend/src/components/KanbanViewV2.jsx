@@ -45,14 +45,27 @@ const celebrateTask = () => {
   }, 250);
 };
 
-// Inline Status Dropdown Component
+// Inline Status Dropdown Component with Portal
 const InlineStatusDropdown = ({ currentStatus, onStatusChange, taskId }) => {
   const [isOpen, setIsOpen] = useState(false);
+  const [position, setPosition] = useState({ top: 0, left: 0 });
+  const buttonRef = useRef(null);
   const dropdownRef = useRef(null);
 
   useEffect(() => {
+    if (isOpen && buttonRef.current) {
+      const rect = buttonRef.current.getBoundingClientRect();
+      setPosition({
+        top: rect.bottom + window.scrollY + 4,
+        left: rect.left + window.scrollX
+      });
+    }
+  }, [isOpen]);
+
+  useEffect(() => {
     const handleClickOutside = (event) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target) &&
+          buttonRef.current && !buttonRef.current.contains(event.target)) {
         setIsOpen(false);
       }
     };
@@ -68,7 +81,6 @@ const InlineStatusDropdown = ({ currentStatus, onStatusChange, taskId }) => {
     const oldStatus = currentStatus;
     setIsOpen(false);
     
-    // Eğer "done" (tamamlandı) seçildiyse kutla!
     if (newStatus === 'done' && oldStatus !== 'done') {
       celebrateTask();
     }
@@ -79,25 +91,34 @@ const InlineStatusDropdown = ({ currentStatus, onStatusChange, taskId }) => {
   const currentConfig = STATUS_COLORS[currentStatus] || STATUS_COLORS.todo;
 
   return (
-    <div ref={dropdownRef} className="relative" onClick={(e) => e.stopPropagation()} style={{ zIndex: 99999 }}>
+    <>
       <button
-        onClick={() => setIsOpen(!isOpen)}
+        ref={buttonRef}
+        onClick={(e) => {
+          e.stopPropagation();
+          setIsOpen(!isOpen);
+        }}
         className="px-3 py-1 rounded-md text-xs font-bold transition-all hover:scale-105 hover:shadow-lg"
         style={{
           backgroundColor: currentConfig.bg,
           color: currentConfig.text,
-          boxShadow: `0 2px 8px ${currentConfig.bg}40`,
-          position: 'relative',
-          zIndex: 99999
+          boxShadow: `0 2px 8px ${currentConfig.bg}40`
         }}
       >
         {currentConfig.label}
       </button>
 
-      {isOpen && (
+      {isOpen && createPortal(
         <div 
-          className="absolute top-full left-0 mt-1 bg-white rounded-xl shadow-2xl border border-gray-200 min-w-[180px] py-2 animate-in fade-in slide-in-from-top-2 duration-200"
-          style={{ zIndex: 999999, position: 'absolute' }}
+          ref={dropdownRef}
+          className="bg-white rounded-xl shadow-2xl border border-gray-200 min-w-[180px] py-2"
+          style={{
+            position: 'fixed',
+            top: `${position.top}px`,
+            left: `${position.left}px`,
+            zIndex: 999999
+          }}
+          onClick={(e) => e.stopPropagation()}
         >
           <div className="px-3 py-1.5 text-xs font-semibold text-gray-500 border-b border-gray-100">
             Durum Değiştir
@@ -118,9 +139,10 @@ const InlineStatusDropdown = ({ currentStatus, onStatusChange, taskId }) => {
               )}
             </button>
           ))}
-        </div>
+        </div>,
+        document.body
       )}
-    </div>
+    </>
   );
 };
 
