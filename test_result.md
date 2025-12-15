@@ -385,6 +385,21 @@ frontend:
         - agent: "testing"
         - comment: "COMPREHENSIVE FINAL TEST SUCCESSFUL (Dec 13, 2025): All avatar and subtasks features working correctly! ✅ Avatar Display: Default User icons perfectly displayed in header (board members), sidebar (user profile), and modal (activity/comments sections) when no avatar is set ✅ ModernTaskModal: Opens successfully on task click without any overlay blocking issues ✅ Activity Section: Loads by default with 'Güncelleme yaz...' textarea, user avatar, and activity timeline showing 'Görev Oluşturuldu' ✅ Left Sidebar Navigation: All 4 icons present and functional (Activity/CheckCircle2, Subtasks/ListTodo, Comments/MessageSquare, Files/Paperclip) ✅ Subtasks Section: Loads with 'Alt Görevler' heading and 'Yeni alt görev ekle...' input field ✅ Comments Section: Loads with 'Yorumlar' heading, 'Yorum yaz...' textarea, and user avatar ✅ Files Section: Loads with 'Dosyalar' heading and upload area 'Dosya yüklemek için tıklayın veya sürükleyin' ✅ Modal Overlay Issue RESOLVED: No longer blocks interactions, modal opens and displays properly. All new features are implemented correctly and functional. The previous overlay pointer-events issue has been completely fixed."
 
+  - task: "4Flow Specific Feature Testing (Login, Dark Mode, Professional Tabs, Admin Panel)"
+    implemented: true
+    working: false
+    file: "/app/frontend/src/pages/Settings.jsx, /app/frontend/src/components/BoardHeader.jsx, /app/frontend/src/pages/AdminPanel.jsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: "NA"
+        - agent: "testing"
+        - comment: "Initial assessment - testing specific user-requested scenarios: Login with ahmet@4flow.com/test123, Dark Mode functionality, Professional tabs with Lucide icons, Admin Panel project assignment"
+        - working: false
+        - agent: "testing"
+        - comment: "COMPREHENSIVE TESTING COMPLETED (Dec 15, 2025): Targeted testing of specific user scenarios. ✅ Login & Authentication: ahmet@4flow.com/test123 credentials work perfectly, successful authentication and redirect to dashboard confirmed ✅ Dark Mode Selection: Successfully navigated to Settings → Görünüm tab, dark theme (Koyu) button functional, dark mode class applied to HTML element during selection ❌ CRITICAL ISSUE: Dark Mode Persistence - Dark mode settings do not persist when navigating between pages, theme reverts to light mode on dashboard despite successful selection ✅ Professional Tabs Structure: BoardHeader component exists with proper tab structure, but requires active project to fully test Lucide React icons (Table, LayoutGrid, Calendar, BarChart3, Users) ❌ Admin Panel User Management: Admin panel accessible at /admin route, but 'Melih Bulut' user not found in current database. Project assignment functionality ('Projeler' section, 'Tüm Projeleri Seç' button) exists in code but cannot be tested without specific user data. ✅ Backend Integration: All API endpoints responding correctly, no critical backend errors detected. Main Issues: 1) Dark mode theme persistence across navigation, 2) Test data availability for specific user scenarios."
+
 metadata:
   created_by: "testing_agent"
   version: "1.0"
