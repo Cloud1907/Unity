@@ -178,6 +178,32 @@ function App() {
                   </ProtectedRoute>
                 }
               />
+              <Route
+                path="/admin"
+                element={
+                  <ProtectedRoute>
+                    <div className="flex h-screen overflow-hidden">
+                      <Sidebar onBoardChange={() => {}} />
+                      <div className="flex-1 flex flex-col overflow-hidden">
+                        <AdminPanel />
+                      </div>
+                    </div>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/profile"
+                element={
+                  <ProtectedRoute>
+                    <div className="flex h-screen overflow-hidden">
+                      <Sidebar onBoardChange={() => {}} />
+                      <div className="flex-1 flex flex-col overflow-hidden">
+                        <ProfileSettings />
+                      </div>
+                    </div>
+                  </ProtectedRoute>
+                }
+              />
             </Routes>
           </DataProvider>
         </AuthProvider>
