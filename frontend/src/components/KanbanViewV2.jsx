@@ -4,6 +4,7 @@ import { Plus, MoreHorizontal, User, Calendar } from 'lucide-react';
 import { useData } from '../contexts/DataContext';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
 import ModernTaskModal from './ModernTaskModal';
+import InlineLabelPicker from './InlineLabelPicker';
 import confetti from 'canvas-confetti';
 
 // Monday.com renk paleti - TAM eşleşme
@@ -542,6 +543,16 @@ const CompactTaskCard = ({ task, onDragStart, onDragEnd, isDragging, users, onSt
         <InlineDatePickerSmall
           value={task.dueDate}
           onChange={(newDate) => onUpdate(task._id, { dueDate: newDate })}
+        />
+      </div>
+
+      {/* Labels Row */}
+      <div className="mb-3">
+        <InlineLabelPicker
+          taskId={task._id}
+          currentLabels={task.labels || []}
+          projectId={project?._id}
+          onUpdate={(taskId, newLabels) => onUpdate(taskId, { labels: newLabels })}
         />
       </div>
 
