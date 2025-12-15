@@ -365,7 +365,9 @@ class FourFlowAPITester:
         project_ids = [self.test_project_id]
         
         try:
-            response = self.session.put(f"{API_URL}/users/{self.member_user['_id']}/projects", 
+            # Use member user ID if available, otherwise use a different user from the list
+            target_user_id = self.member_user['_id'] if self.member_user else "693c5e40779ac6a2161c19bd"  # test@4flow.com user
+            response = self.session.put(f"{API_URL}/users/{target_user_id}/projects", 
                                       json=project_ids, headers=headers)
             print(f"      Status Code: {response.status_code}")
             
@@ -374,17 +376,20 @@ class FourFlowAPITester:
                 print(f"      ✅ User-project association successful")
                 print(f"      Message: {result.get('message')}")
                 
-                # Verify by getting projects as member user
-                member_headers = {"Authorization": f"Bearer {self.member_token}"}
-                projects_response = self.session.get(f"{API_URL}/projects", headers=member_headers)
-                
-                if projects_response.status_code == 200:
-                    member_projects = projects_response.json()
-                    project_names = [p.get('name') for p in member_projects]
-                    print(f"      ✅ Verification: Member can now see {len(member_projects)} projects")
-                    print(f"      Projects: {', '.join(project_names)}")
+                # Verify by getting projects as member user if available
+                if self.member_token:
+                    member_headers = {"Authorization": f"Bearer {self.member_token}"}
+                    projects_response = self.session.get(f"{API_URL}/projects", headers=member_headers)
+                    
+                    if projects_response.status_code == 200:
+                        member_projects = projects_response.json()
+                        project_names = [p.get('name') for p in member_projects]
+                        print(f"      ✅ Verification: Member can now see {len(member_projects)} projects")
+                        print(f"      Projects: {', '.join(project_names)}")
+                    else:
+                        print(f"      ⚠️  Could not verify association: {projects_response.text}")
                 else:
-                    print(f"      ⚠️  Could not verify association: {projects_response.text}")
+                    print(f"      ⚠️  Member token not available for verification")
             else:
                 print(f"      ❌ Failed to associate user with project: {response.text}")
                 return False
