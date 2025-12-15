@@ -40,11 +40,11 @@ const BoardHeader = ({ boardId, currentView, onViewChange, onFilterChange }) => 
   }, [showFilterMenu]);
 
   const views = [
-    { id: 'main', label: 'Ana Tablo', icon: '📊' },
-    { id: 'kanban', label: 'Kanban', icon: '📋' },
-    { id: 'calendar', label: 'Takvim', icon: '📅' },
-    { id: 'gantt', label: 'Gantt', icon: '📈' },
-    { id: 'workload', label: 'İş Yükü', icon: '⚖️' }
+    { id: 'main', label: 'Ana Tablo', icon: '📊', shortLabel: 'Tablo' },
+    { id: 'kanban', label: 'Kanban', icon: '📋', shortLabel: 'Kanban' },
+    { id: 'calendar', label: 'Takvim', icon: '📅', shortLabel: 'Takvim' },
+    { id: 'gantt', label: 'Gantt', icon: '📈', shortLabel: 'Gantt' },
+    { id: 'workload', label: 'İş Yükü', icon: '⚖️', shortLabel: 'İş Yükü' }
   ];
 
   if (!board) return null;
@@ -104,25 +104,22 @@ const BoardHeader = ({ boardId, currentView, onViewChange, onFilterChange }) => 
       </div>
 
       {/* Views and Filters */}
-      <div className="px-6 py-1.5 flex items-center justify-between bg-white border-t border-gray-200">
-        <div className="flex items-center">
+      <div className="px-6 py-2 flex items-center justify-between bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700">
+        <div className="flex items-center gap-1">
           {views.map(view => (
             <button
               key={view.id}
               onClick={() => onViewChange(view.id)}
-              className={`relative px-3 py-1.5 text-xs font-medium transition-colors ${
+              className={`relative px-4 py-2 text-sm font-medium rounded-lg transition-all ${
                 currentView === view.id
-                  ? 'text-[#6366f1]'
-                  : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+                  ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 shadow-sm'
+                  : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800'
               }`}
             >
-              <div className="flex items-center gap-1.5">
-                {view.icon}
-                <span>{view.label}</span>
+              <div className="flex items-center gap-2">
+                <span className="text-base">{view.icon}</span>
+                <span className="font-semibold">{view.shortLabel}</span>
               </div>
-              {currentView === view.id && (
-                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#6366f1]"></div>
-              )}
             </button>
           ))}
         </div>
