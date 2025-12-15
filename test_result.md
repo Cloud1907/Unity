@@ -407,9 +407,10 @@ metadata:
 
 test_plan:
   current_focus:
-    - "4Flow Monday.com clone comprehensive backend testing completed"
-  stuck_tasks: []
-  test_all: true
+    - "4Flow Specific Feature Testing (Login, Dark Mode, Professional Tabs, Admin Panel)"
+  stuck_tasks: 
+    - "Dark mode theme persistence issue"
+  test_all: false
   test_priority: "high_first"
 
 agent_communication:
