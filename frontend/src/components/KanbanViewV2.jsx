@@ -603,11 +603,13 @@ const KanbanViewV2 = ({ boardId }) => {
 
                 {/* Tasks */}
                 <div 
-                  className="flex-1 overflow-y-auto px-3 pb-3 space-y-2.5 rounded-b-xl"
+                  className="flex-1 overflow-visible px-3 pb-3 space-y-2.5 rounded-b-xl"
                   style={{ 
                     background: isDropTarget 
                       ? `linear-gradient(to bottom, transparent 0%, ${column.color}20 100%)`
-                      : `linear-gradient(to bottom, transparent 0%, ${column.lightBg} 100%)`
+                      : `linear-gradient(to bottom, transparent 0%, ${column.lightBg} 100%)`,
+                    maxHeight: '600px',
+                    overflowY: 'scroll'
                   }}
                 >
                   {columnTasks.map(task => (
