@@ -183,7 +183,7 @@ const Sidebar = ({ currentBoard, onBoardChange, onNewBoard }) => {
                     style={{ backgroundColor: board.color }}
                   />
                   <span className="flex-1 text-left truncate text-sm">{board.name}</span>
-                </button>
+                </Link>
               ))}
               <button
                 onClick={() => setShowNewProjectModal(true)}
