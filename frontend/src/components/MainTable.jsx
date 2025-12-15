@@ -4,6 +4,7 @@ import { useData } from '../contexts/DataContext';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
 import ModernTaskModal from './ModernTaskModal';
 import NewTaskModal from './NewTaskModal';
+import InlineLabelPicker from './InlineLabelPicker';
 
 // Monday.com renk paleti
 const statuses = [
@@ -386,16 +387,12 @@ const MainTable = ({ boardId }) => {
                     />
                   </div>
                   <div className="w-40 px-3 py-3 border-r border-gray-100">
-                    <div className="flex flex-wrap gap-1">
-                      {taskLabels.map((label, idx) => (
-                        <span
-                          key={idx}
-                          className="px-2 py-0.5 rounded-full text-[10px] font-semibold text-white bg-blue-500 hover:bg-blue-600 transition-colors"
-                        >
-                          {label}
-                        </span>
-                      ))}
-                    </div>
+                    <InlineLabelPicker
+                      taskId={task._id}
+                      currentLabels={task.labels || []}
+                      projectId={boardId}
+                      onUpdate={(taskId, newLabels) => updateTask(taskId, { labels: newLabels })}
+                    />
                   </div>
                   <div className="w-28 px-3 py-3">
                     <div className="flex items-center gap-1.5">
