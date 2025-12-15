@@ -50,7 +50,7 @@ const BoardHeader = ({ boardId, currentView, onViewChange, onFilterChange }) => 
   if (!board) return null;
 
   return (
-    <div className="bg-white border-b border-gray-200 shadow-sm">
+    <div className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 shadow-sm">
       {/* Board Info */}
       <div className="px-6 py-3 flex items-center justify-between">
         <div className="flex items-center gap-3">
@@ -60,7 +60,7 @@ const BoardHeader = ({ boardId, currentView, onViewChange, onFilterChange }) => 
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h1 className="text-base font-semibold text-gray-900">{board.name}</h1>
+                <h1 className="text-base font-semibold text-gray-900 dark:text-gray-100">{board.name}</h1>
                 <button onClick={handleToggleFavorite} className="p-1 hover:bg-gray-100 rounded transition-all">
                   <Star size={14} className={board.favorite ? 'text-yellow-500 fill-yellow-500' : 'text-gray-400'} />
                 </button>
