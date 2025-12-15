@@ -102,7 +102,7 @@
 # Testing Data - Main Agent and testing sub agent both should log testing data below this section
 #====================================================================================================
 
-user_problem_statement: "Backend API Test - Task Creation & Retrieval. Test login, project retrieval, task creation with projectId, task filtering by projectId, and verify projectId field integrity."
+user_problem_statement: "4Flow Monday.com clone uygulamasının tam testini yap: Backend Test: 1. Auth endpoints (login, register) 2. Projects endpoints (CRUD) 3. Tasks endpoints (CRUD, update status) 4. Users endpoints (admin panel için) 5. Labels endpoints (GET, POST, PUT, DELETE) Test Credentials: Admin: ahmet@4flow.com / test123, Member: test@4flow.com / test123 Test Scenarios: 1. Login başarılı mı? 2. Projeler listesi geliyor mu? 3. Görevler listeleniyor mu? 4. Etiketler çalışıyor mu? 5. Yeni kullanıcı proje ile ilişkilendirilebiliyor mu? (PUT /users/{id}/projects)"
 
 backend:
   - task: "Authentication API"
