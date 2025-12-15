@@ -9,6 +9,7 @@ import LabelManager from './LabelManager';
 const BoardHeader = ({ boardId, currentView, onViewChange }) => {
   const { projects, users, toggleFavorite } = useData();
   const [showNewTaskModal, setShowNewTaskModal] = useState(false);
+  const [showLabelManager, setShowLabelManager] = useState(false);
   
   const board = projects.find(b => b._id === boardId);
   const boardMembers = users.filter(u => board?.members?.includes(u._id));
