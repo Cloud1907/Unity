@@ -7,9 +7,10 @@ import os
 # Password hashing
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
-SECRET_KEY = os.environ.get("JWT_SECRET")
-if not SECRET_KEY:
-    raise ValueError("JWT_SECRET environment variable is required")
+SECRET_KEY = os.environ.get("JWT_SECRET") or "4flow-production-secret-key-change-before-deploy-2024"
+if SECRET_KEY == "4flow-production-secret-key-change-before-deploy-2024":
+    import warnings
+    warnings.warn("Using default JWT_SECRET. Set JWT_SECRET environment variable in production!")
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24 * 7  # 7 days
 
