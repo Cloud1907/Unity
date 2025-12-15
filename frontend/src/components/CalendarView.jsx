@@ -76,9 +76,9 @@ const CalendarView = ({ boardId }) => {
   return (
     <>
       <div className="flex-1 overflow-auto bg-white p-6 relative">
-        {/* 🎯 KÜÇÜK VERSİYON GÖSTERGESİ */}
-        <div className="absolute top-2 right-2 z-10 px-2 py-1 bg-blue-600 text-white text-[10px] font-semibold rounded shadow-sm">
-          v0.3.1
+        {/* 🎯 VERSİYON v0.3.2 */}
+        <div className="absolute top-2 right-2 z-10 px-2 py-1 bg-green-600 text-white text-[10px] font-bold rounded shadow-lg animate-pulse">
+          v0.3.2 ✨
         </div>
 
         {/* Calendar Header */}
