@@ -26,6 +26,17 @@ const BoardHeader = ({ boardId, currentView, onViewChange, onFilterChange }) => 
     }
   };
 
+  // Close filter menu when clicking outside
+  React.useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (showFilterMenu && !event.target.closest('.relative')) {
+        setShowFilterMenu(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [showFilterMenu]);
+
   const views = [
     { id: 'main', label: 'Ana Tablo', icon: '📊' },
     { id: 'kanban', label: 'Kanban', icon: '📋' },
