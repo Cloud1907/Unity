@@ -91,12 +91,6 @@ const Login = () => {
           </div>
         </div>
 
-        {/* Demo Info */}
-        <div className="mt-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
-          <p className="text-sm text-blue-800 font-medium mb-2">Demo Hesap:</p>
-          <p className="text-xs text-blue-700">E-posta: test@4flow.com</p>
-          <p className="text-xs text-blue-700">Şifre: test123</p>
-        </div>
       </div>
     </div>
   );
