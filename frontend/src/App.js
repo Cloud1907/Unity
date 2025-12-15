@@ -17,6 +17,7 @@ import AdminPanel from './pages/AdminPanel';
 import ProfileSettings from './pages/ProfileSettings';
 import DashboardPage from './pages/Dashboard';
 import TeamPage from './pages/TeamPage';
+import ProjectsPage from './pages/ProjectsPage';
 import { Toaster } from './components/ui/sonner';
 
 // Protected Route Component
@@ -235,6 +236,19 @@ function App() {
                       <Sidebar onBoardChange={() => {}} />
                       <div className="flex-1 flex flex-col overflow-hidden">
                         <TeamPage />
+                      </div>
+                    </div>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/projects"
+                element={
+                  <ProtectedRoute>
+                    <div className="flex h-screen overflow-hidden">
+                      <Sidebar onBoardChange={() => {}} />
+                      <div className="flex-1 flex flex-col overflow-hidden">
+                        <ProjectsPage />
                       </div>
                     </div>
                   </ProtectedRoute>
