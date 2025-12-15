@@ -3,9 +3,9 @@ from typing import List
 from datetime import datetime, timezone
 from uuid import uuid4
 
-from ..models.label import Label, LabelCreate, LabelUpdate
-from ..database import db
-from .auth import get_current_active_user
+from models.label import Label, LabelCreate, LabelUpdate
+from database import db
+from routes.auth import get_current_active_user
 
 router = APIRouter(prefix="/labels", tags=["labels"])
 
