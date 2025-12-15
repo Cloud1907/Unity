@@ -40,11 +40,11 @@ const BoardHeader = ({ boardId, currentView, onViewChange, onFilterChange }) => 
   }, [showFilterMenu]);
 
   const views = [
-    { id: 'main', label: 'Ana Tablo', icon: '📊', shortLabel: 'Tablo' },
-    { id: 'kanban', label: 'Kanban', icon: '📋', shortLabel: 'Kanban' },
-    { id: 'calendar', label: 'Takvim', icon: '📅', shortLabel: 'Takvim' },
-    { id: 'gantt', label: 'Gantt', icon: '📈', shortLabel: 'Gantt' },
-    { id: 'workload', label: 'İş Yükü', icon: '⚖️', shortLabel: 'İş Yükü' }
+    { id: 'main', label: 'Ana Tablo', Icon: Table, shortLabel: 'Tablo' },
+    { id: 'kanban', label: 'Kanban', Icon: LayoutGrid, shortLabel: 'Kanban' },
+    { id: 'calendar', label: 'Takvim', Icon: Calendar, shortLabel: 'Takvim' },
+    { id: 'gantt', label: 'Gantt', Icon: BarChart3, shortLabel: 'Gantt' },
+    { id: 'workload', label: 'İş Yükü', Icon: Users, shortLabel: 'İş Yükü' }
   ];
 
   if (!board) return null;
