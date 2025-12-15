@@ -18,7 +18,12 @@ client = AsyncIOMotorClient(mongo_url)
 db = client[os.environ['DB_NAME']]
 
 # Create the main app without a prefix
-app = FastAPI(title="4Flow API", version="1.0.0", description="Monday.com clone API")
+app = FastAPI(
+    title="4Flow API",
+    version="1.0.0",
+    description="Monday.com clone API",
+    redirect_slashes=False
+)
 
 # Create a router with the /api prefix
 api_router = APIRouter(prefix="/api")
