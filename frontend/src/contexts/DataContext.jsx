@@ -87,11 +87,13 @@ export const DataProvider = ({ children }) => {
         fetchUsers(),
         fetchDepartments()
       ]);
+      // Fetch labels after projects are loaded
+      await fetchLabels();
     } catch (error) {
       console.error('Error fetching data:', error);
     }
     setLoading(false);
-  }, [fetchProjects, fetchTasks, fetchUsers, fetchDepartments]);
+  }, [fetchProjects, fetchTasks, fetchUsers, fetchDepartments, fetchLabels]);
 
   useEffect(() => {
     if (isAuthenticated) {
