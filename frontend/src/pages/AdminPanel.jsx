@@ -253,18 +253,34 @@ const UserFormModal = ({ isOpen, onClose, onSuccess, user = null, projects = [] 
     setLoading(true);
 
     try {
+      const userId = user?._id || user?.id;
+      
       if (user) {
         // Update existing user
-        await usersAPI.update(user._id || user.id, formData);
+        await usersAPI.update(userId, formData);
+        
+        // Update user's projects
+        if (formData.projectIds && formData.projectIds.length >= 0) {
+          await usersAPI.updateProjects(userId, formData.projectIds);
+        }
+        
         toast.success('Kullanıcı güncellendi');
       } else {
         // Create new user
-        await usersAPI.create(formData);
+        const response = await usersAPI.create(formData);
+        
+        // Update new user's projects
+        if (formData.projectIds && formData.projectIds.length > 0) {
+          const newUserId = response.data._id || response.data.id;
+          await usersAPI.updateProjects(newUserId, formData.projectIds);
+        }
+        
         toast.success('Kullanıcı oluşturuldu');
       }
       onSuccess();
       onClose();
     } catch (error) {
+      console.error('Error:', error);
       toast.error(user ? 'Kullanıcı güncellenemedi' : 'Kullanıcı oluşturulamadı');
     } finally {
       setLoading(false);
