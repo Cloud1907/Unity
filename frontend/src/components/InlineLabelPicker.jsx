@@ -3,11 +3,12 @@ import ReactDOM from 'react-dom';
 import { Tag, X, Plus } from 'lucide-react';
 import { labelsAPI } from '../services/api';
 
-const InlineLabelPicker = ({ taskId, currentLabels = [], projectId, onUpdate, buttonRef }) => {
+const InlineLabelPicker = ({ taskId, currentLabels = [], projectId, onUpdate }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [availableLabels, setAvailableLabels] = useState([]);
   const [selectedLabelIds, setSelectedLabelIds] = useState(currentLabels);
   const dropdownRef = useRef(null);
+  const buttonRef = useRef(null);
   const [position, setPosition] = useState({ top: 0, left: 0 });
 
   useEffect(() => {
@@ -21,19 +22,19 @@ const InlineLabelPicker = ({ taskId, currentLabels = [], projectId, onUpdate, bu
   }, [currentLabels]);
 
   useEffect(() => {
-    if (isOpen && buttonRef?.current) {
+    if (isOpen && buttonRef.current) {
       const rect = buttonRef.current.getBoundingClientRect();
       setPosition({
         top: rect.bottom + window.scrollY + 4,
         left: rect.left + window.scrollX
       });
     }
-  }, [isOpen, buttonRef]);
+  }, [isOpen]);
 
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target) && 
-          buttonRef?.current && !buttonRef.current.contains(event.target)) {
+          buttonRef.current && !buttonRef.current.contains(event.target)) {
         setIsOpen(false);
       }
     };
@@ -42,7 +43,7 @@ const InlineLabelPicker = ({ taskId, currentLabels = [], projectId, onUpdate, bu
       document.addEventListener('mousedown', handleClickOutside);
       return () => document.removeEventListener('mousedown', handleClickOutside);
     }
-  }, [isOpen, buttonRef]);
+  }, [isOpen]);
 
   const fetchLabels = async () => {
     try {
