@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
-import { Star, MoreHorizontal, Filter, Search, Users as UsersIcon } from 'lucide-react';
+import { Star, MoreHorizontal, Filter, Search, Users as UsersIcon, Tag } from 'lucide-react';
 import { useData } from '../contexts/DataContext';
 import { Button } from './ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
 import NewTaskModal from './NewTaskModal';
+import LabelManager from './LabelManager';
 
 const BoardHeader = ({ boardId, currentView, onViewChange }) => {
   const { projects, users, toggleFavorite } = useData();
