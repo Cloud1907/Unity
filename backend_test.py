@@ -330,7 +330,9 @@ class FourFlowAPITester:
         # 5b: GET Specific User
         print("\n   5b: GET Specific User")
         try:
-            response = self.session.get(f"{API_URL}/users/{self.member_user['_id']}", headers=headers)
+            # Use admin user ID if member user is not available
+            user_id = self.member_user['_id'] if self.member_user else self.admin_user['_id']
+            response = self.session.get(f"{API_URL}/users/{user_id}", headers=headers)
             print(f"      Status Code: {response.status_code}")
             
             if response.status_code == 200:
