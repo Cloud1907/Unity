@@ -43,9 +43,9 @@ const BoardHeader = ({ boardId, currentView, onViewChange }) => {
                 <button onClick={handleToggleFavorite} className="p-1 hover:bg-gray-100 rounded transition-all">
                   <Star size={14} className={board.favorite ? 'text-yellow-500 fill-yellow-500' : 'text-gray-400'} />
                 </button>
-                {/* 🎯 VERSION BADGE - Cache kontrolü için */}
-                <span className="px-2 py-0.5 bg-gradient-to-r from-green-500 to-blue-600 text-white text-[10px] font-bold rounded-full animate-pulse">
-                  v0.3.0
+                {/* 🎯 VERSION BADGE v0.3.2 */}
+                <span className="px-2 py-0.5 bg-gradient-to-r from-green-600 to-emerald-600 text-white text-[10px] font-bold rounded-full shadow-lg animate-pulse">
+                  v0.3.2 ✨
                 </span>
               </div>
               {board.description && (
