@@ -80,11 +80,11 @@ class FourFlowAPITester:
             return False
     
     def test_member_login(self):
-        """Test 2: Member Login - melih-bulut@hotmail.com / test123"""
+        """Test 2: Member Login - test@4flow.com / test123"""
         print("\n🔐 Test 2: Member Login Authentication")
         
         login_data = {
-            "email": "melih-bulut@hotmail.com",
+            "email": "test@4flow.com",
             "password": "test123"
         }
         
