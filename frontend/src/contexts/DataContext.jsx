@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import { projectsAPI, tasksAPI, usersAPI, departmentsAPI } from '../services/api';
+import { projectsAPI, tasksAPI, usersAPI, departmentsAPI, labelsAPI } from '../services/api';
 import { useAuth } from './AuthContext';
 import { toast } from '../components/ui/sonner';
 
@@ -58,6 +58,25 @@ export const DataProvider = ({ children }) => {
       console.error('Error fetching departments:', error);
     }
   }, []);
+
+  const fetchLabels = useCallback(async (projectId = null) => {
+    try {
+      if (projectId) {
+        const response = await labelsAPI.getByProject(projectId);
+        setLabels(response.data);
+      } else {
+        // Fetch all labels for all projects
+        const allLabels = [];
+        for (const project of projects) {
+          const response = await labelsAPI.getByProject(project._id);
+          allLabels.push(...response.data);
+        }
+        setLabels(allLabels);
+      }
+    } catch (error) {
+      console.error('Error fetching labels:', error);
+    }
+  }, [projects]);
 
   const fetchAllData = useCallback(async () => {
     setLoading(true);
