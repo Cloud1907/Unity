@@ -259,7 +259,8 @@ function App() {
             </Routes>
           </DataProvider>
         </AuthProvider>
-      </BrowserRouter>
+      </ThemeProvider>
+    </BrowserRouter>
     </div>
   );
 }
