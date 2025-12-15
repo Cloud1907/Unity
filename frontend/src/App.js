@@ -15,6 +15,8 @@ import Register from './pages/Register';
 import Settings from './pages/Settings';
 import AdminPanel from './pages/AdminPanel';
 import ProfileSettings from './pages/ProfileSettings';
+import DashboardPage from './pages/Dashboard';
+import TeamPage from './pages/TeamPage';
 import { Toaster } from './components/ui/sonner';
 
 // Protected Route Component
