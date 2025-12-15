@@ -308,12 +308,26 @@ const CompactTaskCard = ({ task, onDragStart, onDragEnd, isDragging, users, onSt
   const assignees = users.filter(u => task.assignees?.includes(u.id || u._id));
   const [isHovered, setIsHovered] = useState(false);
   const [showAssigneeMenu, setShowAssigneeMenu] = useState(false);
+  const [assigneeMenuPosition, setAssigneeMenuPosition] = useState({ top: 0, left: 0 });
+  const assigneeButtonRef = useRef(null);
   const assigneeMenuRef = useRef(null);
+
+  // Position assignee menu
+  useEffect(() => {
+    if (showAssigneeMenu && assigneeButtonRef.current) {
+      const rect = assigneeButtonRef.current.getBoundingClientRect();
+      setAssigneeMenuPosition({
+        top: rect.bottom + window.scrollY + 4,
+        left: rect.left + window.scrollX
+      });
+    }
+  }, [showAssigneeMenu]);
 
   // Close assignee menu on outside click
   useEffect(() => {
     const handleClickOutside = (event) => {
-      if (assigneeMenuRef.current && !assigneeMenuRef.current.contains(event.target)) {
+      if (assigneeMenuRef.current && !assigneeMenuRef.current.contains(event.target) &&
+          assigneeButtonRef.current && !assigneeButtonRef.current.contains(event.target)) {
         setShowAssigneeMenu(false);
       }
     };
