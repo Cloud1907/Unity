@@ -294,7 +294,12 @@ const MainTable = ({ boardId }) => {
 
   return (
     <>
-      <div className="flex-1 overflow-auto bg-white">
+      <div className="flex-1 overflow-auto bg-white relative">
+        {/* 🎯 VERSION INDICATOR */}
+        <div className="absolute top-4 right-4 z-50 px-3 py-1.5 bg-gradient-to-r from-green-500 to-blue-600 text-white text-sm font-bold rounded-lg shadow-lg animate-pulse">
+          ✅ v0.3.0 GÜNCEL
+        </div>
+
         <div className="min-w-max">
           {/* Table Header */}
           <div className="sticky top-0 bg-gray-50 border-b border-gray-200 z-10">
