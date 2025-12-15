@@ -236,6 +236,13 @@ const AdminPanel = () => {
 
 // User Form Modal Component
 const UserFormModal = ({ isOpen, onClose, onSuccess, user = null, projects = [] }) => {
+  // Get user's current projects (which projects have this user as member)
+  const getUserProjects = () => {
+    if (!user) return [];
+    const userId = user._id || user.id;
+    return projects.filter(p => p.members?.includes(userId)).map(p => p._id);
+  };
+
   const [formData, setFormData] = useState({
     fullName: user?.fullName || '',
     email: user?.email || '',
@@ -243,7 +250,7 @@ const UserFormModal = ({ isOpen, onClose, onSuccess, user = null, projects = [] 
     role: user?.role || 'member',
     avatar: user?.avatar || '',
     department: user?.department || '',
-    projectIds: user?.projects || []
+    projectIds: getUserProjects()
   });
   const [loading, setLoading] = useState(false);
   const [selectAllProjects, setSelectAllProjects] = useState(false);
