@@ -206,6 +206,32 @@ function App() {
                   </ProtectedRoute>
                 }
               />
+              <Route
+                path="/dashboard"
+                element={
+                  <ProtectedRoute>
+                    <div className="flex h-screen overflow-hidden">
+                      <Sidebar onBoardChange={() => {}} />
+                      <div className="flex-1 flex flex-col overflow-hidden">
+                        <DashboardPage />
+                      </div>
+                    </div>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/team"
+                element={
+                  <ProtectedRoute>
+                    <div className="flex h-screen overflow-hidden">
+                      <Sidebar onBoardChange={() => {}} />
+                      <div className="flex-1 flex flex-col overflow-hidden">
+                        <TeamPage />
+                      </div>
+                    </div>
+                  </ProtectedRoute>
+                }
+              />
             </Routes>
           </DataProvider>
         </AuthProvider>
