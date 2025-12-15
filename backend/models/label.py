@@ -15,7 +15,7 @@ class LabelUpdate(BaseModel):
     color: Optional[str] = None
 
 class Label(LabelBase):
-    id: str = Field(alias="_id")
+    id: str
     createdAt: Optional[datetime] = None
     
     class Config:
