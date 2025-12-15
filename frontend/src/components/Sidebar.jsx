@@ -111,14 +111,20 @@ const Sidebar = ({ currentBoard, onBoardChange, onNewBoard }) => {
       <div className="flex-1 overflow-y-auto py-4">
         {/* Main Items */}
         <div className="px-2 mb-4">
-          <button className="w-full flex items-center gap-2 px-2 py-1.5 rounded hover:bg-white transition-colors text-gray-700 text-xs">
+          <Link 
+            to="/dashboard"
+            className="w-full flex items-center gap-2 px-2 py-1.5 rounded hover:bg-white transition-colors text-gray-700 text-xs"
+          >
             <Home size={16} />
             <span>Ana Sayfa</span>
-          </button>
-          <button className="w-full flex items-center gap-2 px-2 py-1.5 rounded hover:bg-white transition-colors text-gray-700 text-xs">
+          </Link>
+          <Link 
+            to="/team"
+            className="w-full flex items-center gap-2 px-2 py-1.5 rounded hover:bg-white transition-colors text-gray-700 text-xs"
+          >
             <Users size={16} />
             <span>Ekibim</span>
-          </button>
+          </Link>
         </div>
 
         {/* Favorites */}
