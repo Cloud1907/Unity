@@ -33,6 +33,24 @@ const UserProfile = () => {
 
       {showMenu && (
         <div className="absolute bottom-full left-3 right-3 mb-2 bg-white rounded-lg shadow-lg border border-gray-200 py-2">
+          <Link
+            to="/profile"
+            onClick={() => setShowMenu(false)}
+            className="w-full flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+          >
+            <Settings size={16} />
+            <span>Profil Ayarları</span>
+          </Link>
+          {user.role === 'admin' && (
+            <Link
+              to="/admin"
+              onClick={() => setShowMenu(false)}
+              className="w-full flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+            >
+              <Users size={16} />
+              <span>Admin Panel</span>
+            </Link>
+          )}
           <button
             onClick={() => {
               logout();
