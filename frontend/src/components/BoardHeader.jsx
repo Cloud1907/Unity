@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Star, MoreHorizontal, Filter, Search, Users as UsersIcon, Tag } from 'lucide-react';
+import { Star, MoreHorizontal, Filter, Search, Users as UsersIcon, Tag, Table, LayoutGrid, Calendar, BarChart3, Users } from 'lucide-react';
 import { useData } from '../contexts/DataContext';
 import { Button } from './ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
@@ -104,24 +104,25 @@ const BoardHeader = ({ boardId, currentView, onViewChange, onFilterChange }) => 
       </div>
 
       {/* Views and Filters */}
-      <div className="px-6 py-2 flex items-center justify-between bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700">
-        <div className="flex items-center gap-1">
-          {views.map(view => (
-            <button
-              key={view.id}
-              onClick={() => onViewChange(view.id)}
-              className={`relative px-4 py-2 text-sm font-medium rounded-lg transition-all ${
-                currentView === view.id
-                  ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 shadow-sm'
-                  : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800'
-              }`}
-            >
-              <div className="flex items-center gap-2">
-                <span className="text-base">{view.icon}</span>
+      <div className="px-6 py-2.5 flex items-center justify-between bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700">
+        <div className="flex items-center gap-2">
+          {views.map(view => {
+            const IconComponent = view.Icon;
+            return (
+              <button
+                key={view.id}
+                onClick={() => onViewChange(view.id)}
+                className={`flex items-center gap-2.5 px-4 py-2.5 rounded-lg text-sm font-medium transition-all ${
+                  currentView === view.id
+                    ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/30'
+                    : 'text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800'
+                }`}
+              >
+                <IconComponent size={18} strokeWidth={2.5} />
                 <span className="font-semibold">{view.shortLabel}</span>
-              </div>
-            </button>
-          ))}
+              </button>
+            );
+          })}
         </div>
 
         <div className="flex items-center gap-1.5">
