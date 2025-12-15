@@ -19,6 +19,7 @@ export const DataProvider = ({ children }) => {
   const [tasks, setTasks] = useState([]);
   const [users, setUsers] = useState([]);
   const [departments, setDepartments] = useState([]);
+  const [labels, setLabels] = useState([]);
   const [loading, setLoading] = useState(false);
 
   const fetchProjects = useCallback(async () => {
