@@ -79,7 +79,12 @@ const ProfileSettings = () => {
   };
 
   return (
-    <div className="h-full bg-gray-50 overflow-auto">
+    <div className="h-full bg-gray-50 overflow-auto relative">
+      {/* 🎯 VERSİYON v0.4.0 */}
+      <div className="absolute top-2 right-2 z-10 px-2 py-1 bg-emerald-600 text-white text-[10px] font-bold rounded shadow-lg">
+        v0.4.0 👤
+      </div>
+
       <div className="max-w-4xl mx-auto p-6">
         {/* Header */}
         <div className="mb-6">
