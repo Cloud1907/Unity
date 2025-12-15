@@ -1,12 +1,12 @@
 #!/bin/bash
 
-echo "🔗 Backend URL: https://projecthub-162.preview.emergentagent.com/api"
+echo "🔗 Backend URL: https://teamtask-23.preview.emergentagent.com/api"
 echo ""
 
 # Step 1: Login
 echo "1️⃣ LOGIN TEST"
 echo "curl -X POST /api/auth/login"
-LOGIN_RESPONSE=$(curl -s -X POST "https://projecthub-162.preview.emergentagent.com/api/auth/login" \
+LOGIN_RESPONSE=$(curl -s -X POST "https://teamtask-23.preview.emergentagent.com/api/auth/login" \
   -H "Content-Type: application/json" \
   -d '{"email": "test@4task.com", "password": "test123"}')
 
@@ -22,7 +22,7 @@ echo ""
 # Step 2: Get Projects
 echo "2️⃣ GET PROJECTS TEST"
 echo "curl -X GET /api/projects"
-PROJECTS_RESPONSE=$(curl -s -X GET "https://projecthub-162.preview.emergentagent.com/api/projects" \
+PROJECTS_RESPONSE=$(curl -s -X GET "https://teamtask-23.preview.emergentagent.com/api/projects" \
   -H "Authorization: Bearer $TOKEN")
 
 echo "Response:"
@@ -49,7 +49,7 @@ echo "Request Data:"
 echo "$TASK_DATA" | python3 -m json.tool
 echo ""
 
-CREATE_RESPONSE=$(curl -s -X POST "https://projecthub-162.preview.emergentagent.com/api/tasks" \
+CREATE_RESPONSE=$(curl -s -X POST "https://teamtask-23.preview.emergentagent.com/api/tasks" \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   -d "$TASK_DATA")
@@ -61,7 +61,7 @@ echo ""
 # Step 4: List Tasks with Filter
 echo "4️⃣ LIST TASKS WITH FILTER TEST"
 echo "curl -X GET /api/tasks?projectId=$PROJECT_ID"
-TASKS_RESPONSE=$(curl -s -X GET "https://projecthub-162.preview.emergentagent.com/api/tasks?projectId=$PROJECT_ID" \
+TASKS_RESPONSE=$(curl -s -X GET "https://teamtask-23.preview.emergentagent.com/api/tasks?projectId=$PROJECT_ID" \
   -H "Authorization: Bearer $TOKEN")
 
 echo "Response:"
