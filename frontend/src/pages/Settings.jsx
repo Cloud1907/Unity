@@ -409,11 +409,24 @@ const Settings = () => {
                   <div className="space-y-6">
                     <div>
                       <h3 className="font-semibold text-gray-900 mb-4">Tema</h3>
+                      
+                      {/* Info Banner */}
+                      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+                        <p className="text-sm text-blue-800">
+                          ℹ️ <strong>Koyu mod özelliği yakında eklenecek.</strong> Şu an sadece açık tema desteklenmektedir.
+                        </p>
+                      </div>
+                      
                       <div className="grid grid-cols-3 gap-4">
                         {['Açık', 'Koyu', 'Sistem'].map((theme) => (
                           <button
                             key={theme}
-                            className="p-4 border-2 border-gray-200 rounded-lg hover:border-[#6366f1] transition-colors"
+                            disabled={theme !== 'Açık'}
+                            className={`p-4 border-2 rounded-lg transition-colors ${
+                              theme === 'Açık' 
+                                ? 'border-blue-500 bg-blue-50 cursor-default' 
+                                : 'border-gray-200 opacity-50 cursor-not-allowed'
+                            }`}
                           >
                             <div className="text-center">
                               <div className={`w-full h-20 rounded mb-2 ${
@@ -421,6 +434,12 @@ const Settings = () => {
                                 theme === 'Koyu' ? 'bg-gray-800' : 'bg-gradient-to-br from-white to-gray-800'
                               }`} />
                               <p className="text-sm font-medium">{theme}</p>
+                              {theme === 'Açık' && (
+                                <span className="text-xs text-blue-600 font-semibold mt-1 block">✓ Aktif</span>
+                              )}
+                              {theme !== 'Açık' && (
+                                <span className="text-xs text-gray-400 mt-1 block">Yakında</span>
+                              )}
                             </div>
                           </button>
                         ))}
