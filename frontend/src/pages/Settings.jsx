@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useData } from '../contexts/DataContext';
+import { useTheme } from '../contexts/ThemeContext';
 import { Camera, User, Mail, Lock, Save, X, Upload, Settings as SettingsIcon, Bell, Shield, Palette } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '../components/ui/avatar';
 import { Button } from '../components/ui/button';
@@ -12,6 +13,7 @@ import { toast } from '../components/ui/sonner';
 const Settings = () => {
   const { user } = useAuth();
   const { users } = useData();
+  const { theme, setThemeMode } = useTheme();
   const [activeTab, setActiveTab] = useState('profile');
   const [isEditing, setIsEditing] = useState(false);
   const [avatarPreview, setAvatarPreview] = useState(null);
@@ -410,35 +412,29 @@ const Settings = () => {
                     <div>
                       <h3 className="font-semibold text-gray-900 mb-4">Tema</h3>
                       
-                      {/* Info Banner */}
-                      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
-                        <p className="text-sm text-blue-800">
-                          ℹ️ <strong>Koyu mod özelliği yakında eklenecek.</strong> Şu an sadece açık tema desteklenmektedir.
-                        </p>
-                      </div>
-                      
                       <div className="grid grid-cols-3 gap-4">
-                        {['Açık', 'Koyu', 'Sistem'].map((theme) => (
+                        {[
+                          { id: 'light', label: 'Açık', bg: 'bg-white border border-gray-300' },
+                          { id: 'dark', label: 'Koyu', bg: 'bg-gray-800' },
+                          { id: 'system', label: 'Sistem', bg: 'bg-gradient-to-br from-white to-gray-800' }
+                        ].map((themeOption) => (
                           <button
-                            key={theme}
-                            disabled={theme !== 'Açık'}
-                            className={`p-4 border-2 rounded-lg transition-colors ${
-                              theme === 'Açık' 
-                                ? 'border-blue-500 bg-blue-50 cursor-default' 
-                                : 'border-gray-200 opacity-50 cursor-not-allowed'
+                            key={themeOption.id}
+                            onClick={() => {
+                              setThemeMode(themeOption.id);
+                              toast.success(`${themeOption.label} tema seçildi`);
+                            }}
+                            className={`p-4 border-2 rounded-lg transition-colors hover:border-blue-400 ${
+                              theme === themeOption.id 
+                                ? 'border-blue-500 bg-blue-50' 
+                                : 'border-gray-200'
                             }`}
                           >
                             <div className="text-center">
-                              <div className={`w-full h-20 rounded mb-2 ${
-                                theme === 'Açık' ? 'bg-white border border-gray-300' :
-                                theme === 'Koyu' ? 'bg-gray-800' : 'bg-gradient-to-br from-white to-gray-800'
-                              }`} />
-                              <p className="text-sm font-medium">{theme}</p>
-                              {theme === 'Açık' && (
+                              <div className={`w-full h-20 rounded mb-2 ${themeOption.bg}`} />
+                              <p className="text-sm font-medium">{themeOption.label}</p>
+                              {theme === themeOption.id && (
                                 <span className="text-xs text-blue-600 font-semibold mt-1 block">✓ Aktif</span>
-                              )}
-                              {theme !== 'Açık' && (
-                                <span className="text-xs text-gray-400 mt-1 block">Yakında</span>
                               )}
                             </div>
                           </button>
