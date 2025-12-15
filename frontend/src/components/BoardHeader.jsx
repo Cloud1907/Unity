@@ -73,10 +73,6 @@ const BoardHeader = ({ boardId, currentView, onViewChange }) => {
                 </div>
               )}
             </div>
-            <Button variant="outline" size="sm" className="gap-1 text-xs h-7 px-2 hover:bg-gray-50">
-              <UsersIcon size={13} />
-              Davet Et
-            </Button>
           </div>
 
           <div className="h-6 w-px bg-gray-300"></div>
