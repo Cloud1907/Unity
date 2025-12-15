@@ -44,6 +44,7 @@ api_router.include_router(timelogs.router)
 api_router.include_router(notifications.router)
 api_router.include_router(activity.router)
 api_router.include_router(analytics.router)
+api_router.include_router(labels.router)
 
 # Include the router in the main app
 app.include_router(api_router)
