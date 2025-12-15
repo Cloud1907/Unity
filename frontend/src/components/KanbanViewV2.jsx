@@ -237,10 +237,11 @@ const InlinePriorityDropdown = ({ currentPriority, onChange }) => {
   );
 };
 
-// Inline Date Picker with Portal and Calendar UI
+// Monday.com Style Calendar Picker
 const InlineDatePickerSmall = ({ value, onChange }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [position, setPosition] = useState({ top: 0, left: 0 });
+  const [currentMonth, setCurrentMonth] = useState(new Date());
   const buttonRef = useRef(null);
   const datePickerRef = useRef(null);
 
@@ -251,8 +252,12 @@ const InlineDatePickerSmall = ({ value, onChange }) => {
         top: rect.bottom + window.scrollY + 4,
         left: rect.left + window.scrollX
       });
+      // Seçili tarih varsa o ayı göster
+      if (value) {
+        setCurrentMonth(new Date(value));
+      }
     }
-  }, [isOpen]);
+  }, [isOpen, value]);
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -275,20 +280,53 @@ const InlineDatePickerSmall = ({ value, onChange }) => {
 
   const isOverdue = value && new Date(value) < new Date();
 
-  // Quick date shortcuts
-  const shortcuts = [
-    { label: 'Bugün', days: 0 },
-    { label: 'Yarın', days: 1 },
-    { label: '1 Hafta', days: 7 },
-    { label: '1 Ay', days: 30 }
-  ];
+  // Takvim hesaplamaları
+  const getDaysInMonth = (date) => {
+    const year = date.getFullYear();
+    const month = date.getMonth();
+    const firstDay = new Date(year, month, 1);
+    const lastDay = new Date(year, month + 1, 0);
+    const daysInMonth = lastDay.getDate();
+    const startingDayOfWeek = firstDay.getDay(); // 0 = Pazar
+    
+    return { daysInMonth, startingDayOfWeek };
+  };
 
-  const handleShortcut = (days) => {
-    const date = new Date();
-    date.setDate(date.getDate() + days);
-    onChange(date.toISOString());
+  const { daysInMonth, startingDayOfWeek } = getDaysInMonth(currentMonth);
+  const monthName = currentMonth.toLocaleDateString('tr-TR', { month: 'long', year: 'numeric' });
+
+  const handleDateClick = (day) => {
+    const selectedDate = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), day);
+    onChange(selectedDate.toISOString());
     setIsOpen(false);
   };
+
+  const changeMonth = (delta) => {
+    const newMonth = new Date(currentMonth);
+    newMonth.setMonth(newMonth.getMonth() + delta);
+    setCurrentMonth(newMonth);
+  };
+
+  const isSelectedDate = (day) => {
+    if (!value) return false;
+    const selected = new Date(value);
+    return (
+      selected.getDate() === day &&
+      selected.getMonth() === currentMonth.getMonth() &&
+      selected.getFullYear() === currentMonth.getFullYear()
+    );
+  };
+
+  const isToday = (day) => {
+    const today = new Date();
+    return (
+      today.getDate() === day &&
+      today.getMonth() === currentMonth.getMonth() &&
+      today.getFullYear() === currentMonth.getFullYear()
+    );
+  };
+
+  const dayNames = ['P', 'S', 'Ç', 'P', 'C', 'C', 'P']; // Pzt, Sal, Çar, Per, Cum, Cmt, Paz
 
   return (
     <>
@@ -309,55 +347,100 @@ const InlineDatePickerSmall = ({ value, onChange }) => {
       {isOpen && createPortal(
         <div 
           ref={datePickerRef}
-          className="bg-white rounded-lg shadow-2xl border border-gray-200 p-3 min-w-[220px]"
+          className="bg-white rounded-xl shadow-2xl border border-gray-200 p-4"
           style={{
             position: 'fixed',
             top: `${position.top}px`,
             left: `${position.left}px`,
-            zIndex: 999999
+            zIndex: 999999,
+            width: '280px'
           }}
           onClick={(e) => e.stopPropagation()}
         >
-          {/* Quick shortcuts */}
-          <div className="grid grid-cols-2 gap-1.5 mb-3">
-            {shortcuts.map(shortcut => (
-              <button
-                key={shortcut.label}
-                onClick={() => handleShortcut(shortcut.days)}
-                className="px-2 py-1.5 text-xs font-medium bg-gray-50 hover:bg-blue-50 hover:text-blue-600 rounded transition-colors"
-              >
-                {shortcut.label}
-              </button>
+          {/* Ay başlığı ve navigasyon */}
+          <div className="flex items-center justify-between mb-4">
+            <button
+              onClick={() => changeMonth(-1)}
+              className="p-1 hover:bg-gray-100 rounded transition-colors"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              </svg>
+            </button>
+            <span className="text-sm font-bold text-gray-900 capitalize">{monthName}</span>
+            <button
+              onClick={() => changeMonth(1)}
+              className="p-1 hover:bg-gray-100 rounded transition-colors"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
+            </button>
+          </div>
+
+          {/* Gün başlıkları */}
+          <div className="grid grid-cols-7 gap-1 mb-2">
+            {dayNames.map((day, idx) => (
+              <div key={idx} className="text-center text-xs font-semibold text-gray-500 py-1">
+                {day}
+              </div>
             ))}
           </div>
 
-          {/* Native date picker (takvim açılacak) */}
-          <input
-            type="date"
-            value={value ? new Date(value).toISOString().split('T')[0] : ''}
-            onChange={(e) => {
-              if (e.target.value) {
-                onChange(new Date(e.target.value).toISOString());
-                setIsOpen(false);
-              }
-            }}
-            onClick={(e) => e.stopPropagation()}
-            className="w-full px-3 py-2 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-            autoFocus
-          />
+          {/* Takvim günleri */}
+          <div className="grid grid-cols-7 gap-1">
+            {/* Boş hücreler (ayın başlangıcı için) */}
+            {Array.from({ length: startingDayOfWeek === 0 ? 6 : startingDayOfWeek - 1 }).map((_, idx) => (
+              <div key={`empty-${idx}`} />
+            ))}
+            
+            {/* Günler */}
+            {Array.from({ length: daysInMonth }).map((_, idx) => {
+              const day = idx + 1;
+              const selected = isSelectedDate(day);
+              const today = isToday(day);
+              
+              return (
+                <button
+                  key={day}
+                  onClick={() => handleDateClick(day)}
+                  className={`
+                    aspect-square flex items-center justify-center text-sm rounded-lg
+                    transition-all hover:bg-blue-50 hover:text-blue-600
+                    ${selected ? 'bg-blue-600 text-white font-bold hover:bg-blue-700' : ''}
+                    ${today && !selected ? 'border-2 border-blue-400 font-semibold' : ''}
+                    ${!selected && !today ? 'text-gray-700' : ''}
+                  `}
+                >
+                  {day}
+                </button>
+              );
+            })}
+          </div>
 
-          {/* Clear button */}
-          {value && (
+          {/* Alt butonlar */}
+          <div className="flex gap-2 mt-4 pt-3 border-t border-gray-200">
             <button
               onClick={() => {
-                onChange(null);
+                onChange(new Date().toISOString());
                 setIsOpen(false);
               }}
-              className="w-full mt-2 px-2 py-1.5 text-xs text-red-600 hover:bg-red-50 rounded transition-colors"
+              className="flex-1 px-3 py-1.5 text-xs font-medium bg-blue-50 text-blue-600 hover:bg-blue-100 rounded transition-colors"
             >
-              Tarihi Temizle
+              Bugün
             </button>
-          )}
+            {value && (
+              <button
+                onClick={() => {
+                  onChange(null);
+                  setIsOpen(false);
+                }}
+                className="flex-1 px-3 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50 rounded transition-colors"
+              >
+                Temizle
+              </button>
+            )}
+          </div>
         </div>,
         document.body
       )}
