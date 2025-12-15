@@ -544,14 +544,14 @@ const KanbanViewV2 = ({ boardId }) => {
   };
 
   return (
-    <div className="h-full bg-gradient-to-br from-gray-50 to-gray-100 relative overflow-hidden">
+    <div className="h-full bg-gradient-to-br from-gray-50 to-gray-100 relative overflow-visible">
       {/* 🎯 VERSİYON v0.3.2 */}
       <div className="absolute top-2 right-2 z-10 px-2 py-1 bg-green-600 text-white text-[10px] font-bold rounded shadow-lg animate-pulse">
         v0.3.2 ✨
       </div>
 
       {/* Kanban Board */}
-      <div className="h-full overflow-x-auto overflow-y-hidden">
+      <div className="h-full overflow-x-auto overflow-y-visible">
         <div className="flex gap-4 p-6 h-full min-w-max">
           {columns.map(column => {
             const columnTasks = getTasksByStatus(column.id);
