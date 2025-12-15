@@ -230,9 +230,10 @@ const InlinePriorityDropdown = ({ currentPriority, onChange }) => {
               {currentPriority === key && <span className="ml-auto text-blue-600">✓</span>}
             </button>
           ))}
-        </div>
+        </div>,
+        document.body
       )}
-    </div>
+    </>
   );
 };
 
