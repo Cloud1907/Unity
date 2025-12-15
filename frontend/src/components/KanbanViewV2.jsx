@@ -672,9 +672,9 @@ const KanbanViewV2 = ({ boardId }) => {
 
   return (
     <div className="h-full bg-gradient-to-br from-gray-50 to-gray-100 relative overflow-visible">
-      {/* 🎯 VERSİYON v0.3.2 */}
-      <div className="absolute top-2 right-2 z-10 px-2 py-1 bg-green-600 text-white text-[10px] font-bold rounded shadow-lg animate-pulse">
-        v0.3.2 ✨
+      {/* 🎯 VERSİYON v0.3.3 */}
+      <div className="absolute top-2 right-2 z-10 px-2 py-1 bg-purple-600 text-white text-[10px] font-bold rounded shadow-lg">
+        v0.3.3 🎯
       </div>
 
       {/* Kanban Board */}
