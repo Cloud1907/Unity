@@ -75,7 +75,12 @@ const CalendarView = ({ boardId }) => {
 
   return (
     <>
-      <div className="flex-1 overflow-auto bg-white p-6">
+      <div className="flex-1 overflow-auto bg-white p-6 relative">
+        {/* 🎯 KÜÇÜK VERSİYON GÖSTERGESİ */}
+        <div className="absolute top-2 right-2 z-10 px-2 py-1 bg-blue-600 text-white text-[10px] font-semibold rounded shadow-sm">
+          v0.3.1
+        </div>
+
         {/* Calendar Header */}
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-2xl font-bold text-gray-900">
