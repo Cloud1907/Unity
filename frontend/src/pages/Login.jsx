@@ -32,21 +32,6 @@ const Login = () => {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100">
       <div className="w-full max-w-md">
-        {/* 🎉 YENİ VERSİYON BANNER - v0.3.0 */}
-        <div className="mb-6 p-6 bg-gradient-to-r from-green-500 to-blue-600 rounded-xl shadow-2xl animate-pulse">
-          <div className="text-center">
-            <h1 className="text-3xl font-black text-white mb-2">
-              🎉 YENİ VERSİYON v0.3.0 🎉
-            </h1>
-            <p className="text-xl font-bold text-white">
-              Monday.com Clone - GÜNCEL KOD ÇALIŞIYOR!
-            </p>
-            <p className="text-sm text-white mt-2 font-semibold">
-              Bu banner'ı görüyorsanız cache temizlendi ✅
-            </p>
-          </div>
-        </div>
-
         {/* Logo */}
         <div className="text-center mb-8">
           <div className="flex items-center justify-center gap-2 mb-2">
