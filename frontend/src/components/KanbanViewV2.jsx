@@ -151,21 +151,26 @@ const InlinePriorityDropdown = ({ currentPriority, onChange }) => {
   const currentConfig = PRIORITY_CONFIG[currentPriority] || PRIORITY_CONFIG.medium;
 
   return (
-    <div ref={dropdownRef} className="relative z-[100]" onClick={(e) => e.stopPropagation()}>
+    <div ref={dropdownRef} className="relative" onClick={(e) => e.stopPropagation()} style={{ zIndex: 99999 }}>
       <button
         onClick={() => setIsOpen(!isOpen)}
         className="px-2 py-0.5 rounded text-xs font-bold transition-all hover:scale-105"
         style={{
           backgroundColor: `${currentConfig.color}15`,
           color: currentConfig.color,
-          border: `1px solid ${currentConfig.color}30`
+          border: `1px solid ${currentConfig.color}30`,
+          position: 'relative',
+          zIndex: 99999
         }}
       >
         {currentConfig.icon} {currentConfig.label}
       </button>
 
       {isOpen && (
-        <div className="absolute top-full left-0 mt-1 bg-white rounded-lg shadow-2xl border border-gray-200 z-[9999] min-w-[140px] py-1">
+        <div 
+          className="absolute top-full left-0 mt-1 bg-white rounded-lg shadow-2xl border border-gray-200 min-w-[140px] py-1"
+          style={{ zIndex: 999999, position: 'absolute' }}
+        >
           {Object.entries(PRIORITY_CONFIG).map(([key, config]) => (
             <button
               key={key}
