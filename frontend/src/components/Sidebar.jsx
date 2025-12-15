@@ -204,6 +204,11 @@ const Sidebar = ({ currentBoard, onBoardChange, onNewBoard }) => {
           <Settings size={20} />
           <span className="font-normal">Ayarlar</span>
         </Link>
+        
+        {/* Version */}
+        <div className="px-3 py-1 text-center">
+          <span className="text-[10px] text-gray-400">v1.0.0</span>
+        </div>
       </div>
 
       {/* New Project Modal */}
