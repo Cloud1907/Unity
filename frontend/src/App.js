@@ -168,6 +168,14 @@ function App() {
                 path="/"
                 element={
                   <ProtectedRoute>
+                    <Navigate to="/dashboard" replace />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/board/:boardId"
+                element={
+                  <ProtectedRoute>
                     <Dashboard />
                   </ProtectedRoute>
                 }
