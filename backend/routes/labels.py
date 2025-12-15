@@ -20,7 +20,7 @@ async def get_project_labels(
     ).to_list(100)
     return labels
 
-@router.post("/", response_model=Label)
+@router.post("", response_model=Label)
 async def create_label(
     label: LabelCreate,
     current_user: dict = Depends(get_current_active_user)
