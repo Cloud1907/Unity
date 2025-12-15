@@ -8,33 +8,49 @@
         <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate, max-age=0" />
         <meta http-equiv="Pragma" content="no-cache" />
         <meta http-equiv="Expires" content="0" />
-        <!-- 🔥 CACHE CLEAR - One Time Only -->
+        <!-- 🔥 AGGRESSIVE CACHE CLEAR v0.3.2 -->
         <script>
-          const BUILD_VERSION = 'v0.3.0';
+          const BUILD_VERSION = 'v0.3.2';
           const lastVersion = localStorage.getItem('app-version');
           
-          if (lastVersion !== BUILD_VERSION) {
-            console.log('🧹 New version detected - clearing cache');
-            
-            // Clear caches
-            if ('caches' in window) {
-              caches.keys().then(names => {
-                names.forEach(name => caches.delete(name));
+          // ZORLA HER ZAMAN TEMİZLE
+          console.log('🧹 ZORLA cache temizleniyor - v0.3.2');
+          
+          // Clear ALL storage
+          localStorage.clear();
+          sessionStorage.clear();
+          
+          // Clear caches
+          if ('caches' in window) {
+            caches.keys().then(names => {
+              names.forEach(name => {
+                console.log('🗑️ Siliniyor:', name);
+                caches.delete(name);
               });
-            }
-            
-            // Unregister service workers
-            if ('serviceWorker' in navigator) {
-              navigator.serviceWorker.getRegistrations().then(registrations => {
-                registrations.forEach(reg => reg.unregister());
-              });
-            }
-            
-            // Mark as cleared
-            localStorage.setItem('app-version', BUILD_VERSION);
-            
-            console.log('✅ Cache cleared for ' + BUILD_VERSION);
+            });
           }
+          
+          // Unregister ALL service workers
+          if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.getRegistrations().then(registrations => {
+              registrations.forEach(reg => {
+                console.log('🗑️ SW kaldırılıyor');
+                reg.unregister();
+              });
+            });
+          }
+          
+          // Clear cookies
+          document.cookie.split(";").forEach(function(c) { 
+            document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/"); 
+          });
+          
+          // Mark version
+          localStorage.setItem('app-version', BUILD_VERSION);
+          localStorage.setItem('last-clear', new Date().toISOString());
+          
+          console.log('✅ TÜM CACHE TEMİZLENDİ - v0.3.2');
+          console.log('🔄 Sayfayı TAM yenileyin (Ctrl+Shift+R veya Cmd+Shift+R)');
         </script>
         <!--
       manifest.json provides metadata used when your web app is installed on a
