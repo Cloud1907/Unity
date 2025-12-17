@@ -61,6 +61,10 @@ api_router.include_router(upload.router)
 # Include the router in the main app
 app.include_router(api_router)
 
+@app.get("/")
+async def root():
+    return {"message": "Welcome to 4Flow API", "docs": "/docs"}
+
 app.add_middleware(
     CORSMiddleware,
     allow_credentials=True,
