@@ -225,13 +225,28 @@ const ModernTaskModal = ({ task, isOpen, onClose, initialSection = 'activity' })
                 {taskData.title}
               </h2>
             )}
+
+            {/* Description Field */}
+            <div className="mt-2">
+              <Textarea
+                value={taskData.description || ''}
+                onChange={(e) => setTaskData({ ...taskData, description: e.target.value })}
+                onBlur={async () => {
+                  if (taskData.description !== task.description) {
+                    await updateTask(task._id, { description: taskData.description });
+                  }
+                }}
+                placeholder="Görev açıklaması ekle..."
+                className="min-h-[60px] resize-none border-none shadow-none focus:ring-0 p-0 text-gray-600 dark:text-gray-400 text-sm bg-transparent placeholder-gray-400"
+              />
+            </div>
           </div>
           <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-lg transition-colors" aria-label="Close">
             <X size={24} className="text-gray-500" />
           </button>
         </div>
 
-        <div className="flex h-[calc(90vh-80px)]">
+        <div className="flex h-[calc(90vh-140px)]">
           {/* Left Sidebar - Quick Actions */}
           <div className="w-20 bg-gray-50 border-r border-gray-200 flex flex-col items-center py-6 gap-4">
             <button
@@ -265,7 +280,7 @@ const ModernTaskModal = ({ task, isOpen, onClose, initialSection = 'activity' })
           </div>
 
           {/* Main Content Area */}
-          <div className="flex-1 flex">
+          <div className="flex-1 flex overflow-hidden">
             {/* Dynamic Content based on activeSection */}
             <div className="flex-1 overflow-y-auto p-8">
               <div className="max-w-3xl">
@@ -707,6 +722,22 @@ const ModernTaskModal = ({ task, isOpen, onClose, initialSection = 'activity' })
               </div>
             </div>
           </div>
+        </div>
+
+        {/* Footer with Close Button */}
+        <div className="flex items-center justify-end px-6 py-4 border-t border-gray-200 bg-gray-50">
+          <Button
+            onClick={onClose}
+            className="bg-white hover:bg-gray-50 text-gray-700 border border-gray-300"
+          >
+            Kapat
+          </Button>
+          <Button
+            onClick={onClose}
+            className="bg-[#0086c0] hover:bg-[#006a99] ml-3"
+          >
+            Tamam
+          </Button>
         </div>
       </div>
     </div>
