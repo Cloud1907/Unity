@@ -65,17 +65,26 @@ app.include_router(api_router)
 async def root():
     return {"message": "Welcome to 4Flow API", "docs": "/docs"}
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_credentials=True,
-    allow_origins=[
-        "http://localhost:3000",
-        "https://4-flow.vercel.app",
-        "https://4-flow-git-main-melih-buluts-projects.vercel.app"
-    ],
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.responses import Response
+
+class UnrestrictedCORSMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request, call_next):
+        if request.method == "OPTIONS":
+            response = Response()
+        else:
+            response = await call_next(request)
+        
+        origin = request.headers.get("origin")
+        if origin:
+            response.headers["Access-Control-Allow-Origin"] = origin
+            response.headers["Access-Control-Allow-Credentials"] = "true"
+            response.headers["Access-Control-Allow-Methods"] = "*"
+            response.headers["Access-Control-Allow-Headers"] = "*"
+        
+        return response
+
+app.add_middleware(UnrestrictedCORSMiddleware)
 
 # Configure logging
 logging.basicConfig(
