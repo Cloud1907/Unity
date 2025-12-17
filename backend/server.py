@@ -66,14 +66,23 @@ async def root():
     return {"message": "Welcome to 4Flow API", "docs": "/docs"}
 
 from starlette.middleware.base import BaseHTTPMiddleware
-from starlette.responses import Response
+from starlette.responses import Response, JSONResponse
+import traceback
 
 class UnrestrictedCORSMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request, call_next):
         if request.method == "OPTIONS":
             response = Response()
         else:
-            response = await call_next(request)
+            try:
+                response = await call_next(request)
+            except Exception as e:
+                print(f"❌ INTERNAL SERVER ERROR: {str(e)}")
+                traceback.print_exc()
+                response = JSONResponse(
+                    status_code=500,
+                    content={"detail": str(e), "type": type(e).__name__}
+                )
         
         origin = request.headers.get("origin")
         if origin:
