@@ -68,8 +68,11 @@ async def root():
 app.add_middleware(
     CORSMiddleware,
     allow_credentials=True,
-    allow_origins=[],
-    allow_origin_regex=r"https?://.*",  # Allow all http and https origins
+    allow_origins=[
+        "http://localhost:3000",
+        "https://4-flow.vercel.app",
+        "https://4-flow-git-main-melih-buluts-projects.vercel.app"
+    ],
     allow_methods=["*"],
     allow_headers=["*"],
 )
