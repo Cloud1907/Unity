@@ -6,20 +6,22 @@ import ModernTaskModal from './ModernTaskModal';
 import NewTaskModal from './NewTaskModal';
 import InlineLabelPicker from './InlineLabelPicker';
 
-// Monday.com renk paleti
+// Monday.com benzeri durum renkleri (Daha canlı ve pastel)
 const statuses = [
-  { id: 'todo', label: 'Yapılacak', color: '#C4C4C4' },
-  { id: 'working', label: 'Devam Ediyor', color: '#FDAB3D' },
-  { id: 'stuck', label: 'Takıldı', color: '#E2445C' },
-  { id: 'done', label: 'Tamamlandı', color: '#00C875' },
-  { id: 'review', label: 'İncelemede', color: '#579BFC' }
+  { id: 'todo', label: 'Yapılacak', color: '#c4c4c4' },      // Gri
+  { id: 'working', label: 'Devam Ediyor', color: '#fdab3d' }, // Turuncu
+  { id: 'stuck', label: 'Takıldı', color: '#e2445c' },        // Kırmızı
+  { id: 'done', label: 'Tamamlandı', color: '#00c875' },      // Yeşil
+  { id: 'review', label: 'İncelemede', color: '#579bfc' }     // Mavi
 ];
 
+// Öncelik renkleri (Daha ciddi ve koyu tonlar)
+// Öncelik renkleri (Daha kibar, pastel ve şık)
 const priorities = [
-  { id: 'low', label: 'Düşük', color: '#C4C4C4', icon: '↓' },
-  { id: 'medium', label: 'Orta', color: '#FDAB3D', icon: '−' },
-  { id: 'high', label: 'Yüksek', color: '#E2445C', icon: '↑' },
-  { id: 'urgent', label: 'Acil', color: '#DF2F4A', icon: '⇈' }
+  { id: 'low', label: 'Düşük', color: '#eef2f5', textColor: '#5f6b7c', icon: '↓' },       // Çok Açık Gri
+  { id: 'medium', label: 'Orta', color: '#e5e9f5', textColor: '#4051b5', icon: '−' },     // Açık Çivit Mavisi
+  { id: 'high', label: 'Yüksek', color: '#fff0e5', textColor: '#ff6b00', icon: '↑' },     // Açık Turuncu
+  { id: 'urgent', label: 'Acil', color: '#ffe5e9', textColor: '#d91d4a', icon: '⇈' }      // Açık Kırmızı
 ];
 
 // Inline dropdown component
@@ -49,11 +51,14 @@ const InlineDropdown = ({ value, options, onChange, colorKey = 'color', labelKey
     <div ref={dropdownRef} className="relative" onClick={(e) => e.stopPropagation()}>
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="group inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold text-white transition-all hover:scale-105 hover:shadow-md"
-        style={{ backgroundColor: currentOption[colorKey] }}
+        className="group inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all hover:shadow-sm border border-transparent hover:border-gray-200"
+        style={{
+          backgroundColor: currentOption[colorKey],
+          color: currentOption.textColor || 'white'
+        }}
       >
         <span>{currentOption[labelKey]}</span>
-        <ChevronDown size={12} className="opacity-70 group-hover:opacity-100 transition-opacity" />
+        <ChevronDown size={12} className="opacity-50 group-hover:opacity-100 transition-opacity" />
       </button>
 
       {isOpen && (
@@ -115,9 +120,8 @@ const InlineDatePicker = ({ value, onChange }) => {
     <div ref={datePickerRef} className="relative" onClick={(e) => e.stopPropagation()}>
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className={`group inline-flex items-center gap-1.5 px-2 py-1 rounded text-xs font-medium transition-all hover:bg-gray-100 ${
-          isOverdue ? 'text-red-600' : 'text-gray-600'
-        }`}
+        className={`group inline-flex items-center gap-1.5 px-2 py-1 rounded text-xs font-medium transition-all hover:bg-gray-100 ${isOverdue ? 'text-red-600' : 'text-gray-600'
+          }`}
       >
         <Calendar size={12} />
         <span>{formatDate(value)}</span>
@@ -229,56 +233,98 @@ const InlineAssigneePicker = ({ assigneeIds, allUsers, onChange }) => {
   );
 };
 
-const MainTable = ({ boardId }) => {
+const MainTable = ({ boardId, searchQuery, filters }) => {
   const { tasks, users, fetchTasks, updateTask, updateTaskStatus } = useData();
   const [selectedTask, setSelectedTask] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [modalInitialSection, setModalInitialSection] = useState('activity');
   const [showNewTaskModal, setShowNewTaskModal] = useState(false);
-  
-  // Fetch tasks when boardId changes
+
+  const [expandedRows, setExpandedRows] = useState(new Set());
+
+  // Optimize data fetching: Only fetch if needed
   React.useEffect(() => {
     if (boardId) {
-      console.log('🔄 Fetching tasks for boardId:', boardId);
-      fetchTasks(boardId);
+      // Check if we already have tasks for this project to avoid redundant fetching on view switch
+      // This simple check assumes if we have ANY tasks for this project, we're good.
+      // For more robustness, we could use a lastFetched timestamp in context.
+      const hasTasks = tasks.some(t => t.projectId === boardId);
+      if (!hasTasks) {
+        console.log('🔄 Fetching tasks for boardId:', boardId);
+        fetchTasks(boardId);
+      }
     }
-  }, [boardId]);
-  
-  // Debug logging
-  React.useEffect(() => {
-    console.log('📊 MainTable render - boardId:', boardId);
-    console.log('📊 MainTable render - all tasks:', tasks);
-    const filtered = tasks.filter(t => t.projectId === boardId);
-    console.log('📊 MainTable render - filtered tasks:', filtered);
-  }, [boardId, tasks]);
-  
+  }, [boardId, fetchTasks /* tasks dependency removed to prevent loop, relying on initial check */]);
+
   const boardTasks = React.useMemo(() => {
     if (!boardId) return [];
-    return tasks.filter(t => t.projectId === boardId);
-  }, [tasks, boardId]);
+    let filtered = tasks.filter(t => t.projectId === boardId);
 
-  const getStatusColor = (statusId) => {
+    // Apply Search
+    if (searchQuery) {
+      const lowerQuery = searchQuery.toLowerCase();
+      filtered = filtered.filter(task =>
+        task.title?.toLowerCase().includes(lowerQuery) ||
+        users.find(u => task.assignees?.includes(u._id))?.fullName?.toLowerCase().includes(lowerQuery)
+      );
+    }
+
+    // Apply Filters
+    if (filters) {
+      if (filters.status?.length > 0) {
+        filtered = filtered.filter(task => filters.status.includes(task.status));
+      }
+      if (filters.priority?.length > 0) {
+        filtered = filtered.filter(task => filters.priority.includes(task.priority));
+      }
+      if (filters.assignee?.length > 0) {
+        filtered = filtered.filter(task =>
+          task.assignees?.some(assigneeId => filters.assignee.includes(assigneeId))
+        );
+      }
+      if (filters.labels?.length > 0) {
+        filtered = filtered.filter(task =>
+          task.labels?.some(labelId => filters.labels.includes(labelId))
+        );
+      }
+    }
+
+    return filtered;
+  }, [tasks, boardId, searchQuery, filters, users]);
+
+  const getStatusColor = React.useCallback((statusId) => {
     return statuses.find(s => s.id === statusId)?.color || '#c4c4c4';
-  };
+  }, []);
 
-  const getStatusLabel = (statusId) => {
-    return statuses.find(s => s.id === statusId)?.label || 'Bilinmiyor';
-  };
-
-  const getPriorityData = (priorityId) => {
+  const getPriorityData = React.useCallback((priorityId) => {
     return priorities.find(p => p.id === priorityId) || priorities[0];
-  };
+  }, []);
 
-  const getAssignees = (assigneeIds) => {
+  const getAssignees = React.useCallback((assigneeIds) => {
     return users.filter(u => assigneeIds?.includes(u.id || u._id));
+  }, [users]);
+
+  const toggleRow = (taskId) => {
+    const newExpanded = new Set(expandedRows);
+    if (newExpanded.has(taskId)) {
+      newExpanded.delete(taskId);
+    } else {
+      newExpanded.add(taskId);
+    }
+    setExpandedRows(newExpanded);
   };
 
-  const formatDate = (dateString) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' });
+  const calculateProgress = (task) => {
+    if (!task.subtasks || task.subtasks.length === 0) {
+      return task.status === 'done' ? 100 : 0;
+    }
+    const completed = task.subtasks.filter(st => st.completed).length;
+    return Math.round((completed / task.subtasks.length) * 100);
   };
 
-  const openTaskModal = (task) => {
+  const openTaskModal = (task, section = 'activity') => {
     setSelectedTask(task);
+    setModalInitialSection(section);
     setIsModalOpen(true);
   };
 
@@ -305,29 +351,35 @@ const MainTable = ({ boardId }) => {
           {/* Table Header */}
           <div className="sticky top-0 bg-gray-50 border-b border-gray-200 z-10">
             <div className="flex">
-              <div className="w-10 flex items-center justify-center py-2 border-r border-gray-200">
+              <div className="w-10 flex items-center justify-center py-2 border-r border-gray-200 bg-gray-50/90 backdrop-blur">
                 <input type="checkbox" className="rounded w-3 h-3" />
               </div>
-              <div className="w-72 px-3 py-2 font-semibold text-xs text-gray-600 border-r border-gray-200">
+              <div className="w-8 flex items-center justify-center py-2 border-r border-gray-200 bg-gray-50/90 backdrop-blur">
+                {/* Expander Column Header */}
+              </div>
+              <div className="w-72 px-3 py-2 font-semibold text-xs text-gray-600 border-r border-gray-200 bg-gray-50/90 backdrop-blur">
                 Görev
               </div>
-              <div className="w-40 px-3 py-2 font-semibold text-xs text-gray-600 border-r border-gray-200">
+              <div className="w-40 px-3 py-2 font-semibold text-xs text-gray-600 border-r border-gray-200 bg-gray-50/90 backdrop-blur">
                 Durum
               </div>
-              <div className="w-32 px-3 py-2 font-semibold text-xs text-gray-600 border-r border-gray-200">
+              <div className="w-32 px-3 py-2 font-semibold text-xs text-gray-600 border-r border-gray-200 bg-gray-50/90 backdrop-blur">
                 Öncelik
               </div>
-              <div className="w-40 px-3 py-2 font-semibold text-xs text-gray-600 border-r border-gray-200">
+              <div className="w-40 px-3 py-2 font-semibold text-xs text-gray-600 border-r border-gray-200 bg-gray-50/90 backdrop-blur">
                 Atanan
               </div>
-              <div className="w-28 px-3 py-2 font-semibold text-xs text-gray-600 border-r border-gray-200">
+              <div className="w-28 px-3 py-2 font-semibold text-xs text-gray-600 border-r border-gray-200 bg-gray-50/90 backdrop-blur">
                 Son Tarih
               </div>
-              <div className="w-40 px-3 py-2 font-semibold text-xs text-gray-600 border-r border-gray-200">
+              <div className="w-40 px-3 py-2 font-semibold text-xs text-gray-600 border-r border-gray-200 bg-gray-50/90 backdrop-blur">
                 Etiketler
               </div>
-              <div className="w-28 px-3 py-2 font-semibold text-xs text-gray-600">
+              <div className="w-28 px-3 py-2 font-semibold text-xs text-gray-600 border-r border-gray-200 bg-gray-50/90 backdrop-blur">
                 İlerleme
+              </div>
+              <div className="w-20 px-3 py-2 font-semibold text-xs text-gray-600 bg-gray-50/90 backdrop-blur">
+                Dosyalar
               </div>
             </div>
           </div>
@@ -338,87 +390,160 @@ const MainTable = ({ boardId }) => {
               const taskAssignees = getAssignees(task.assignees);
               const taskLabels = task.labels || [];
               const priority = getPriorityData(task.priority);
-              
+              const isExpanded = expandedRows.has(task._id);
+              const progress = calculateProgress(task);
+              const hasSubtasks = task.subtasks && task.subtasks.length > 0;
+
               return (
-                <div
-                  key={task._id}
-                  className="flex hover:bg-[#f8f9fb] transition-all duration-200 border-b border-gray-100 group"
-                >
-                  <div className="w-10 flex items-center justify-center py-3 border-r border-gray-100">
-                    <input 
-                      type="checkbox" 
-                      className="rounded w-3.5 h-3.5 cursor-pointer transition-transform hover:scale-110" 
-                      onClick={(e) => e.stopPropagation()} 
-                    />
-                  </div>
-                  <div className="w-72 px-3 py-3 border-r border-gray-100">
-                    <div 
-                      className="text-xs text-gray-900 hover:text-[#6366f1] transition-colors cursor-pointer font-medium"
-                      onClick={() => openTaskModal(task)}
-                    >
-                      {task.title}
+                <React.Fragment key={task._id}>
+                  {/* Main Task Row */}
+                  <div className="flex hover:bg-[#f8f9fb] transition-all duration-200 border-b border-gray-100 group">
+                    <div className="w-10 flex items-center justify-center py-3 border-r border-gray-100">
+                      <input
+                        type="checkbox"
+                        className="rounded w-3.5 h-3.5 cursor-pointer transition-transform hover:scale-110"
+                        onClick={(e) => e.stopPropagation()}
+                      />
                     </div>
-                  </div>
-                  <div className="w-40 px-3 py-3 border-r border-gray-100">
-                    <InlineDropdown
-                      value={task.status}
-                      options={statuses}
-                      onChange={(newStatus) => updateTaskStatus(task._id, newStatus)}
-                    />
-                  </div>
-                  <div className="w-32 px-3 py-3 border-r border-gray-100">
-                    <InlineDropdown
-                      value={task.priority}
-                      options={priorities}
-                      onChange={(newPriority) => updateTask(task._id, { priority: newPriority })}
-                    />
-                  </div>
-                  <div className="w-40 px-3 py-3 border-r border-gray-100">
-                    <InlineAssigneePicker
-                      assigneeIds={task.assignees}
-                      allUsers={users}
-                      onChange={(newAssignees) => updateTask(task._id, { assignees: newAssignees })}
-                    />
-                  </div>
-                  <div className="w-28 px-3 py-3 border-r border-gray-100">
-                    <InlineDatePicker
-                      value={task.dueDate}
-                      onChange={(newDate) => updateTask(task._id, { dueDate: newDate })}
-                    />
-                  </div>
-                  <div className="w-40 px-3 py-3 border-r border-gray-100">
-                    <InlineLabelPicker
-                      taskId={task._id}
-                      currentLabels={task.labels || []}
-                      projectId={boardId}
-                      onUpdate={(taskId, newLabels) => updateTask(taskId, { labels: newLabels })}
-                    />
-                  </div>
-                  <div className="w-28 px-3 py-3">
-                    <div className="flex items-center gap-1.5">
-                      <div className="flex-1 bg-gray-200 rounded-full h-1.5 overflow-hidden">
-                        <div
-                          className="h-1.5 rounded-full transition-all duration-300 ease-out"
-                          style={{
-                            width: `${task.progress}%`,
-                            backgroundColor: task.progress === 100 ? '#00C875' : '#579BFC'
+                    <div className="w-8 flex items-center justify-center py-3 border-r border-gray-100">
+                      {hasSubtasks && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            toggleRow(task._id);
                           }}
-                        />
+                          className={`p-0.5 rounded hover:bg-gray-200 text-gray-400 transition-all ${isExpanded ? 'rotate-90 text-gray-600' : ''}`}
+                        >
+                          <ChevronDown size={14} fill="currentColor" className="transform -rotate-90 transition-transform duration-200" style={{ transform: isExpanded ? 'rotate(0deg)' : 'rotate(-90deg)' }} />
+                        </button>
+                      )}
+                    </div>
+                    <div className="w-72 px-3 py-3 border-r border-gray-100">
+                      <div
+                        className="text-xs text-gray-900 hover:text-[#6366f1] transition-colors cursor-pointer font-medium flex items-center gap-2"
+                        onClick={() => openTaskModal(task)}
+                      >
+                        <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: getStatusColor(task.status) }}></div>
+                        {task.title}
+                        {hasSubtasks && (
+                          <span className="text-[9px] px-1 py-0.5 bg-gray-100 text-gray-500 rounded border border-gray-200">
+                            {task.subtasks.length} alt
+                          </span>
+                        )}
                       </div>
-                      <span className="text-[10px] text-gray-500 w-8 font-medium">{task.progress}%</span>
+                    </div>
+                    <div className="w-40 px-3 py-3 border-r border-gray-100">
+                      <InlineDropdown
+                        value={task.status}
+                        options={statuses}
+                        onChange={(newStatus) => updateTaskStatus(task._id, newStatus)}
+                      />
+                    </div>
+                    <div className="w-32 px-3 py-3 border-r border-gray-100">
+                      <InlineDropdown
+                        value={task.priority}
+                        options={priorities}
+                        onChange={(newPriority) => updateTask(task._id, { priority: newPriority })}
+                      />
+                    </div>
+                    <div className="w-40 px-3 py-3 border-r border-gray-100">
+                      <InlineAssigneePicker
+                        assigneeIds={task.assignees}
+                        allUsers={users}
+                        onChange={(newAssignees) => updateTask(task._id, { assignees: newAssignees })}
+                      />
+                    </div>
+                    <div className="w-28 px-3 py-3 border-r border-gray-100">
+                      <InlineDatePicker
+                        value={task.dueDate}
+                        onChange={(newDate) => updateTask(task._id, { dueDate: newDate })}
+                      />
+                    </div>
+                    <div className="w-40 px-3 py-3 border-r border-gray-100">
+                      <InlineLabelPicker
+                        taskId={task._id}
+                        currentLabels={task.labels || []}
+                        projectId={boardId}
+                        onUpdate={(taskId, newLabels) => updateTask(taskId, { labels: newLabels })}
+                      />
+                    </div>
+                    <div className="w-28 px-3 py-3 border-r border-gray-100">
+                      <div className="flex flex-col gap-1 w-full group/progress">
+                        <div className="flex items-center justify-between">
+                          <span className="text-[9px] font-semibold text-gray-500">{progress}%</span>
+                          {progress === 100 && <div className="text-[8px] text-green-600 font-bold">TAMAM</div>}
+                        </div>
+                        <div className="w-full bg-gray-200 rounded-full h-1.5 overflow-hidden">
+                          <div
+                            className="h-full rounded-full transition-all duration-500 ease-out"
+                            style={{
+                              width: `${progress}%`,
+                              backgroundColor: progress === 100 ? '#00C875' : progress > 0 ? '#00c875' : 'transparent' // Monday Green
+                            }}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                    <div className="w-20 px-3 py-3 flex items-center justify-center">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          openTaskModal(task, 'files');
+                        }}
+                        className="text-gray-400 hover:text-blue-500 transition-colors p-1 rounded hover:bg-blue-50"
+                      >
+                        {task.attachments?.length > 0 ? (
+                          <div className="flex items-center gap-1">
+                            <TrendingUp size={14} className="rotate-90" /> {/* File Icon Replacement */}
+                            <span className="text-[10px] font-bold">{task.attachments.length}</span>
+                          </div>
+                        ) : (
+                          <Plus size={14} />
+                        )}
+                      </button>
                     </div>
                   </div>
-                </div>
+
+                  {/* Subtasks Accordion Row */}
+                  {isExpanded && hasSubtasks && (
+                    <div className="bg-gray-50/50 shadow-inner">
+                      {task.subtasks.map((subtask, sIndex) => (
+                        <div key={sIndex} className="flex border-b border-gray-100/50 pl-12 h-10 items-center hover:bg-gray-100 transition-colors">
+                          <div className="w-8 border-r border-gray-100/50 h-full"></div> {/* Indent line */}
+                          <div className="w-72 px-3 flex items-center gap-2 border-r border-gray-100/50 h-full">
+                            <input
+                              type="checkbox"
+                              checked={subtask.completed}
+                              readOnly
+                              className="rounded-full w-3 h-3 border-gray-400 text-green-500 focus:ring-green-500"
+                            />
+                            <span className={`text-xs ${subtask.completed ? 'text-gray-400 line-through' : 'text-gray-600'}`}>
+                              {subtask.title}
+                            </span>
+                          </div>
+                          {/* Empty cells for columns to align structure */}
+                          <div className="w-40 border-r border-gray-100/50 h-full"></div>
+                          <div className="w-32 border-r border-gray-100/50 h-full"></div>
+                          <div className="w-40 border-r border-gray-100/50 h-full"></div>
+                          <div className="w-28 border-r border-gray-100/50 h-full"></div>
+                          <div className="w-40 border-r border-gray-100/50 h-full"></div>
+                          <div className="w-28 border-r border-gray-100/50 h-full"></div>
+                          <div className="w-20 h-full"></div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </React.Fragment>
               );
             })}
           </div>
 
           {/* Add New Task Row */}
-          <div 
+          <div
             onClick={() => setShowNewTaskModal(true)}
             className="flex hover:bg-gray-50 transition-colors border-b border-gray-100 group cursor-pointer"
           >
-            <div className="w-10 flex items-center justify-center py-2 border-r border-gray-100">
+            <div className="w-18 px-6 flex items-center justify-center py-2 border-r border-gray-100">
               <Plus size={14} className="text-[#6366f1]" />
             </div>
             <div className="flex-1 px-3 py-2">
@@ -436,6 +561,7 @@ const MainTable = ({ boardId }) => {
           task={selectedTask}
           isOpen={isModalOpen}
           onClose={() => setIsModalOpen(false)}
+          initialSection={modalInitialSection}
         />
       )}
 

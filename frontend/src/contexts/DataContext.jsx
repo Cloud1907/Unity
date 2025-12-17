@@ -35,7 +35,18 @@ export const DataProvider = ({ children }) => {
     try {
       const params = projectId ? { projectId } : {};
       const response = await tasksAPI.getAll(params);
-      setTasks(response.data);
+
+      setTasks(prevTasks => {
+        // If retrieving all tasks (no projectId), verify overlap or overwrite? 
+        // Safer to overwrite if no projectId is passed (initial load).
+        if (!projectId) return response.data;
+
+        // If specific projectId, merge with existing tasks
+        // 1. Remove old tasks for this project (to handle deletions/updates correctly)
+        const otherTasks = prevTasks.filter(t => t.projectId !== projectId);
+        // 2. Add new tasks
+        return [...otherTasks, ...response.data];
+      });
     } catch (error) {
       console.error('Error fetching tasks:', error);
     }

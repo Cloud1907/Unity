@@ -1,4 +1,5 @@
 from fastapi import FastAPI, APIRouter
+from fastapi.staticfiles import StaticFiles
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
@@ -7,7 +8,7 @@ import logging
 from pathlib import Path
 
 # Import routes
-from routes import auth, users, departments, projects, tasks, subtasks, comments, timelogs, notifications, activity, analytics, labels
+from routes import auth, users, departments, projects, tasks, subtasks, comments, timelogs, notifications, activity, analytics, labels, upload
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
@@ -24,6 +25,11 @@ app = FastAPI(
     description="Monday.com clone API",
     redirect_slashes=False
 )
+
+# Mount uploads directory to serve files
+# Ensure uploads directory exists
+os.makedirs("uploads", exist_ok=True)
+app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
 
 # Create a router with the /api prefix
 api_router = APIRouter(prefix="/api")
@@ -50,6 +56,7 @@ api_router.include_router(notifications.router)
 api_router.include_router(activity.router)
 api_router.include_router(analytics.router)
 api_router.include_router(labels.router)
+api_router.include_router(upload.router)
 
 # Include the router in the main app
 app.include_router(api_router)

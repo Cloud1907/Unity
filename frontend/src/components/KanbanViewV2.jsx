@@ -9,41 +9,47 @@ import confetti from 'canvas-confetti';
 
 // Monday.com renk paleti - TAM eşleşme
 const STATUS_COLORS = {
-  todo: { bg: '#C4C4C4', text: '#323338', label: 'Yapılacak', lightBg: '#f0f0f0' },
-  working: { bg: '#FDAB3D', text: '#FFFFFF', label: 'Devam Ediyor', lightBg: '#fff4e6' },
-  review: { bg: '#579BFC', text: '#FFFFFF', label: 'İncelemede', lightBg: '#e8f2ff' },
-  done: { bg: '#00C875', text: '#FFFFFF', label: 'Tamamlandı', lightBg: '#e6f7ed' },
-  stuck: { bg: '#E2445C', text: '#FFFFFF', label: 'Takıldı', lightBg: '#ffe6ea' }
+  todo: { bg: '#c4c4c4', text: '#323338', label: 'Yapılacak', lightBg: '#f0f0f0' },
+  working: { bg: '#fdab3d', text: '#FFFFFF', label: 'Devam Ediyor', lightBg: '#fff4e6' },
+  review: { bg: '#579bfc', text: '#FFFFFF', label: 'İncelemede', lightBg: '#e8f2ff' },
+  done: { bg: '#00c875', text: '#FFFFFF', label: 'Tamamlandı', lightBg: '#e6f7ed' },
+  stuck: { bg: '#e2445c', text: '#FFFFFF', label: 'Takıldı', lightBg: '#ffe6ea' }
 };
 
 // Konfeti efekti
 const celebrateTask = () => {
-  const duration = 2000;
-  const animationEnd = Date.now() + duration;
-  const defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 9999 };
+  try {
+    const duration = 2000;
+    const animationEnd = Date.now() + duration;
+    const defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 9999 };
 
-  const randomInRange = (min, max) => Math.random() * (max - min) + min;
+    const randomInRange = (min, max) => Math.random() * (max - min) + min;
 
-  const interval = setInterval(() => {
-    const timeLeft = animationEnd - Date.now();
+    const interval = setInterval(() => {
+      const timeLeft = animationEnd - Date.now();
 
-    if (timeLeft <= 0) {
-      return clearInterval(interval);
-    }
+      if (timeLeft <= 0) {
+        return clearInterval(interval);
+      }
 
-    const particleCount = 50 * (timeLeft / duration);
+      const particleCount = 50 * (timeLeft / duration);
 
-    confetti({
-      ...defaults,
-      particleCount,
-      origin: { x: randomInRange(0.1, 0.3), y: Math.random() - 0.2 }
-    });
-    confetti({
-      ...defaults,
-      particleCount,
-      origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 }
-    });
-  }, 250);
+      if (confetti) {
+        confetti({
+          ...defaults,
+          particleCount,
+          origin: { x: randomInRange(0.1, 0.3), y: Math.random() - 0.2 }
+        });
+        confetti({
+          ...defaults,
+          particleCount,
+          origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 }
+        });
+      }
+    }, 250);
+  } catch (error) {
+    console.error('Confetti error:', error);
+  }
 };
 
 // Inline Status Dropdown Component with Portal
@@ -66,7 +72,7 @@ const InlineStatusDropdown = ({ currentStatus, onStatusChange, taskId }) => {
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target) &&
-          buttonRef.current && !buttonRef.current.contains(event.target)) {
+        buttonRef.current && !buttonRef.current.contains(event.target)) {
         setIsOpen(false);
       }
     };
@@ -81,11 +87,11 @@ const InlineStatusDropdown = ({ currentStatus, onStatusChange, taskId }) => {
   const handleStatusSelect = async (newStatus) => {
     const oldStatus = currentStatus;
     setIsOpen(false);
-    
+
     if (newStatus === 'done' && oldStatus !== 'done') {
       celebrateTask();
     }
-    
+
     await onStatusChange(taskId, newStatus);
   };
 
@@ -110,7 +116,7 @@ const InlineStatusDropdown = ({ currentStatus, onStatusChange, taskId }) => {
       </button>
 
       {isOpen && createPortal(
-        <div 
+        <div
           ref={dropdownRef}
           className="bg-white rounded-xl shadow-2xl border border-gray-200 min-w-[180px] py-2"
           style={{
@@ -147,12 +153,12 @@ const InlineStatusDropdown = ({ currentStatus, onStatusChange, taskId }) => {
   );
 };
 
-// Priority badges
+// Priority badges (Updated to match new distinct palette)
 const PRIORITY_CONFIG = {
-  urgent: { color: '#DF2F4A', label: 'Acil', icon: '⇈' },
-  high: { color: '#E2445C', label: 'Yüksek', icon: '↑' },
-  medium: { color: '#FDAB3D', label: 'Orta', icon: '−' },
-  low: { color: '#C4C4C4', label: 'Düşük', icon: '↓' }
+  urgent: { color: '#cc0000', label: 'Acil', icon: '⇈' },
+  high: { color: '#ff9900', label: 'Yüksek', icon: '↑' },
+  medium: { color: '#555555', label: 'Orta', icon: '−' },
+  low: { color: '#808080', label: 'Düşük', icon: '↓' }
 };
 
 // Inline Priority Dropdown with Portal
@@ -175,7 +181,7 @@ const InlinePriorityDropdown = ({ currentPriority, onChange }) => {
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target) &&
-          buttonRef.current && !buttonRef.current.contains(event.target)) {
+        buttonRef.current && !buttonRef.current.contains(event.target)) {
         setIsOpen(false);
       }
     };
@@ -206,7 +212,7 @@ const InlinePriorityDropdown = ({ currentPriority, onChange }) => {
       </button>
 
       {isOpen && createPortal(
-        <div 
+        <div
           ref={dropdownRef}
           className="bg-white rounded-lg shadow-2xl border border-gray-200 min-w-[140px] py-1"
           style={{
@@ -263,7 +269,7 @@ const InlineDatePickerSmall = ({ value, onChange }) => {
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (datePickerRef.current && !datePickerRef.current.contains(event.target) &&
-          buttonRef.current && !buttonRef.current.contains(event.target)) {
+        buttonRef.current && !buttonRef.current.contains(event.target)) {
         setIsOpen(false);
       }
     };
@@ -289,7 +295,7 @@ const InlineDatePickerSmall = ({ value, onChange }) => {
     const lastDay = new Date(year, month + 1, 0);
     const daysInMonth = lastDay.getDate();
     const startingDayOfWeek = firstDay.getDay(); // 0 = Pazar
-    
+
     return { daysInMonth, startingDayOfWeek };
   };
 
@@ -337,16 +343,15 @@ const InlineDatePickerSmall = ({ value, onChange }) => {
           e.stopPropagation();
           setIsOpen(!isOpen);
         }}
-        className={`flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium transition-all hover:bg-gray-100 ${
-          isOverdue ? 'text-red-600 bg-red-50' : value ? 'text-gray-600' : 'text-gray-400'
-        }`}
+        className={`flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium transition-all hover:bg-gray-100 ${isOverdue ? 'text-red-600 bg-red-50' : value ? 'text-gray-600' : 'text-gray-400'
+          }`}
       >
         <Calendar size={11} />
         <span>{formatDate(value)}</span>
       </button>
 
       {isOpen && createPortal(
-        <div 
+        <div
           ref={datePickerRef}
           className="bg-white rounded-xl shadow-2xl border border-gray-200 p-4"
           style={{
@@ -394,13 +399,13 @@ const InlineDatePickerSmall = ({ value, onChange }) => {
             {Array.from({ length: startingDayOfWeek === 0 ? 6 : startingDayOfWeek - 1 }).map((_, idx) => (
               <div key={`empty-${idx}`} />
             ))}
-            
+
             {/* Günler */}
             {Array.from({ length: daysInMonth }).map((_, idx) => {
               const day = idx + 1;
               const selected = isSelectedDate(day);
               const today = isToday(day);
-              
+
               return (
                 <button
                   key={day}
@@ -449,8 +454,8 @@ const InlineDatePickerSmall = ({ value, onChange }) => {
   );
 };
 
-// Kompakt Task Card - Monday.com stili
-const CompactTaskCard = ({ task, onDragStart, onDragEnd, isDragging, users, projectId, onStatusChange, onTaskClick, onUpdate }) => {
+// Kompakt Task Card - Monday.com stili - MEMOIZED
+const CompactTaskCard = React.memo(({ task, onDragStart, onDragEnd, isDragging, users, projectId, onStatusChange, onTaskClick, onUpdate }) => {
   const assignees = users.filter(u => task.assignees?.includes(u.id || u._id));
   const [isHovered, setIsHovered] = useState(false);
   const [showAssigneeMenu, setShowAssigneeMenu] = useState(false);
@@ -473,7 +478,7 @@ const CompactTaskCard = ({ task, onDragStart, onDragEnd, isDragging, users, proj
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (assigneeMenuRef.current && !assigneeMenuRef.current.contains(event.target) &&
-          assigneeButtonRef.current && !assigneeButtonRef.current.contains(event.target)) {
+        assigneeButtonRef.current && !assigneeButtonRef.current.contains(event.target)) {
         setShowAssigneeMenu(false);
       }
     };
@@ -503,11 +508,10 @@ const CompactTaskCard = ({ task, onDragStart, onDragEnd, isDragging, users, proj
         if (e.target.closest('button') || e.target.closest('[role="menu"]')) return;
         onTaskClick(task);
       }}
-      className={`bg-white rounded-lg p-3 border transition-all duration-200 cursor-pointer group ${
-        isDragging 
-          ? 'opacity-50 scale-95 shadow-2xl rotate-2' 
-          : 'opacity-100 hover:shadow-xl hover:scale-[1.02] border-gray-200 hover:border-blue-400'
-      }`}
+      className={`bg-white rounded-lg p-3 border transition-all duration-200 cursor-pointer group ${isDragging
+        ? 'opacity-50 scale-95 shadow-2xl rotate-2'
+        : 'opacity-100 hover:shadow-xl hover:scale-[1.02] border-gray-200 hover:border-blue-400'
+        }`}
       style={{
         transform: isDragging ? 'rotate(2deg)' : 'rotate(0deg)',
         transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)'
@@ -518,10 +522,9 @@ const CompactTaskCard = ({ task, onDragStart, onDragEnd, isDragging, users, proj
         <h4 className="text-sm font-semibold text-gray-900 leading-tight flex-1 line-clamp-2">
           {task.title}
         </h4>
-        <button 
-          className={`p-1 rounded hover:bg-gray-100 transition-opacity ${
-            isHovered ? 'opacity-100' : 'opacity-0'
-          }`}
+        <button
+          className={`p-1 rounded hover:bg-gray-100 transition-opacity ${isHovered ? 'opacity-100' : 'opacity-0'
+            }`}
           onClick={(e) => {
             e.stopPropagation();
             onTaskClick(task);
@@ -568,8 +571,8 @@ const CompactTaskCard = ({ task, onDragStart, onDragEnd, isDragging, users, proj
           className="flex items-center -space-x-1.5 hover:scale-105 transition-transform"
         >
           {assignees.slice(0, 2).map((assignee, idx) => (
-            <Avatar 
-              key={assignee.id || assignee._id} 
+            <Avatar
+              key={assignee.id || assignee._id}
               className="w-6 h-6 border-2 border-white ring-1 ring-gray-200 hover:ring-blue-400 transition-all hover:z-10"
               style={{ zIndex: 2 - idx }}
             >
@@ -593,7 +596,7 @@ const CompactTaskCard = ({ task, onDragStart, onDragEnd, isDragging, users, proj
 
         {/* Assignee Menu Portal */}
         {showAssigneeMenu && createPortal(
-          <div 
+          <div
             ref={assigneeMenuRef}
             role="menu"
             className="bg-white rounded-lg shadow-2xl border border-gray-200 min-w-[200px] py-2"
@@ -644,11 +647,11 @@ const CompactTaskCard = ({ task, onDragStart, onDragEnd, isDragging, users, proj
       </div>
     </div>
   );
-};
+});
 
-const KanbanViewV2 = ({ boardId }) => {
+const KanbanViewV2 = ({ boardId, searchQuery, filters }) => {
   const { tasks, users, fetchTasks, updateTaskStatus, updateTask } = useData();
-  const [filteredTasks, setFilteredTasks] = useState([]);
+
   const [draggedTask, setDraggedTask] = useState(null);
   const [dragOverColumn, setDragOverColumn] = useState(null);
   const [selectedTask, setSelectedTask] = useState(null);
@@ -656,14 +659,48 @@ const KanbanViewV2 = ({ boardId }) => {
 
   useEffect(() => {
     if (boardId) {
-      fetchTasks(boardId);
+      // Optimize: Only fetch if we don't have tasks for this board
+      const hasTasks = tasks.some(task => task.projectId === boardId);
+      if (!hasTasks) {
+        fetchTasks(boardId);
+      }
     }
   }, [boardId, fetchTasks]);
 
-  useEffect(() => {
-    const filtered = tasks.filter(task => task.projectId === boardId);
-    setFilteredTasks(filtered);
-  }, [tasks, boardId]);
+  const filteredTasks = React.useMemo(() => {
+    let filtered = tasks.filter(task => task.projectId === boardId);
+
+    // Apply Search
+    if (searchQuery) {
+      const lowerQuery = searchQuery.toLowerCase();
+      filtered = filtered.filter(task =>
+        task.title?.toLowerCase().includes(lowerQuery) ||
+        users.find(u => task.assignees?.includes(u._id))?.fullName?.toLowerCase().includes(lowerQuery)
+      );
+    }
+
+    // Apply Filters
+    if (filters) {
+      if (filters.status?.length > 0) {
+        filtered = filtered.filter(task => filters.status.includes(task.status));
+      }
+      if (filters.priority?.length > 0) {
+        filtered = filtered.filter(task => filters.priority.includes(task.priority));
+      }
+      if (filters.assignee?.length > 0) {
+        filtered = filtered.filter(task =>
+          task.assignees?.some(assigneeId => filters.assignee.includes(assigneeId))
+        );
+      }
+      if (filters.labels?.length > 0) {
+        filtered = filtered.filter(task =>
+          task.labels?.some(labelId => filters.labels.includes(labelId))
+        );
+      }
+    }
+
+    return filtered;
+  }, [tasks, boardId, searchQuery, filters, users]);
 
   const columns = [
     { id: 'todo', title: 'Yapılacak', color: STATUS_COLORS.todo.bg, lightBg: STATUS_COLORS.todo.lightBg },
@@ -700,18 +737,18 @@ const KanbanViewV2 = ({ boardId }) => {
   const handleDrop = async (e, newStatus) => {
     e.preventDefault();
     setDragOverColumn(null);
-    
+
     if (draggedTask && draggedTask.status !== newStatus) {
       const oldStatus = draggedTask.status;
-      
+
       // Eğer "done" kolonuna bırakıldıysa kutla!
       if (newStatus === 'done' && oldStatus !== 'done') {
         celebrateTask();
       }
-      
+
       await updateTaskStatus(draggedTask._id, newStatus);
     }
-    
+
     setDraggedTask(null);
   };
 
@@ -741,12 +778,12 @@ const KanbanViewV2 = ({ boardId }) => {
       labels: [],
       subtasks: []
     };
-    
+
     // Call backend API to create task
     try {
       const API_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8001';
       const token = localStorage.getItem('token');
-      
+
       const response = await fetch(`${API_URL}/api/tasks`, {
         method: 'POST',
         headers: {
@@ -755,7 +792,7 @@ const KanbanViewV2 = ({ boardId }) => {
         },
         body: JSON.stringify(newTask)
       });
-      
+
       if (response.ok) {
         await fetchTasks(boardId);
       }
@@ -777,16 +814,15 @@ const KanbanViewV2 = ({ boardId }) => {
           {columns.map(column => {
             const columnTasks = getTasksByStatus(column.id);
             const isDropTarget = dragOverColumn === column.id;
-            
+
             return (
               <div
                 key={column.id}
-                className={`flex flex-col w-72 rounded-xl transition-all duration-300 ${
-                  isDropTarget
-                    ? 'ring-4 ring-blue-400 ring-opacity-50 scale-105 shadow-2xl'
-                    : 'scale-100'
-                } bg-transparent`}
-                style={{ 
+                className={`flex flex-col w-72 rounded-xl transition-all duration-300 ${isDropTarget
+                  ? 'ring-4 ring-blue-400 ring-opacity-50 scale-105 shadow-2xl'
+                  : 'scale-100'
+                  } bg-transparent`}
+                style={{
                   minHeight: '500px'
                 }}
                 onDragOver={(e) => handleDragOver(e, column.id)}
@@ -794,9 +830,9 @@ const KanbanViewV2 = ({ boardId }) => {
                 onDrop={(e) => handleDrop(e, column.id)}
               >
                 {/* Column Header - Monday.com style */}
-                <div 
+                <div
                   className="mb-3 px-4 py-3 rounded-t-xl backdrop-blur-sm"
-                  style={{ 
+                  style={{
                     backgroundColor: `${column.color}15`,
                     borderLeft: `4px solid ${column.color}`
                   }}
@@ -806,14 +842,14 @@ const KanbanViewV2 = ({ boardId }) => {
                       <span className="text-sm font-bold text-gray-900">
                         {column.title}
                       </span>
-                      <span 
+                      <span
                         className="px-2.5 py-1 rounded-full text-xs font-bold text-white min-w-[28px] text-center"
                         style={{ backgroundColor: column.color }}
                       >
                         {columnTasks.length}
                       </span>
                     </div>
-                    <button 
+                    <button
                       onClick={() => handleAddTask(column.id)}
                       className="p-1.5 hover:bg-white/60 rounded-lg transition-all duration-200 hover:scale-110 hover:rotate-90"
                     >
@@ -823,10 +859,10 @@ const KanbanViewV2 = ({ boardId }) => {
                 </div>
 
                 {/* Tasks */}
-                <div 
+                <div
                   className="flex-1 overflow-visible px-3 pb-3 space-y-2.5 rounded-b-xl"
-                  style={{ 
-                    background: isDropTarget 
+                  style={{
+                    background: isDropTarget
                       ? `linear-gradient(to bottom, transparent 0%, ${column.color}20 100%)`
                       : `linear-gradient(to bottom, transparent 0%, ${column.lightBg} 100%)`,
                     maxHeight: '600px',
@@ -860,7 +896,7 @@ const KanbanViewV2 = ({ boardId }) => {
 
                   {/* Drop Zone Indicator */}
                   {isDropTarget && (
-                    <div 
+                    <div
                       className="border-4 border-dashed rounded-xl p-8 text-center animate-pulse"
                       style={{ borderColor: column.color }}
                     >

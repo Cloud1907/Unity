@@ -33,8 +33,8 @@ const InlineLabelPicker = ({ taskId, currentLabels = [], projectId, onUpdate }) 
 
   useEffect(() => {
     const handleClickOutside = (event) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target) && 
-          buttonRef.current && !buttonRef.current.contains(event.target)) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target) &&
+        buttonRef.current && !buttonRef.current.contains(event.target)) {
         setIsOpen(false);
       }
     };
@@ -58,9 +58,9 @@ const InlineLabelPicker = ({ taskId, currentLabels = [], projectId, onUpdate }) 
     const newLabels = selectedLabelIds.includes(labelId)
       ? selectedLabelIds.filter(id => id !== labelId)
       : [...selectedLabelIds, labelId];
-    
+
     setSelectedLabelIds(newLabels);
-    
+
     if (onUpdate) {
       await onUpdate(taskId, newLabels);
     }
@@ -100,11 +100,10 @@ const InlineLabelPicker = ({ taskId, currentLabels = [], projectId, onUpdate }) 
                 <button
                   key={label.id}
                   onClick={() => toggleLabel(label.id)}
-                  className={`w-full flex items-center justify-between gap-2 px-3 py-2 rounded-lg transition-colors ${
-                    isSelected 
-                      ? 'bg-blue-50 border border-blue-200' 
+                  className={`w-full flex items-center justify-between gap-2 px-3 py-2 rounded-lg transition-colors ${isSelected
+                      ? 'bg-blue-50 border border-blue-200'
                       : 'hover:bg-gray-50 border border-transparent'
-                  }`}
+                    }`}
                 >
                   <div className="flex items-center gap-2 flex-1 min-w-0">
                     <span
@@ -137,10 +136,12 @@ const InlineLabelPicker = ({ taskId, currentLabels = [], projectId, onUpdate }) 
         {getSelectedLabels().map(label => (
           <span
             key={label.id}
-            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold text-white"
-            style={{ backgroundColor: label.color }}
+            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[10px] font-medium border border-gray-200 bg-gray-50 text-gray-700 hover:bg-gray-100 transition-colors"
           >
-            <Tag size={10} />
+            <div
+              className="w-1.5 h-1.5 rounded-full"
+              style={{ backgroundColor: label.color || '#6b7280' }}
+            />
             {label.name}
           </span>
         ))}

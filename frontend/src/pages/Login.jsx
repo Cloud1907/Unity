@@ -18,14 +18,14 @@ const Login = () => {
     setLoading(true);
 
     const result = await login(email, password);
-    
+
     if (result.success) {
       toast.success('Giriş başarılı!');
       navigate('/');
     } else {
       toast.error(result.error);
     }
-    
+
     setLoading(false);
   };
 
@@ -38,13 +38,13 @@ const Login = () => {
             <span className="text-4xl font-bold text-[#6366f1]">4</span>
             <span className="text-4xl font-semibold text-gray-800">Flow</span>
           </div>
-          <p className="text-gray-600">Proje ve görev yönetim platformu</p>
+          <p className="text-gray-600">Proje ve Görev Yönetimi</p>
         </div>
 
         {/* Login Form */}
         <div className="bg-white rounded-lg shadow-lg p-8">
           <h2 className="text-2xl font-semibold text-gray-900 mb-6">Giriş Yap</h2>
-          
+
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <Label htmlFor="email">E-posta</Label>

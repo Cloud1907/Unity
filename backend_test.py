@@ -19,14 +19,17 @@ from typing import Dict, Any
 
 # Get backend URL from frontend .env
 def get_backend_url():
-    try:
-        with open('/app/frontend/.env', 'r') as f:
-            for line in f:
-                if line.startswith('REACT_APP_BACKEND_URL='):
-                    return line.split('=', 1)[1].strip()
-    except Exception as e:
-        print(f"Error reading frontend .env: {e}")
-        return None
+    paths = ['/app/frontend/.env', 'frontend/.env', './frontend/.env']
+    for path in paths:
+        try:
+            if os.path.exists(path):
+                with open(path, 'r') as f:
+                    for line in f:
+                        if line.startswith('REACT_APP_BACKEND_URL='):
+                            return line.split('=', 1)[1].strip()
+        except Exception:
+            continue
+    return "http://localhost:8000"  # Fallback to default local URL
 
 BASE_URL = get_backend_url()
 if not BASE_URL:
@@ -46,6 +49,48 @@ class FourFlowAPITester:
         self.test_project_id = None
         self.test_task_id = None
         self.test_label_id = None
+        
+    def setup_users(self):
+        """Register test users if they don't exist"""
+        print("\n👤 Setting up test users...")
+        
+        # Admin User
+        admin_data = {
+            "email": "ahmet@4flow.com",
+            "password": "test123",
+            "fullName": "Ahmet Admin",
+            "role": "admin"
+        }
+        
+        try:
+            response = self.session.post(f"{API_URL}/auth/register", json=admin_data)
+            if response.status_code == 201:
+                print("   ✅ Registered Admin User")
+            elif response.status_code == 400 and "already registered" in response.text:
+                 print("   ℹ️  Admin User already exists")
+            else:
+                 print(f"   ⚠️  Admin registration issue: {response.text}")
+        except Exception as e:
+            print(f"   ⚠️  Admin setup error: {e}")
+
+        # Member User
+        member_data = {
+            "email": "test@4flow.com",
+            "password": "test123",
+            "fullName": "Test Member",
+            "role": "member"
+        }
+        
+        try:
+            response = self.session.post(f"{API_URL}/auth/register", json=member_data)
+            if response.status_code == 201:
+                print("   ✅ Registered Member User")
+            elif response.status_code == 400 and "already registered" in response.text:
+                 print("   ℹ️  Member User already exists")
+            else:
+                 print(f"   ⚠️  Member registration issue: {response.text}")
+        except Exception as e:
+            print(f"   ⚠️  Member setup error: {e}")
         
     def test_admin_login(self):
         """Test 1: Admin Login - ahmet@4flow.com / test123"""
@@ -583,6 +628,9 @@ class FourFlowAPITester:
         print("=" * 70)
         
         results = []
+        
+        # Setup Users
+        self.setup_users()
         
         # Test 1: Admin Login
         if self.test_admin_login():

@@ -6,18 +6,20 @@ import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
 import NewTaskModal from './NewTaskModal';
 import LabelManager from './LabelManager';
 
-const BoardHeader = ({ boardId, currentView, onViewChange, onFilterChange }) => {
+const BoardHeader = ({
+  boardId,
+  currentView,
+  onViewChange,
+  searchQuery,
+  setSearchQuery,
+  filters = { status: [], priority: [], assignee: [], labels: [] },
+  onFilterChange
+}) => {
   const { projects, users, toggleFavorite, labels } = useData();
   const [showNewTaskModal, setShowNewTaskModal] = useState(false);
   const [showLabelManager, setShowLabelManager] = useState(false);
   const [showFilterMenu, setShowFilterMenu] = useState(false);
-  const [filters, setFilters] = useState({
-    status: [],
-    priority: [],
-    assignee: [],
-    labels: []
-  });
-  
+
   const board = projects.find(b => b._id === boardId);
   const boardMembers = users.filter(u => board?.members?.includes(u._id));
   const projectLabels = labels?.filter(l => l.projectId === boardId) || [];
@@ -112,11 +114,10 @@ const BoardHeader = ({ boardId, currentView, onViewChange, onFilterChange }) => 
               <button
                 key={view.id}
                 onClick={() => onViewChange(view.id)}
-                className={`flex items-center gap-2.5 px-4 py-2.5 rounded-lg text-sm font-medium transition-all ${
-                  currentView === view.id
-                    ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/30'
-                    : 'text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800'
-                }`}
+                className={`flex items-center gap-2.5 px-4 py-2.5 rounded-lg text-sm font-medium transition-all ${currentView === view.id
+                  ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/30'
+                  : 'text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800'
+                  }`}
               >
                 <IconComponent size={18} strokeWidth={2.5} />
                 <span className="font-semibold">{view.shortLabel}</span>
@@ -131,14 +132,16 @@ const BoardHeader = ({ boardId, currentView, onViewChange, onFilterChange }) => 
             <input
               type="text"
               placeholder="Görev ara..."
+              value={searchQuery || ''}
+              onChange={(e) => setSearchQuery && setSearchQuery(e.target.value)}
               className="pl-7 pr-2 py-1 bg-white border border-gray-300 rounded text-xs focus:outline-none focus:border-[#6366f1] transition-colors w-48"
             />
           </div>
           <div className="relative">
-            <Button 
+            <Button
               onClick={() => setShowFilterMenu(!showFilterMenu)}
-              variant="outline" 
-              size="sm" 
+              variant="outline"
+              size="sm"
               className="gap-1 rounded px-2 py-1 border border-gray-300 hover:border-gray-400 hover:bg-gray-50 transition-colors text-xs h-6"
             >
               <Filter size={13} />
@@ -158,8 +161,7 @@ const BoardHeader = ({ boardId, currentView, onViewChange, onFilterChange }) => 
                     <h3 className="font-semibold text-sm">Filtreler</h3>
                     <button
                       onClick={() => {
-                        setFilters({ status: [], priority: [], assignee: [], labels: [] });
-                        if (onFilterChange) onFilterChange(null);
+                        if (onFilterChange) onFilterChange({ status: [], priority: [], assignee: [], labels: [] });
                       }}
                       className="text-xs text-blue-600 hover:text-blue-700"
                     >
@@ -183,15 +185,14 @@ const BoardHeader = ({ boardId, currentView, onViewChange, onFilterChange }) => 
                                   ? [...filters.status, status]
                                   : filters.status.filter(s => s !== status)
                               };
-                              setFilters(newFilters);
                               if (onFilterChange) onFilterChange(newFilters);
                             }}
                             className="rounded border-gray-300"
                           />
                           <span className="text-xs capitalize">
-                            {status === 'todo' ? 'Yapılacak' : 
-                             status === 'working' ? 'Devam Ediyor' :
-                             status === 'review' ? 'İnceleme' : 'Tamamlandı'}
+                            {status === 'todo' ? 'Yapılacak' :
+                              status === 'working' ? 'Devam Ediyor' :
+                                status === 'review' ? 'İnceleme' : 'Tamamlandı'}
                           </span>
                         </label>
                       ))}
@@ -214,15 +215,14 @@ const BoardHeader = ({ boardId, currentView, onViewChange, onFilterChange }) => 
                                   ? [...filters.priority, priority]
                                   : filters.priority.filter(p => p !== priority)
                               };
-                              setFilters(newFilters);
                               if (onFilterChange) onFilterChange(newFilters);
                             }}
                             className="rounded border-gray-300"
                           />
                           <span className="text-xs capitalize">
                             {priority === 'critical' ? 'Kritik' :
-                             priority === 'high' ? 'Yüksek' :
-                             priority === 'medium' ? 'Orta' : 'Düşük'}
+                              priority === 'high' ? 'Yüksek' :
+                                priority === 'medium' ? 'Orta' : 'Düşük'}
                           </span>
                         </label>
                       ))}
@@ -246,7 +246,6 @@ const BoardHeader = ({ boardId, currentView, onViewChange, onFilterChange }) => 
                                     ? [...filters.labels, label.id]
                                     : filters.labels.filter(l => l !== label.id)
                                 };
-                                setFilters(newFilters);
                                 if (onFilterChange) onFilterChange(newFilters);
                               }}
                               className="rounded border-gray-300"
@@ -273,10 +272,10 @@ const BoardHeader = ({ boardId, currentView, onViewChange, onFilterChange }) => 
               </div>
             )}
           </div>
-          <Button 
+          <Button
             onClick={() => setShowLabelManager(true)}
-            variant="outline" 
-            size="sm" 
+            variant="outline"
+            size="sm"
             className="gap-1 rounded px-2 py-1 border border-gray-300 hover:border-gray-400 hover:bg-gray-50 transition-colors text-xs h-6"
           >
             <Tag size={13} />
