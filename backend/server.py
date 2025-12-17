@@ -68,8 +68,8 @@ async def root():
 app.add_middleware(
     CORSMiddleware,
     allow_credentials=True,
-    allow_origins=os.environ.get('CORS_ORIGINS', '*').split(','),
-    allow_origin_regex='https?://.*',  # Allow Vercel and local development
+    allow_origins=[],
+    allow_origin_regex=r"https?://.*",  # Allow all http and https origins
     allow_methods=["*"],
     allow_headers=["*"],
 )
