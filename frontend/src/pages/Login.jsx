@@ -30,24 +30,24 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 transition-colors duration-200">
       <div className="w-full max-w-md">
         {/* Logo */}
         <div className="text-center mb-8">
           <div className="flex items-center justify-center gap-2 mb-2">
             <span className="text-4xl font-bold text-[#6366f1]">4</span>
-            <span className="text-4xl font-semibold text-gray-800">Flow</span>
+            <span className="text-4xl font-semibold text-gray-800 dark:text-gray-100">Flow</span>
           </div>
-          <p className="text-gray-600">Proje ve Görev Yönetimi</p>
+          <p className="text-gray-600 dark:text-gray-400">Proje ve Görev Yönetimi</p>
         </div>
 
         {/* Login Form */}
-        <div className="bg-white rounded-lg shadow-lg p-8">
-          <h2 className="text-2xl font-semibold text-gray-900 mb-6">Giriş Yap</h2>
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-8 transition-colors duration-200">
+          <h2 className="text-2xl font-semibold text-gray-900 dark:text-white mb-6">Giriş Yap</h2>
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <Label htmlFor="email">E-posta</Label>
+              <Label htmlFor="email" className="dark:text-gray-200">E-posta</Label>
               <Input
                 id="email"
                 type="email"
@@ -55,12 +55,12 @@ const Login = () => {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
-                className="mt-1"
+                className="mt-1 dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:placeholder-gray-400"
               />
             </div>
 
             <div>
-              <Label htmlFor="password">Şifre</Label>
+              <Label htmlFor="password" className="dark:text-gray-200">Şifre</Label>
               <Input
                 id="password"
                 type="password"
@@ -68,13 +68,13 @@ const Login = () => {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
-                className="mt-1"
+                className="mt-1 dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:placeholder-gray-400"
               />
             </div>
 
             <Button
               type="submit"
-              className="w-full bg-[#6366f1] hover:bg-[#5558e3]"
+              className="w-full bg-[#6366f1] hover:bg-[#5558e3] text-white"
               disabled={loading}
             >
               {loading ? 'Giriş yapılıyor...' : 'Giriş Yap'}
@@ -82,7 +82,7 @@ const Login = () => {
           </form>
 
           <div className="mt-6 text-center">
-            <p className="text-sm text-gray-600">
+            <p className="text-sm text-gray-600 dark:text-gray-400">
               Hesabınız yok mu?{' '}
               <Link to="/register" className="text-[#6366f1] hover:underline font-medium">
                 Kayıt Ol

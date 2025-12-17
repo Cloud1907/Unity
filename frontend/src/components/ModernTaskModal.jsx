@@ -544,12 +544,54 @@ const ModernTaskModal = ({ task, isOpen, onClose, initialSection = 'activity' })
                           <AvatarFallback>{assignee.fullName?.charAt(0)}</AvatarFallback>
                         </Avatar>
                         <span className="text-sm">{assignee.fullName}</span>
+                        <button
+                          onClick={async () => {
+                            const newAssignees = (taskData.assignees || []).filter(id => id !== assignee._id);
+                            setTaskData({ ...taskData, assignees: newAssignees });
+                            await updateTask(task._id, { assignees: newAssignees });
+                          }}
+                          className="ml-1 text-gray-400 hover:text-red-500"
+                        >
+                          <X size={14} />
+                        </button>
                       </div>
                     ))}
-                    <button className="flex items-center gap-1 px-3 py-2 border-2 border-dashed border-gray-300 rounded-lg hover:border-[#0086c0] transition-colors">
-                      <Plus size={16} />
-                      <span className="text-sm">Ekle</span>
-                    </button>
+
+                    {/* Add Assignee Dropdown */}
+                    <div className="relative group">
+                      <button className="flex items-center gap-1 px-3 py-2 border-2 border-dashed border-gray-300 rounded-lg hover:border-[#0086c0] transition-colors text-sm">
+                        <Plus size={16} />
+                        <span>Ekle</span>
+                      </button>
+
+                      {/* Dropdown Menu */}
+                      <div className="absolute top-full left-0 mt-2 w-48 bg-white rounded-lg shadow-xl border border-gray-200 z-50 hidden group-hover:block">
+                        <div className="p-2 space-y-1 max-h-48 overflow-y-auto">
+                          {users
+                            .filter(u => !(taskData.assignees || []).includes(u._id))
+                            .map(user => (
+                              <button
+                                key={user._id}
+                                onClick={async () => {
+                                  const newAssignees = [...(taskData.assignees || []), user._id];
+                                  setTaskData({ ...taskData, assignees: newAssignees });
+                                  await updateTask(task._id, { assignees: newAssignees });
+                                }}
+                                className="w-full text-left px-2 py-1.5 rounded hover:bg-gray-50 text-sm flex items-center gap-2"
+                              >
+                                <Avatar className="w-6 h-6">
+                                  <AvatarImage src={user.avatar} />
+                                  <AvatarFallback>{user.fullName?.charAt(0)}</AvatarFallback>
+                                </Avatar>
+                                {user.fullName}
+                              </button>
+                            ))}
+                          {users.filter(u => !(taskData.assignees || []).includes(u._id)).length === 0 && (
+                            <p className="text-xs text-gray-500 p-2 text-center">Kullanıcı bulunamadı</p>
+                          )}
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </div>
 
@@ -626,7 +668,11 @@ const ModernTaskModal = ({ task, isOpen, onClose, initialSection = 'activity' })
                   <Input
                     type="date"
                     value={taskData.dueDate ? new Date(taskData.dueDate).toISOString().split('T')[0] : ''}
-                    onChange={(e) => setTaskData({ ...taskData, dueDate: e.target.value })}
+                    onChange={(e) => {
+                      const newDate = e.target.value;
+                      setTaskData({ ...taskData, dueDate: newDate });
+                      updateTask(task._id, { dueDate: newDate });
+                    }}
                     className="w-full"
                   />
                 </div>
@@ -653,7 +699,8 @@ const ModernTaskModal = ({ task, isOpen, onClose, initialSection = 'activity' })
                       max="100"
                       value={taskData.progress || 0}
                       onChange={(e) => setTaskData({ ...taskData, progress: parseInt(e.target.value) })}
-                      className="w-full"
+                      onMouseUp={() => updateTask(task._id, { progress: taskData.progress })}
+                      className="w-full cursor-pointer accent-[#0086c0]"
                     />
                   </div>
                 </div>

@@ -32,6 +32,8 @@ class TaskUpdate(BaseModel):
     startDate: Optional[datetime] = None
     dueDate: Optional[datetime] = None
     progress: Optional[int] = None
+    subtasks: Optional[List[dict]] = None
+    attachments: Optional[List[dict]] = None
 
 class Task(TaskBase):
     id: str = Field(default_factory=lambda: str(ObjectId()), alias="_id")
