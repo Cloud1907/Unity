@@ -111,14 +111,14 @@ const Sidebar = ({ currentBoard, onBoardChange, onNewBoard }) => {
       <div className="flex-1 overflow-y-auto py-4">
         {/* Main Items */}
         <div className="px-2 mb-4">
-          <Link 
+          <Link
             to="/dashboard"
             className="w-full flex items-center gap-2 px-2 py-1.5 rounded hover:bg-white transition-colors text-gray-700 text-xs"
           >
             <Home size={16} />
             <span>Ana Sayfa</span>
           </Link>
-          <Link 
+          <Link
             to="/team"
             className="w-full flex items-center gap-2 px-2 py-1.5 rounded hover:bg-white transition-colors text-gray-700 text-xs"
           >
@@ -142,11 +142,10 @@ const Sidebar = ({ currentBoard, onBoardChange, onNewBoard }) => {
                 <Link
                   key={board._id}
                   to={`/board/${board._id}`}
-                  className={`w-full flex items-center gap-3 px-6 py-2 rounded-lg transition-colors ${
-                    currentBoard === board._id
+                  className={`w-full flex items-center gap-3 px-6 py-2 rounded-lg transition-colors ${currentBoard === board._id
                       ? 'bg-white text-gray-900 font-semibold'
                       : 'text-gray-700 hover:bg-white font-normal'
-                  }`}
+                    }`}
                 >
                   <span className="text-lg">{board.icon}</span>
                   <span className="flex-1 text-left truncate text-sm">{board.name}</span>
@@ -172,11 +171,10 @@ const Sidebar = ({ currentBoard, onBoardChange, onNewBoard }) => {
                 <Link
                   key={board._id}
                   to={`/board/${board._id}`}
-                  className={`w-full flex items-center gap-3 px-6 py-2 rounded-lg transition-colors ${
-                    currentBoard === board._id
+                  className={`w-full flex items-center gap-3 px-6 py-2 rounded-lg transition-colors ${currentBoard === board._id
                       ? 'bg-white text-gray-900 font-semibold'
                       : 'text-gray-700 hover:bg-white font-normal'
-                  }`}
+                    }`}
                 >
                   <div
                     className="w-2 h-2 rounded-full"
@@ -204,10 +202,10 @@ const Sidebar = ({ currentBoard, onBoardChange, onNewBoard }) => {
           <Settings size={20} />
           <span className="font-normal">Ayarlar</span>
         </Link>
-        
+
         {/* Version */}
         <div className="px-3 py-1 text-center">
-          <span className="text-[10px] text-gray-400">v1.0.0</span>
+          <span className="text-[10px] text-gray-400 font-mono">v1.2 (Latest)</span>
         </div>
       </div>
 
