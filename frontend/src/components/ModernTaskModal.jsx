@@ -60,20 +60,11 @@ const ModernTaskModal = ({ task, isOpen, onClose, initialSection = 'activity' })
     return users.filter(u => assigneeIds?.includes(u.id || u._id));
   };
 
-  const handleStatusChange = async (newStatus) => {
-    const result = await updateTaskStatus(task._id, newStatus);
-    if (result.success) {
-      setTaskData({ ...taskData, status: newStatus });
-    }
+  const handleStatusChange = (newStatus) => {
+    setTaskData({ ...taskData, status: newStatus });
   };
 
-  const handleTitleUpdate = async () => {
-    if (taskData.title !== task.title) {
-      const result = await updateTask(task._id, { title: taskData.title });
-      if (result.success) {
-        toast.success('Başlık güncellendi');
-      }
-    }
+  const handleTitleUpdate = () => {
     setIsEditing(false);
   };
 
@@ -110,10 +101,6 @@ const ModernTaskModal = ({ task, isOpen, onClose, initialSection = 'activity' })
       const newSubtasks = [...subtasks, subtask];
       setSubtasks(newSubtasks);
       setNewSubtask('');
-
-      // Persist to backend
-      await updateTask(task._id, { subtasks: newSubtasks });
-      toast.success('Alt görev eklendi');
     }
   };
 
@@ -122,18 +109,11 @@ const ModernTaskModal = ({ task, isOpen, onClose, initialSection = 'activity' })
       st.id === subtaskId ? { ...st, completed: !st.completed } : st
     );
     setSubtasks(newSubtasks);
-
-    // Persist to backend
-    await updateTask(task._id, { subtasks: newSubtasks });
   };
 
   const deleteSubtask = async (subtaskId) => {
     const newSubtasks = subtasks.filter(st => st.id !== subtaskId);
     setSubtasks(newSubtasks);
-
-    // Persist to backend
-    await updateTask(task._id, { subtasks: newSubtasks });
-    toast.success('Alt görev silindi');
   };
 
   const handleFileUpload = async (e) => {
@@ -171,9 +151,8 @@ const ModernTaskModal = ({ task, isOpen, onClose, initialSection = 'activity' })
       const newAttachments = [...attachments, newAttachment];
       setAttachments(newAttachments);
 
-      // Update task with new attachments
-      await updateTask(task._id, { attachments: newAttachments });
-      toast.success('Dosya başarıyla yüklendi');
+      // Show toast but don't save task yet
+      toast.success('Dosya yüklendi (Kaydetmeyi unutmayın)');
 
     } catch (error) {
       console.error('Upload error:', error);
@@ -186,8 +165,8 @@ const ModernTaskModal = ({ task, isOpen, onClose, initialSection = 'activity' })
   const deleteAttachment = async (attachmentId) => {
     const newAttachments = attachments.filter(a => a.id !== attachmentId);
     setAttachments(newAttachments);
-    await updateTask(task._id, { attachments: newAttachments });
-    toast.success('Dosya silindi');
+    setAttachments(newAttachments);
+    toast.success('Dosya listeden kaldırıldı');
   };
 
   const statusData = getStatusData(taskData.status);
@@ -231,11 +210,6 @@ const ModernTaskModal = ({ task, isOpen, onClose, initialSection = 'activity' })
               <Textarea
                 value={taskData.description || ''}
                 onChange={(e) => setTaskData({ ...taskData, description: e.target.value })}
-                onBlur={async () => {
-                  if (taskData.description !== task.description) {
-                    await updateTask(task._id, { description: taskData.description });
-                  }
-                }}
                 placeholder="Görev açıklaması ekle..."
                 className="min-h-[60px] resize-none border-none shadow-none focus:ring-0 p-0 text-gray-600 dark:text-gray-400 text-sm bg-transparent placeholder-gray-400"
               />
@@ -563,7 +537,6 @@ const ModernTaskModal = ({ task, isOpen, onClose, initialSection = 'activity' })
                           onClick={async () => {
                             const newAssignees = (taskData.assignees || []).filter(id => id !== assignee._id);
                             setTaskData({ ...taskData, assignees: newAssignees });
-                            await updateTask(task._id, { assignees: newAssignees });
                           }}
                           className="ml-1 text-gray-400 hover:text-red-500"
                         >
@@ -580,17 +553,16 @@ const ModernTaskModal = ({ task, isOpen, onClose, initialSection = 'activity' })
                       </button>
 
                       {/* Dropdown Menu */}
-                      <div className="absolute top-full left-0 mt-2 w-48 bg-white rounded-lg shadow-xl border border-gray-200 z-50 hidden group-hover:block">
+                      <div className="absolute top-full left-0 mt-2 w-48 bg-white rounded-lg shadow-xl border border-gray-200 z-50 hidden group-hover:block before:block before:absolute before:-top-4 before:left-0 before:w-full before:h-4 before:content-['']">
                         <div className="p-2 space-y-1 max-h-48 overflow-y-auto">
                           {users
                             .filter(u => !(taskData.assignees || []).includes(u._id))
                             .map(user => (
                               <button
                                 key={user._id}
-                                onClick={async () => {
+                                onClick={() => {
                                   const newAssignees = [...(taskData.assignees || []), user._id];
                                   setTaskData({ ...taskData, assignees: newAssignees });
-                                  await updateTask(task._id, { assignees: newAssignees });
                                 }}
                                 className="w-full text-left px-2 py-1.5 rounded hover:bg-gray-50 text-sm flex items-center gap-2"
                               >
@@ -630,8 +602,6 @@ const ModernTaskModal = ({ task, isOpen, onClose, initialSection = 'activity' })
                             onClick={() => {
                               const newLabels = (taskData.labels || []).filter(id => id !== label.id);
                               setTaskData({ ...taskData, labels: newLabels });
-                              // Also update tags for backward compatibility if needed
-                              updateTask(task._id, { labels: newLabels, tags: newLabels });
                             }}
                             className="hover:text-gray-200"
                           >
@@ -648,7 +618,7 @@ const ModernTaskModal = ({ task, isOpen, onClose, initialSection = 'activity' })
                       </button>
 
                       {/* Dropdown Menu */}
-                      <div className="absolute top-full left-0 mt-2 w-48 bg-white rounded-lg shadow-xl border border-gray-200 z-50 hidden group-hover:block">
+                      <div className="absolute top-full left-0 mt-2 w-48 bg-white rounded-lg shadow-xl border border-gray-200 z-50 hidden group-hover:block before:block before:absolute before:-top-4 before:left-0 before:w-full before:h-4 before:content-['']">
                         <div className="p-2 space-y-1 max-h-48 overflow-y-auto">
                           {labels
                             .filter(l => l.projectId === task.projectId && !(taskData.labels?.includes(l.id) || taskData.tags?.includes(l.id)))
@@ -658,7 +628,6 @@ const ModernTaskModal = ({ task, isOpen, onClose, initialSection = 'activity' })
                                 onClick={() => {
                                   const newLabels = [...(taskData.labels || []), label.id];
                                   setTaskData({ ...taskData, labels: newLabels });
-                                  updateTask(task._id, { labels: newLabels, tags: newLabels });
                                 }}
                                 className="w-full text-left px-2 py-1.5 rounded hover:bg-gray-50 text-sm flex items-center gap-2"
                               >
@@ -686,7 +655,6 @@ const ModernTaskModal = ({ task, isOpen, onClose, initialSection = 'activity' })
                     onChange={(e) => {
                       const newDate = e.target.value;
                       setTaskData({ ...taskData, dueDate: newDate });
-                      updateTask(task._id, { dueDate: newDate });
                     }}
                     className="w-full"
                   />
@@ -714,7 +682,6 @@ const ModernTaskModal = ({ task, isOpen, onClose, initialSection = 'activity' })
                       max="100"
                       value={taskData.progress || 0}
                       onChange={(e) => setTaskData({ ...taskData, progress: parseInt(e.target.value) })}
-                      onMouseUp={() => updateTask(task._id, { progress: taskData.progress })}
                       className="w-full cursor-pointer accent-[#0086c0]"
                     />
                   </div>
@@ -730,13 +697,23 @@ const ModernTaskModal = ({ task, isOpen, onClose, initialSection = 'activity' })
             onClick={onClose}
             className="bg-white hover:bg-gray-50 text-gray-700 border border-gray-300"
           >
-            Kapat
+            Vazgeç
           </Button>
           <Button
-            onClick={onClose}
+            onClick={async () => {
+              const loadingToast = toast.loading('Kaydediliyor...');
+              await updateTask(task._id, {
+                ...taskData,
+                subtasks,
+                attachments
+              });
+              toast.dismiss(loadingToast);
+              toast.success('Tüm değişiklikler kaydedildi');
+              onClose();
+            }}
             className="bg-[#0086c0] hover:bg-[#006a99] ml-3"
           >
-            Tamam
+            Kaydet
           </Button>
         </div>
       </div>

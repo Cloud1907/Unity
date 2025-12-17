@@ -175,35 +175,63 @@ export const DataProvider = ({ children }) => {
   }, []);
 
   const updateTask = useCallback(async (id, data) => {
+    // 1. Optimistic Update
+    let previousTask = null;
+    setTasks(prev => {
+      const task = prev.find(t => t._id === id);
+      if (task) previousTask = task;
+      return prev.map(t => t._id === id ? { ...t, ...data } : t);
+    });
+
     try {
       const response = await tasksAPI.update(id, data);
+      // 2. Confirm Update with Server Data
       setTasks(prev => prev.map(t => t._id === id ? response.data : t));
-      toast.success('Görev güncellendi!');
       return { success: true, data: response.data };
     } catch (error) {
+      // 3. Revert on Error
+      if (previousTask) {
+        setTasks(prev => prev.map(t => t._id === id ? previousTask : t));
+      }
       toast.error('Görev güncellenemedi');
       return { success: false, error };
     }
   }, []);
 
   const deleteTask = useCallback(async (id) => {
+    // 1. Optimistic Delete
+    const previousTasks = [...tasks];
+    setTasks(prev => prev.filter(t => t._id !== id));
+
     try {
       await tasksAPI.delete(id);
-      setTasks(prev => prev.filter(t => t._id !== id));
       toast.success('Görev silindi!');
       return { success: true };
     } catch (error) {
+      // 2. Revert on Error
+      setTasks(previousTasks);
       toast.error('Görev silinemedi');
       return { success: false, error };
     }
-  }, []);
+  }, [tasks]);
 
   const updateTaskStatus = useCallback(async (id, status) => {
+    // 1. Optimistic Update
+    let previousTask = null;
+    setTasks(prev => {
+      const task = prev.find(t => t._id === id);
+      if (task) previousTask = task;
+      return prev.map(t => t._id === id ? { ...t, status } : t);
+    });
+
     try {
       const response = await tasksAPI.updateStatus(id, status);
       setTasks(prev => prev.map(t => t._id === id ? response.data : t));
       return { success: true, data: response.data };
     } catch (error) {
+      if (previousTask) {
+        setTasks(prev => prev.map(t => t._id === id ? previousTask : t));
+      }
       toast.error('Durum güncellenemedi');
       return { success: false, error };
     }
