@@ -143,8 +143,8 @@ const Sidebar = ({ currentBoard, onBoardChange, onNewBoard }) => {
                   key={board._id}
                   to={`/board/${board._id}`}
                   className={`w-full flex items-center gap-3 px-6 py-2 rounded-lg transition-colors ${currentBoard === board._id
-                      ? 'bg-white text-gray-900 font-semibold'
-                      : 'text-gray-700 hover:bg-white font-normal'
+                    ? 'bg-white text-gray-900 font-semibold'
+                    : 'text-gray-700 hover:bg-white font-normal'
                     }`}
                 >
                   <span className="text-lg">{board.icon}</span>
@@ -172,8 +172,8 @@ const Sidebar = ({ currentBoard, onBoardChange, onNewBoard }) => {
                   key={board._id}
                   to={`/board/${board._id}`}
                   className={`w-full flex items-center gap-3 px-6 py-2 rounded-lg transition-colors ${currentBoard === board._id
-                      ? 'bg-white text-gray-900 font-semibold'
-                      : 'text-gray-700 hover:bg-white font-normal'
+                    ? 'bg-white text-gray-900 font-semibold'
+                    : 'text-gray-700 hover:bg-white font-normal'
                     }`}
                 >
                   <div
@@ -205,7 +205,7 @@ const Sidebar = ({ currentBoard, onBoardChange, onNewBoard }) => {
 
         {/* Version */}
         <div className="px-3 py-1 text-center">
-          <span className="text-[10px] text-gray-400 font-mono">v1.2 (Latest)</span>
+          <span className="text-[10px] text-gray-400 font-mono">v1.2.1 (Latest)</span>
         </div>
       </div>
 
