@@ -91,6 +91,12 @@ const Login = () => {
           </div>
         </div>
 
+        {/* Version Badge */}
+        <div className="absolute bottom-4 right-4">
+          <span className="text-xs text-gray-400 font-mono bg-white/80 dark:bg-gray-800/80 px-2 py-1 rounded shadow">
+            v1.2.2
+          </span>
+        </div>
       </div>
     </div>
   );

@@ -2,6 +2,7 @@ import React from 'react';
 import { useData } from '../contexts/DataContext';
 import { useNavigate } from 'react-router-dom';
 import { ChevronRight, TrendingUp, Users, CheckCircle, Clock, Star } from 'lucide-react';
+import { version } from '../../package.json';
 
 const Dashboard = () => {
   const { projects, tasks, users } = useData();
@@ -52,9 +53,18 @@ const Dashboard = () => {
     <div className="h-screen bg-gradient-to-br from-gray-50 to-gray-100 overflow-auto">
       <div className="max-w-7xl mx-auto p-8">
         {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Ana Sayfa</h1>
-          <p className="text-gray-600">Projeleriniz ve görevleriniz hakkında genel bakış</p>
+        <div className="mb-8 flex justify-between items-start">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">Ana Sayfa</h1>
+            <p className="text-gray-600">Projeleriniz ve görevleriniz hakkında genel bakış</p>
+          </div>
+          <div className="bg-white/50 backdrop-blur-sm px-3 py-1.5 rounded-lg border border-gray-200/50 flex items-center gap-2">
+            <span className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+            </span>
+            <span className="text-xs font-mono font-medium text-gray-500">v{version}</span>
+          </div>
         </div>
 
         {/* Stats Grid */}
@@ -80,7 +90,7 @@ const Dashboard = () => {
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-xl font-bold text-gray-900">Projelerim</h2>
-            <button 
+            <button
               onClick={() => navigate('/projects')}
               className="text-sm text-blue-600 hover:text-blue-700 font-medium flex items-center gap-1"
             >
@@ -93,8 +103,8 @@ const Dashboard = () => {
             {recentProjects.map(project => {
               const projectTasks = tasks.filter(t => t.projectId === project._id);
               const completedCount = projectTasks.filter(t => t.status === 'done').length;
-              const progress = projectTasks.length > 0 
-                ? Math.round((completedCount / projectTasks.length) * 100) 
+              const progress = projectTasks.length > 0
+                ? Math.round((completedCount / projectTasks.length) * 100)
                 : 0;
 
               return (
@@ -105,7 +115,7 @@ const Dashboard = () => {
                 >
                   <div className="flex items-start justify-between mb-3">
                     <div className="flex items-center gap-2">
-                      <div 
+                      <div
                         className="w-3 h-3 rounded-full"
                         style={{ backgroundColor: project.color || '#6366f1' }}
                       />
@@ -117,7 +127,7 @@ const Dashboard = () => {
                       <Star size={16} className="text-yellow-500 fill-yellow-500" />
                     )}
                   </div>
-                  
+
                   <p className="text-sm text-gray-600 mb-4 line-clamp-2">
                     {project.description || 'Açıklama yok'}
                   </p>

@@ -344,7 +344,7 @@ const MainTable = ({ boardId, searchQuery, filters }) => {
       <div className="flex-1 overflow-auto bg-white relative">
         {/* 🎯 VERSİYON v0.4.0 */}
         <div className="absolute top-2 right-2 z-10 px-2 py-1 bg-emerald-600 text-white text-[10px] font-bold rounded shadow-lg">
-          v1.2.1 👤
+          v1.2.2 👤
         </div>
 
         <div className="min-w-max">
