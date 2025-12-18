@@ -187,6 +187,7 @@ export const DataProvider = ({ children }) => {
       const response = await tasksAPI.update(id, data);
       // 2. Confirm Update with Server Data
       setTasks(prev => prev.map(t => t._id === id ? response.data : t));
+      toast.success('Değişiklikler kaydedildi');
       return { success: true, data: response.data };
     } catch (error) {
       // 3. Revert on Error

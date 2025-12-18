@@ -752,9 +752,13 @@ const KanbanViewV2 = ({ boardId, searchQuery, filters }) => {
     setDraggedTask(null);
   };
 
-  const handleStatusChange = async (taskId, newStatus) => {
+  const handleStatusChange = React.useCallback(async (taskId, newStatus) => {
     await updateTaskStatus(taskId, newStatus);
-  };
+  }, [updateTaskStatus]);
+
+  const handleUpdateTask = React.useCallback(async (taskId, data) => {
+    await updateTask(taskId, data);
+  }, [updateTask]);
 
   const handleTaskClick = (task) => {
     setSelectedTask(task);
@@ -869,20 +873,22 @@ const KanbanViewV2 = ({ boardId, searchQuery, filters }) => {
                     overflowY: 'scroll'
                   }}
                 >
-                  {columnTasks.map(task => (
-                    <CompactTaskCard
-                      key={task._id}
-                      task={task}
-                      users={users}
-                      projectId={boardId}
-                      onDragStart={(e) => handleDragStart(e, task)}
-                      onDragEnd={handleDragEnd}
-                      isDragging={draggedTask?._id === task._id}
-                      onStatusChange={handleStatusChange}
-                      onTaskClick={handleTaskClick}
-                      onUpdate={updateTask}
-                    />
-                  ))}
+                  <div className="space-y-3 p-1">
+                    {getTasksByStatus(column.id).map(task => (
+                      <CompactTaskCard
+                        key={task._id}
+                        task={task}
+                        onDragStart={(e) => handleDragStart(e, task)}
+                        onDragEnd={handleDragEnd}
+                        isDragging={draggedTask?._id === task._id}
+                        users={users}
+                        projectId={boardId}
+                        onStatusChange={handleStatusChange}
+                        onTaskClick={handleTaskClick}
+                        onUpdate={handleUpdateTask}
+                      />
+                    ))}
+                  </div>
 
                   {/* Empty State */}
                   {columnTasks.length === 0 && !isDropTarget && (

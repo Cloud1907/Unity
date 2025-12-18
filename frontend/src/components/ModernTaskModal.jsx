@@ -700,15 +700,12 @@ const ModernTaskModal = ({ task, isOpen, onClose, initialSection = 'activity' })
             Vazgeç
           </Button>
           <Button
-            onClick={async () => {
-              const loadingToast = toast.loading('Kaydediliyor...');
-              await updateTask(task._id, {
+            onClick={() => {
+              updateTask(task._id, {
                 ...taskData,
                 subtasks,
                 attachments
               });
-              toast.dismiss(loadingToast);
-              toast.success('Tüm değişiklikler kaydedildi');
               onClose();
             }}
             className="bg-[#0086c0] hover:bg-[#006a99] ml-3"
