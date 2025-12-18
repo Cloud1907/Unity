@@ -702,39 +702,52 @@ const KanbanViewV2 = ({ boardId, searchQuery, filters }) => {
     return filtered;
   }, [tasks, boardId, searchQuery, filters, users]);
 
-  const columns = [
+
+  const tasksByStatus = React.useMemo(() => {
+    const partitioned = {
+      todo: [],
+      working: [],
+      review: [],
+      done: [],
+      stuck: []
+    };
+    filteredTasks.forEach(task => {
+      if (partitioned[task.status]) {
+        partitioned[task.status].push(task);
+      }
+    });
+    return partitioned;
+  }, [filteredTasks]);
+
+  const columns = React.useMemo(() => [
     { id: 'todo', title: 'Yapılacak', color: STATUS_COLORS.todo.bg, lightBg: STATUS_COLORS.todo.lightBg },
     { id: 'working', title: 'Devam Ediyor', color: STATUS_COLORS.working.bg, lightBg: STATUS_COLORS.working.lightBg },
     { id: 'review', title: 'İncelemede', color: STATUS_COLORS.review.bg, lightBg: STATUS_COLORS.review.lightBg },
     { id: 'done', title: 'Tamamlandı', color: STATUS_COLORS.done.bg, lightBg: STATUS_COLORS.done.lightBg },
     { id: 'stuck', title: 'Takıldı', color: STATUS_COLORS.stuck.bg, lightBg: STATUS_COLORS.stuck.lightBg }
-  ];
+  ], []);
 
-  const getTasksByStatus = (status) => {
-    return filteredTasks.filter(task => task.status === status);
-  };
-
-  const handleDragStart = (e, task) => {
+  const handleDragStart = React.useCallback((e, task) => {
     setDraggedTask(task);
     e.dataTransfer.effectAllowed = 'move';
-  };
+  }, []);
 
-  const handleDragEnd = () => {
+  const handleDragEnd = React.useCallback(() => {
     setDraggedTask(null);
     setDragOverColumn(null);
-  };
+  }, []);
 
-  const handleDragOver = (e, columnId) => {
+  const handleDragOver = React.useCallback((e, columnId) => {
     e.preventDefault();
     e.dataTransfer.dropEffect = 'move';
     setDragOverColumn(columnId);
-  };
+  }, []);
 
-  const handleDragLeave = () => {
+  const handleDragLeave = React.useCallback(() => {
     setDragOverColumn(null);
-  };
+  }, []);
 
-  const handleDrop = async (e, newStatus) => {
+  const handleDrop = React.useCallback(async (e, newStatus) => {
     e.preventDefault();
     setDragOverColumn(null);
 
@@ -750,7 +763,7 @@ const KanbanViewV2 = ({ boardId, searchQuery, filters }) => {
     }
 
     setDraggedTask(null);
-  };
+  }, [draggedTask, updateTaskStatus]);
 
   const handleStatusChange = React.useCallback(async (taskId, newStatus) => {
     await updateTaskStatus(taskId, newStatus);
@@ -816,7 +829,7 @@ const KanbanViewV2 = ({ boardId, searchQuery, filters }) => {
       <div className="h-full overflow-x-auto overflow-y-visible">
         <div className="flex gap-4 p-6 h-full min-w-max">
           {columns.map(column => {
-            const columnTasks = getTasksByStatus(column.id);
+            const columnTasks = tasksByStatus[column.id] || [];
             const isDropTarget = dragOverColumn === column.id;
 
             return (
@@ -874,7 +887,7 @@ const KanbanViewV2 = ({ boardId, searchQuery, filters }) => {
                   }}
                 >
                   <div className="space-y-3 p-1">
-                    {getTasksByStatus(column.id).map(task => (
+                    {columnTasks.map(task => (
                       <CompactTaskCard
                         key={task._id}
                         task={task}
