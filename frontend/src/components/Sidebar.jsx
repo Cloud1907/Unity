@@ -5,7 +5,8 @@ import { useAuth } from '../contexts/AuthContext';
 import { useData } from '../contexts/DataContext';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
 import NewProjectModal from './NewProjectModal';
-import { version } from '../../package.json';
+import NewProjectModal from './NewProjectModal';
+import pkg from '../../package.json';
 
 // User Profile Component
 const UserProfile = () => {
@@ -206,7 +207,7 @@ const Sidebar = ({ currentBoard, onBoardChange, onNewBoard }) => {
 
         {/* Version */}
         <div className="px-3 py-1 text-center">
-          <span className="text-[10px] text-gray-400 font-mono text-center">v{version}</span>
+          <span className="text-[10px] text-gray-400 font-mono text-center">v{pkg.version}</span>
         </div>
       </div>
 

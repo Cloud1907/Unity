@@ -2,7 +2,7 @@ import React from 'react';
 import { useData } from '../contexts/DataContext';
 import { useNavigate } from 'react-router-dom';
 import { ChevronRight, TrendingUp, Users, CheckCircle, Clock, Star } from 'lucide-react';
-import { version } from '../../package.json';
+import pkg from '../../package.json';
 
 const Dashboard = () => {
   const { projects, tasks, users } = useData();
@@ -63,7 +63,7 @@ const Dashboard = () => {
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
               <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
             </span>
-            <span className="text-xs font-mono font-medium text-gray-500">v{version}</span>
+            <span className="text-xs font-mono font-medium text-gray-500">v{pkg.version}</span>
           </div>
         </div>
 
