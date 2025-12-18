@@ -6,6 +6,7 @@ import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
 import ModernTaskModal from './ModernTaskModal';
 import InlineLabelPicker from './InlineLabelPicker';
 import confetti from 'canvas-confetti';
+import pkg from '../../package.json';
 
 // Monday.com renk paleti - TAM eşleşme
 const STATUS_COLORS = {
@@ -820,9 +821,9 @@ const KanbanViewV2 = ({ boardId, searchQuery, filters }) => {
 
   return (
     <div className="h-full bg-gradient-to-br from-gray-50 to-gray-100 relative overflow-visible">
-      {/* 🎯 VERSİYON v0.4.0 */}
-      <div className="absolute top-2 right-2 z-10 px-2 py-1 bg-emerald-600 text-white text-[10px] font-bold rounded shadow-lg">
-        v0.4.0 👤
+      {/* 🎯 VERSİYON */}
+      <div className="absolute top-2 right-2 z-10 px-2 py-1 bg-emerald-600 text-white text-[10px] font-bold rounded shadow-lg animate-fade-in">
+        v{pkg.version}
       </div>
 
       {/* Kanban Board */}
