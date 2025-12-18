@@ -5,6 +5,7 @@ import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
 import ModernTaskModal from './ModernTaskModal';
 import NewTaskModal from './NewTaskModal';
 import InlineLabelPicker from './InlineLabelPicker';
+import pkg from '../../package.json';
 
 // Monday.com benzeri durum renkleri (Daha canlı ve pastel)
 const statuses = [
@@ -342,9 +343,9 @@ const MainTable = ({ boardId, searchQuery, filters }) => {
   return (
     <>
       <div className="flex-1 overflow-auto bg-white relative">
-        {/* 🎯 VERSİYON v0.4.0 */}
-        <div className="absolute top-2 right-2 z-10 px-2 py-1 bg-emerald-600 text-white text-[10px] font-bold rounded shadow-lg">
-          v1.2.2 👤
+        {/* 🎯 VERSİYON */}
+        <div className="absolute top-2 right-2 z-10 px-2 py-1 bg-emerald-600 text-white text-[10px] font-bold rounded shadow-lg animate-fade-in">
+          v{pkg.version} 👤
         </div>
 
         <div className="min-w-max">

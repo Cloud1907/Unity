@@ -180,12 +180,12 @@ const ModernTaskModal = ({ task, isOpen, onClose, initialSection = 'activity' })
       onClick={onClose}
     >
       <div
-        className="bg-white rounded-t-2xl w-full max-w-6xl h-[90vh] overflow-hidden animate-in slide-in-from-bottom duration-300"
+        className="bg-white rounded-t-2xl w-full max-w-6xl h-[90vh] overflow-hidden animate-in slide-in-from-bottom duration-300 flex flex-col"
         onClick={(e) => e.stopPropagation()}
         style={{ pointerEvents: 'auto', zIndex: 1000000 }}
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-8 py-4 border-b border-gray-200">
+        <div className="flex shrink-0 items-center justify-between px-8 py-4 border-b border-gray-200 bg-white">
           <div className="flex-1">
             {isEditing ? (
               <Input
@@ -220,7 +220,7 @@ const ModernTaskModal = ({ task, isOpen, onClose, initialSection = 'activity' })
           </button>
         </div>
 
-        <div className="flex h-[calc(90vh-140px)]">
+        <div className="flex flex-1 overflow-hidden">
           {/* Left Sidebar - Quick Actions */}
           <div className="w-20 bg-gray-50 border-r border-gray-200 flex flex-col items-center py-6 gap-4">
             <button
@@ -692,7 +692,7 @@ const ModernTaskModal = ({ task, isOpen, onClose, initialSection = 'activity' })
         </div>
 
         {/* Footer with Close Button */}
-        <div className="flex items-center justify-end px-6 py-4 border-t border-gray-200 bg-gray-50">
+        <div className="flex shrink-0 items-center justify-end px-6 py-4 border-t border-gray-200 bg-gray-50">
           <Button
             onClick={onClose}
             className="bg-white hover:bg-gray-50 text-gray-700 border border-gray-300"

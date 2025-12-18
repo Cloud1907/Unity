@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Home, Users, Settings, Plus, ChevronDown, ChevronRight, Star, LogOut } from 'lucide-react';
+import { Home, Users, Settings, Plus, ChevronDown, ChevronRight, Star, LogOut, FlaskConical } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useData } from '../contexts/DataContext';
@@ -125,6 +125,13 @@ const Sidebar = ({ currentBoard, onBoardChange, onNewBoard }) => {
           >
             <Users size={16} />
             <span>Ekibim</span>
+          </Link>
+          <Link
+            to="/tests"
+            className="w-full flex items-center gap-2 px-2 py-1.5 rounded hover:bg-white transition-colors text-gray-700 text-xs"
+          >
+            <FlaskConical size={16} />
+            <span>Test Sonuçları</span>
           </Link>
         </div>
 
