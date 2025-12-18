@@ -235,7 +235,8 @@ const InlineAssigneePicker = ({ assigneeIds, allUsers, onChange }) => {
 };
 
 const MainTable = ({ boardId, searchQuery, filters }) => {
-  const { tasks, users, fetchTasks, updateTask, updateTaskStatus } = useData();
+  const { tasks, users, projects, labels } = useDataState();
+  const { fetchTasks, updateTaskStatus, updateTask, deleteProject } = useDataActions();
   const [selectedTask, setSelectedTask] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalInitialSection, setModalInitialSection] = useState('activity');
