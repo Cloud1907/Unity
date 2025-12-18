@@ -25,7 +25,8 @@ const priorities = [
 ];
 
 const ModernTaskModal = ({ task, isOpen, onClose, initialSection = 'activity' }) => {
-  const { users, labels, updateTask, updateTaskStatus } = useData();
+  const { updateTask, updateTaskStatus } = useDataActions();
+  const { users, labels: allLabels } = useDataState();
   const { user: currentUser } = useAuth();
   const [activeTab, setActiveTab] = useState('updates');
   const [taskData, setTaskData] = useState(task);
@@ -701,12 +702,12 @@ const ModernTaskModal = ({ task, isOpen, onClose, initialSection = 'activity' })
           </Button>
           <Button
             onClick={() => {
+              onClose();
               updateTask(task._id, {
                 ...taskData,
                 subtasks,
                 attachments
               });
-              onClose();
             }}
             className="bg-[#0086c0] hover:bg-[#006a99] ml-3"
           >

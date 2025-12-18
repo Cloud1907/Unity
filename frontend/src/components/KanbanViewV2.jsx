@@ -651,7 +651,8 @@ const CompactTaskCard = React.memo(({ task, onDragStart, onDragEnd, isDragging, 
 });
 
 const KanbanViewV2 = ({ boardId, searchQuery, filters }) => {
-  const { tasks, users, fetchTasks, updateTaskStatus, updateTask } = useData();
+  const { tasks, users } = useDataState();
+  const { fetchTasks, updateTaskStatus, updateTask } = useDataActions();
 
   const [draggedTask, setDraggedTask] = useState(null);
   const [dragOverColumn, setDragOverColumn] = useState(null);

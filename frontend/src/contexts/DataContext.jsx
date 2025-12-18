@@ -3,12 +3,30 @@ import { projectsAPI, tasksAPI, usersAPI, departmentsAPI, labelsAPI } from '../s
 import { useAuth } from './AuthContext';
 import { toast } from '../components/ui/sonner';
 
-const DataContext = createContext();
+const DataStateContext = createContext();
+const DataActionsContext = createContext();
 
 export const useData = () => {
-  const context = useContext(DataContext);
-  if (!context) {
+  const state = useContext(DataStateContext);
+  const actions = useContext(DataActionsContext);
+  if (!state || !actions) {
     throw new Error('useData must be used within a DataProvider');
+  }
+  return { ...state, ...actions };
+};
+
+export const useDataState = () => {
+  const context = useContext(DataStateContext);
+  if (!context) {
+    throw new Error('useDataState must be used within a DataProvider');
+  }
+  return context;
+};
+
+export const useDataActions = () => {
+  const context = useContext(DataActionsContext);
+  if (!context) {
+    throw new Error('useDataActions must be used within a DataProvider');
   }
   return context;
 };
@@ -37,14 +55,8 @@ export const DataProvider = ({ children }) => {
       const response = await tasksAPI.getAll(params);
 
       setTasks(prevTasks => {
-        // If retrieving all tasks (no projectId), verify overlap or overwrite? 
-        // Safer to overwrite if no projectId is passed (initial load).
         if (!projectId) return response.data;
-
-        // If specific projectId, merge with existing tasks
-        // 1. Remove old tasks for this project (to handle deletions/updates correctly)
         const otherTasks = prevTasks.filter(t => t.projectId !== projectId);
-        // 2. Add new tasks
         return [...otherTasks, ...response.data];
       });
     } catch (error) {
@@ -76,7 +88,6 @@ export const DataProvider = ({ children }) => {
         const response = await labelsAPI.getByProject(projectId);
         setLabels(response.data);
       } else {
-        // Fetch all labels for all projects
         const allLabels = [];
         for (const project of projects) {
           const response = await labelsAPI.getByProject(project._id);
@@ -98,7 +109,6 @@ export const DataProvider = ({ children }) => {
         fetchUsers(),
         fetchDepartments()
       ]);
-      // Fetch labels after projects are loaded
       await fetchLabels();
     } catch (error) {
       console.error('Error fetching data:', error);
@@ -175,7 +185,6 @@ export const DataProvider = ({ children }) => {
   }, []);
 
   const updateTask = useCallback(async (id, data) => {
-    // 1. Optimistic Update
     let previousTask = null;
     setTasks(prev => {
       const task = prev.find(t => t._id === id);
@@ -185,12 +194,10 @@ export const DataProvider = ({ children }) => {
 
     try {
       const response = await tasksAPI.update(id, data);
-      // 2. Confirm Update with Server Data
       setTasks(prev => prev.map(t => t._id === id ? response.data : t));
       toast.success('Değişiklikler kaydedildi');
       return { success: true, data: response.data };
     } catch (error) {
-      // 3. Revert on Error
       if (previousTask) {
         setTasks(prev => prev.map(t => t._id === id ? previousTask : t));
       }
@@ -200,7 +207,6 @@ export const DataProvider = ({ children }) => {
   }, []);
 
   const deleteTask = useCallback(async (id) => {
-    // 1. Optimistic Delete
     const previousTasks = [...tasks];
     setTasks(prev => prev.filter(t => t._id !== id));
 
@@ -209,7 +215,6 @@ export const DataProvider = ({ children }) => {
       toast.success('Görev silindi!');
       return { success: true };
     } catch (error) {
-      // 2. Revert on Error
       setTasks(previousTasks);
       toast.error('Görev silinemedi');
       return { success: false, error };
@@ -217,7 +222,6 @@ export const DataProvider = ({ children }) => {
   }, [tasks]);
 
   const updateTaskStatus = useCallback(async (id, status) => {
-    // 1. Optimistic Update
     let previousTask = null;
     setTasks(prev => {
       const task = prev.find(t => t._id === id);
@@ -238,13 +242,16 @@ export const DataProvider = ({ children }) => {
     }
   }, []);
 
-  const value = React.useMemo(() => ({
+  const stateValue = React.useMemo(() => ({
     projects,
     tasks,
     users,
     departments,
     labels,
-    loading,
+    loading
+  }), [projects, tasks, users, departments, labels, loading]);
+
+  const actionsValue = React.useMemo(() => ({
     fetchProjects,
     fetchTasks,
     fetchUsers,
@@ -259,12 +266,6 @@ export const DataProvider = ({ children }) => {
     updateTaskStatus,
     refreshData: fetchAllData
   }), [
-    projects,
-    tasks,
-    users,
-    departments,
-    labels,
-    loading,
     fetchProjects,
     fetchTasks,
     fetchUsers,
@@ -280,5 +281,11 @@ export const DataProvider = ({ children }) => {
     fetchAllData
   ]);
 
-  return <DataContext.Provider value={value}>{children}</DataContext.Provider>;
+  return (
+    <DataStateContext.Provider value={stateValue}>
+      <DataActionsContext.Provider value={actionsValue}>
+        {children}
+      </DataActionsContext.Provider>
+    </DataStateContext.Provider>
+  );
 };
