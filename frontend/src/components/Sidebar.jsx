@@ -5,7 +5,6 @@ import { useAuth } from '../contexts/AuthContext';
 import { useData } from '../contexts/DataContext';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
 import NewProjectModal from './NewProjectModal';
-import NewProjectModal from './NewProjectModal';
 import pkg from '../../package.json';
 
 // User Profile Component
