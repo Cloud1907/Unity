@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useData } from '../contexts/DataContext';
 import TaskModal from './TaskModal';
+import pkg from '../../package.json';
 
 const statuses = [
   { id: 'todo', label: 'Yapılacak', color: '#c4c4c4' },
@@ -76,9 +77,9 @@ const CalendarView = ({ boardId }) => {
   return (
     <>
       <div className="flex-1 overflow-auto bg-white p-6 relative">
-        {/* 🎯 VERSİYON v0.4.0 */}
-        <div className="absolute top-2 right-2 z-10 px-2 py-1 bg-emerald-600 text-white text-[10px] font-bold rounded shadow-lg">
-          v0.4.0 👤
+        {/* 🎯 VERSİYON */}
+        <div className="absolute top-2 right-2 z-10 px-2 py-1 bg-emerald-600 text-white text-[10px] font-bold rounded shadow-lg animate-fade-in">
+          v{pkg.version}
         </div>
 
         {/* Calendar Header */}
@@ -136,11 +137,10 @@ const CalendarView = ({ boardId }) => {
                 >
                   <div className="flex justify-between items-start mb-2">
                     <span
-                      className={`text-sm font-medium ${
-                        isToday
+                      className={`text-sm font-medium ${isToday
                           ? 'w-7 h-7 flex items-center justify-center rounded-full bg-[#0086c0] text-white'
                           : 'text-gray-700'
-                      }`}
+                        }`}
                     >
                       {day}
                     </span>
