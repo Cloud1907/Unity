@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import ReactDOM from 'react-dom';
-import { X, Calendar, User as UserIcon, MessageSquare, Paperclip, BarChart3, Clock, Plus, CheckCircle2, ListTodo, Trash2 } from 'lucide-react';
+import { X, Calendar, User as UserIcon, MessageSquare, Paperclip, BarChart3, Clock, Plus, CheckCircle2, ListTodo, Trash2, History } from 'lucide-react';
 import { useDataState, useDataActions } from '../contexts/DataContext';
 import { useAuth } from '../contexts/AuthContext';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
@@ -24,11 +24,11 @@ const priorities = [
   { id: 'urgent', label: 'Acil', color: '#ffe5e9', textColor: '#d91d4a' }
 ];
 
-const ModernTaskModal = ({ task, isOpen, onClose, initialSection = 'activity' }) => {
+const ModernTaskModal = ({ task, isOpen, onClose, initialSection = 'subtasks' }) => {
   const { updateTask, updateTaskStatus } = useDataActions();
   const { users, labels: allLabels } = useDataState();
   const { user: currentUser } = useAuth();
-  const [activeTab, setActiveTab] = useState('updates');
+  const [activeTab, setActiveTab] = useState('history');
   const [taskData, setTaskData] = useState(task);
   const [newUpdate, setNewUpdate] = useState('');
   const [newComment, setNewComment] = useState('');
@@ -83,11 +83,24 @@ const ModernTaskModal = ({ task, isOpen, onClose, initialSection = 'activity' })
         text: newComment,
         userId: currentUser?._id,
         userName: currentUser?.fullName,
+        userAvatar: currentUser?.avatar,
         createdAt: new Date().toISOString()
       };
-      setComments([...comments, comment]);
+      const updatedComments = [...comments, comment];
+      setComments(updatedComments);
       setNewComment('');
+
+      // Update local taskData to ensure consistency
+      const updatedTaskData = {
+        ...taskData,
+        comments: updatedComments
+      };
+      setTaskData(updatedTaskData);
+
       toast.success('Yorum eklendi');
+
+      // Persist immediately REMOVED - wait for Save button
+      // updateTask(taskData._id || taskData.id, updatedTaskData);
     }
   };
 
@@ -102,6 +115,9 @@ const ModernTaskModal = ({ task, isOpen, onClose, initialSection = 'activity' })
       const newSubtasks = [...subtasks, subtask];
       setSubtasks(newSubtasks);
       setNewSubtask('');
+
+      // Update taskData
+      setTaskData({ ...taskData, subtasks: newSubtasks });
     }
   };
 
@@ -110,11 +126,13 @@ const ModernTaskModal = ({ task, isOpen, onClose, initialSection = 'activity' })
       st.id === subtaskId ? { ...st, completed: !st.completed } : st
     );
     setSubtasks(newSubtasks);
+    setTaskData({ ...taskData, subtasks: newSubtasks });
   };
 
   const deleteSubtask = async (subtaskId) => {
     const newSubtasks = subtasks.filter(st => st.id !== subtaskId);
     setSubtasks(newSubtasks);
+    setTaskData({ ...taskData, subtasks: newSubtasks });
   };
 
   const handleFileUpload = async (e) => {
@@ -151,6 +169,7 @@ const ModernTaskModal = ({ task, isOpen, onClose, initialSection = 'activity' })
 
       const newAttachments = [...attachments, newAttachment];
       setAttachments(newAttachments);
+      setTaskData({ ...taskData, attachments: newAttachments });
 
       // Show toast but don't save task yet
       toast.success('Dosya yüklendi (Kaydetmeyi unutmayın)');
@@ -216,21 +235,36 @@ const ModernTaskModal = ({ task, isOpen, onClose, initialSection = 'activity' })
               />
             </div>
           </div>
-          <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-lg transition-colors" aria-label="Close">
-            <X size={24} className="text-gray-500" />
-          </button>
+          <div className="flex items-center gap-2">
+            <Button
+              onClick={() => {
+                onClose();
+                updateTask(task._id, {
+                  ...taskData,
+                  subtasks,
+                  attachments,
+                  comments
+                });
+              }}
+              className="bg-indigo-500 hover:bg-indigo-600 text-white px-6 shadow-sm"
+            >
+              Kaydet
+            </Button>
+            <Button
+              onClick={onClose}
+              variant="ghost"
+              className="text-gray-600 hover:bg-gray-100 hover:text-gray-800 font-medium"
+            >
+              Kapat
+            </Button>
+          </div>
         </div>
 
         <div className="flex flex-1 overflow-hidden">
           {/* Left Sidebar - Quick Actions */}
           <div className="w-20 bg-gray-50 border-r border-gray-200 flex flex-col items-center py-6 gap-4">
-            <button
-              onClick={() => setActiveSection('activity')}
-              className={`p-3 hover:bg-white rounded-lg transition-colors ${activeSection === 'activity' ? 'bg-white shadow-md' : ''}`}
-              title="Aktivite"
-            >
-              <CheckCircle2 size={20} className={activeSection === 'activity' ? 'text-[#6366f1]' : 'text-gray-600'} />
-            </button>
+
+            {/* Subtasks Button */}
             <button
               onClick={() => setActiveSection('subtasks')}
               className={`p-3 hover:bg-white rounded-lg transition-colors ${activeSection === 'subtasks' ? 'bg-white shadow-md' : ''}`}
@@ -240,10 +274,18 @@ const ModernTaskModal = ({ task, isOpen, onClose, initialSection = 'activity' })
             </button>
             <button
               onClick={() => setActiveSection('comments')}
-              className={`p-3 hover:bg-white rounded-lg transition-colors ${activeSection === 'comments' ? 'bg-white shadow-md' : ''}`}
+              className={`p-3 hover:bg-white rounded-lg transition-colors relative ${activeSection === 'comments' ? 'bg-white shadow-md' : ''}`}
               title="Yorumlar"
             >
               <MessageSquare size={20} className={activeSection === 'comments' ? 'text-[#6366f1]' : 'text-gray-600'} />
+              {comments.length > 0 && (
+                <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full animate-pulse" />
+              )}
+              {comments.length > 0 && (
+                <div className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[18px] flex items-center justify-center border-2 border-gray-50">
+                  {comments.length}
+                </div>
+              )}
             </button>
             <button
               onClick={() => setActiveSection('files')}
@@ -251,6 +293,17 @@ const ModernTaskModal = ({ task, isOpen, onClose, initialSection = 'activity' })
               title="Dosyalar"
             >
               <Paperclip size={20} className={activeSection === 'files' ? 'text-[#6366f1]' : 'text-gray-600'} />
+            </button>
+
+            <div className="flex-1" />
+
+            {/* History Button - Bottom Aligned */}
+            <button
+              onClick={() => setActiveSection('activity')}
+              className={`p-3 hover:bg-white rounded-lg transition-colors ${activeSection === 'activity' ? 'bg-white shadow-md' : ''}`}
+              title="Geçmiş"
+            >
+              <History size={20} className={activeSection === 'activity' ? 'text-[#6366f1]' : 'text-gray-600'} />
             </button>
           </div>
 
@@ -260,56 +313,60 @@ const ModernTaskModal = ({ task, isOpen, onClose, initialSection = 'activity' })
             <div className="flex-1 overflow-y-auto p-8">
               <div className="max-w-3xl">
 
-                {/* Activity Section */}
+                {/* History/Activity Section - Dedicated View */}
                 {activeSection === 'activity' && (
-                  <>
-                    <div className="mb-8">
-                      <div className="flex gap-3">
-                        <Avatar className="w-10 h-10">
-                          <AvatarImage src={currentUser?.avatar} />
-                          <AvatarFallback>{currentUser?.fullName?.charAt(0)}</AvatarFallback>
-                        </Avatar>
-                        <div className="flex-1">
-                          <Textarea
-                            value={newUpdate}
-                            onChange={(e) => setNewUpdate(e.target.value)}
-                            placeholder="Güncelleme yaz..."
-                            className="min-h-[100px] resize-none border-2 focus:border-[#0086c0]"
-                          />
-                          <div className="mt-3 flex items-center gap-2">
-                            <Button
-                              onClick={handleAddUpdate}
-                              disabled={!newUpdate.trim()}
-                              className="bg-[#0086c0] hover:bg-[#006a99]"
-                            >
-                              Güncelle
-                            </Button>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
+                  <div className="space-y-6">
+                    <h3 className="text-lg font-semibold text-gray-900 mb-6 flex items-center gap-2">
+                      <History size={20} className="text-[#6366f1]" />
+                      Görev Geçmişi
+                    </h3>
 
-                    <div className="space-y-6">
-                      <div className="flex items-start gap-3">
-                        <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">
-                          <CheckCircle2 size={18} className="text-blue-600" />
-                        </div>
-                        <div className="flex-1">
-                          <div className="bg-gray-50 rounded-lg p-4">
-                            <div className="flex items-center justify-between mb-2">
-                              <span className="font-semibold text-gray-900">Görev Oluşturuldu</span>
-                              <span className="text-sm text-gray-500">
-                                {new Date(taskData.createdAt).toLocaleDateString('tr-TR')}
+                    {/* Activity Feed */}
+                    <div className="relative pl-6 before:absolute before:left-[11px] before:top-2 before:bottom-2 before:w-[2px] before:bg-gray-100">
+                      <div className="space-y-6">
+                        {/* Task Created Entry */}
+                        <div className="relative">
+                          <div className="absolute -left-[24px] top-1.5 w-4 h-4 rounded-full bg-blue-100 border-2 border-white flex items-center justify-center">
+                            <CheckCircle2 size={10} className="text-blue-600" />
+                          </div>
+                          <div className="flex flex-col">
+                            <div className="flex items-center gap-2">
+                              <span className="text-xs font-bold text-gray-900">Görev Oluşturuldu</span>
+                              <span className="text-[10px] text-gray-400">
+                                {new Date(taskData.createdAt).toLocaleString('tr-TR')}
                               </span>
                             </div>
-                            <p className="text-sm text-gray-600">
-                              {currentUser?.fullName} görevi oluşturdu
+                            <p className="text-[11px] text-gray-500 mt-0.5">
+                              {currentUser?.fullName} tarafından oluşturuldu
                             </p>
                           </div>
                         </div>
+
+                        {/* Comments mapping (Activity) */}
+                        {comments.map((comment) => (
+                          <div key={comment.id} className="relative">
+                            <div className="absolute -left-[24px] top-1.5 w-5 h-5 rounded-full border-2 border-white overflow-hidden">
+                              <Avatar className="w-full h-full">
+                                <AvatarImage src={comment.userAvatar} />
+                                <AvatarFallback className="text-[8px]">{comment.userName?.charAt(0)}</AvatarFallback>
+                              </Avatar>
+                            </div>
+                            <div className="flex flex-col">
+                              <div className="flex items-center gap-2">
+                                <span className="text-xs font-bold text-gray-900">{comment.userName || 'Kullanıcı'}</span>
+                                <span className="text-[10px] text-gray-400">
+                                  {new Date(comment.createdAt).toLocaleString('tr-TR')}
+                                </span>
+                              </div>
+                              <p className="text-[11px] text-gray-600 mt-1 bg-gray-50 rounded-lg p-2 border border-gray-100">
+                                {comment.text}
+                              </p>
+                            </div>
+                          </div>
+                        ))}
                       </div>
                     </div>
-                  </>
+                  </div>
                 )}
 
                 {/* Subtasks Section */}
@@ -463,6 +520,8 @@ const ModernTaskModal = ({ task, isOpen, onClose, initialSection = 'activity' })
                     </label>
                   </>
                 )}
+
+
 
               </div>
             </div>
@@ -690,29 +749,6 @@ const ModernTaskModal = ({ task, isOpen, onClose, initialSection = 'activity' })
               </div>
             </div>
           </div>
-        </div>
-
-        {/* Footer with Close Button */}
-        <div className="flex shrink-0 items-center justify-end px-6 py-4 border-t border-gray-200 bg-gray-50">
-          <Button
-            onClick={onClose}
-            className="bg-white hover:bg-gray-50 text-gray-700 border border-gray-300"
-          >
-            Vazgeç
-          </Button>
-          <Button
-            onClick={() => {
-              onClose();
-              updateTask(task._id, {
-                ...taskData,
-                subtasks,
-                attachments
-              });
-            }}
-            className="bg-[#0086c0] hover:bg-[#006a99] ml-3"
-          >
-            Kaydet
-          </Button>
         </div>
       </div>
     </div>
