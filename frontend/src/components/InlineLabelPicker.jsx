@@ -1,21 +1,20 @@
 import React, { useState, useEffect, useRef } from 'react';
 import ReactDOM from 'react-dom';
 import { Tag, X, Plus } from 'lucide-react';
-import { labelsAPI } from '../services/api';
+import { useData } from '../contexts/DataContext';
 
 const InlineLabelPicker = ({ taskId, currentLabels = [], projectId, onUpdate }) => {
+  const { labels } = useData();
   const [isOpen, setIsOpen] = useState(false);
-  const [availableLabels, setAvailableLabels] = useState([]);
   const [selectedLabelIds, setSelectedLabelIds] = useState(currentLabels);
   const dropdownRef = useRef(null);
   const buttonRef = useRef(null);
   const [position, setPosition] = useState({ top: 0, left: 0 });
 
-  useEffect(() => {
-    if (projectId) {
-      fetchLabels();
-    }
-  }, [projectId]);
+  // Get labels for this project from context
+  const availableLabels = React.useMemo(() => {
+    return labels.filter(label => label.projectId === projectId);
+  }, [labels, projectId]);
 
   useEffect(() => {
     setSelectedLabelIds(currentLabels);
@@ -45,15 +44,6 @@ const InlineLabelPicker = ({ taskId, currentLabels = [], projectId, onUpdate }) 
     }
   }, [isOpen]);
 
-  const fetchLabels = async () => {
-    try {
-      const response = await labelsAPI.getByProject(projectId);
-      setAvailableLabels(response.data || []);
-    } catch (error) {
-      console.error('Error fetching labels:', error);
-    }
-  };
-
   const toggleLabel = async (labelId) => {
     const newLabels = selectedLabelIds.includes(labelId)
       ? selectedLabelIds.filter(id => id !== labelId)
@@ -65,6 +55,7 @@ const InlineLabelPicker = ({ taskId, currentLabels = [], projectId, onUpdate }) 
       await onUpdate(taskId, newLabels);
     }
   };
+
 
   const getSelectedLabels = () => {
     return availableLabels.filter(label => selectedLabelIds.includes(label.id));
@@ -101,8 +92,8 @@ const InlineLabelPicker = ({ taskId, currentLabels = [], projectId, onUpdate }) 
                   key={label.id}
                   onClick={() => toggleLabel(label.id)}
                   className={`w-full flex items-center justify-between gap-2 px-3 py-2 rounded-lg transition-colors ${isSelected
-                      ? 'bg-blue-50 border border-blue-200'
-                      : 'hover:bg-gray-50 border border-transparent'
+                    ? 'bg-blue-50 border border-blue-200'
+                    : 'hover:bg-gray-50 border border-transparent'
                     }`}
                 >
                   <div className="flex items-center gap-2 flex-1 min-w-0">

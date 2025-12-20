@@ -20,7 +20,7 @@ const AdminPanel = () => {
 
   const filteredUsers = users.filter(user => {
     const matchesSearch = user.fullName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         user.email?.toLowerCase().includes(searchTerm.toLowerCase());
+      user.email?.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesRole = roleFilter === 'all' || user.role === roleFilter;
     return matchesSearch && matchesRole;
   });
@@ -52,16 +52,16 @@ const AdminPanel = () => {
   };
 
   return (
-    <div className="h-full bg-gray-50 p-6 overflow-auto relative">
+    <div className="h-full bg-gray-50 dark:bg-gray-950 p-6 overflow-auto relative text-gray-900 dark:text-gray-100">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="mb-6">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Kullanıcı Yönetimi</h1>
-          <p className="text-gray-600">Sistemdeki tüm kullanıcıları yönetin</p>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-2">Kullanıcı Yönetimi</h1>
+          <p className="text-gray-600 dark:text-gray-400">Sistemdeki tüm kullanıcıları yönetin</p>
         </div>
 
         {/* Actions Bar */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 mb-6">
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4 mb-6">
           <div className="flex flex-col sm:flex-row gap-4 items-center justify-between">
             {/* Search */}
             <div className="relative flex-1 w-full sm:w-auto">
@@ -80,7 +80,7 @@ const AdminPanel = () => {
               <select
                 value={roleFilter}
                 onChange={(e) => setRoleFilter(e.target.value)}
-                className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="px-4 py-2 bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 dark:text-gray-100"
               >
                 <option value="all">Tüm Roller</option>
                 <option value="admin">Admin</option>
@@ -100,37 +100,37 @@ const AdminPanel = () => {
         </div>
 
         {/* Users Table */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
           <table className="w-full">
-            <thead className="bg-gray-50 border-b border-gray-200">
+            <thead className="bg-gray-50 dark:bg-gray-900/50 border-b border-gray-200 dark:border-gray-700">
               <tr>
-                <th className="text-left px-6 py-4 text-sm font-semibold text-gray-700">Kullanıcı</th>
-                <th className="text-left px-6 py-4 text-sm font-semibold text-gray-700">Email</th>
-                <th className="text-left px-6 py-4 text-sm font-semibold text-gray-700">Rol</th>
-                <th className="text-left px-6 py-4 text-sm font-semibold text-gray-700">Departman</th>
-                <th className="text-right px-6 py-4 text-sm font-semibold text-gray-700">İşlemler</th>
+                <th className="text-left px-6 py-4 text-sm font-semibold text-gray-700 dark:text-gray-300">Kullanıcı</th>
+                <th className="text-left px-6 py-4 text-sm font-semibold text-gray-700 dark:text-gray-300">Email</th>
+                <th className="text-left px-6 py-4 text-sm font-semibold text-gray-700 dark:text-gray-300">Rol</th>
+                <th className="text-left px-6 py-4 text-sm font-semibold text-gray-700 dark:text-gray-300">Departman</th>
+                <th className="text-right px-6 py-4 text-sm font-semibold text-gray-700 dark:text-gray-300">İşlemler</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">
               {filteredUsers.map(user => (
-                <tr key={user._id || user.id} className="hover:bg-gray-50 transition-colors">
+                <tr key={user._id || user.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-3">
                       <Avatar className="w-10 h-10">
                         <AvatarImage src={user.avatar} />
-                        <AvatarFallback className="bg-gradient-to-br from-blue-400 to-purple-500 text-white font-bold">
+                        <AvatarFallback className="bg-gradient-to-br from-blue-400 to-purple-500 text-white dark:text-gray-100 font-bold">
                           {user.fullName?.charAt(0) || 'U'}
                         </AvatarFallback>
                       </Avatar>
                       <div>
-                        <p className="font-medium text-gray-900">{user.fullName}</p>
-                        <p className="text-xs text-gray-500">{user.id || user._id}</p>
+                        <p className="font-medium text-gray-900 dark:text-gray-100">{user.fullName}</p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">{user.id || user._id}</p>
                       </div>
                     </div>
                   </td>
-                  <td className="px-6 py-4 text-gray-700">{user.email}</td>
+                  <td className="px-6 py-4 text-gray-700 dark:text-gray-300">{user.email}</td>
                   <td className="px-6 py-4">{getRoleBadge(user.role)}</td>
-                  <td className="px-6 py-4 text-gray-700">{user.department || '-'}</td>
+                  <td className="px-6 py-4 text-gray-700 dark:text-gray-300">{user.department || '-'}</td>
                   <td className="px-6 py-4">
                     <div className="flex items-center justify-end gap-2">
                       <button
@@ -138,14 +138,14 @@ const AdminPanel = () => {
                           setSelectedUser(user);
                           setIsEditModalOpen(true);
                         }}
-                        className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                        className="p-2 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
                         title="Düzenle"
                       >
                         <Edit2 size={16} />
                       </button>
                       <button
                         onClick={() => setDeleteConfirm(user)}
-                        className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                        className="p-2 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
                         title="Sil"
                       >
                         <Trash2 size={16} />
@@ -159,24 +159,24 @@ const AdminPanel = () => {
 
           {filteredUsers.length === 0 && (
             <div className="text-center py-12">
-              <p className="text-gray-500">Kullanıcı bulunamadı</p>
+              <p className="text-gray-500 dark:text-gray-400">Kullanıcı bulunamadı</p>
             </div>
           )}
         </div>
 
         {/* Stats */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-6">
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
-            <p className="text-sm text-gray-600 mb-1">Toplam Kullanıcı</p>
-            <p className="text-2xl font-bold text-gray-900">{users.length}</p>
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4">
+            <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Toplam Kullanıcı</p>
+            <p className="text-2xl font-bold text-gray-900 dark:text-white">{users.length}</p>
           </div>
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
-            <p className="text-sm text-gray-600 mb-1">Admin</p>
-            <p className="text-2xl font-bold text-red-600">{users.filter(u => u.role === 'admin').length}</p>
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4">
+            <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Admin</p>
+            <p className="text-2xl font-bold text-red-600 dark:text-red-400">{users.filter(u => u.role === 'admin').length}</p>
           </div>
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
-            <p className="text-sm text-gray-600 mb-1">Üye</p>
-            <p className="text-2xl font-bold text-blue-600">{users.filter(u => u.role === 'member').length}</p>
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4">
+            <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Üye</p>
+            <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">{users.filter(u => u.role === 'member').length}</p>
           </div>
         </div>
       </div>
@@ -261,27 +261,27 @@ const UserFormModal = ({ isOpen, onClose, onSuccess, user = null, projects = [] 
 
     try {
       const userId = user?._id || user?.id;
-      
+
       if (user) {
         // Update existing user
         await usersAPI.update(userId, formData);
-        
+
         // Update user's projects
         if (formData.projectIds && formData.projectIds.length >= 0) {
           await usersAPI.updateProjects(userId, formData.projectIds);
         }
-        
+
         toast.success('Kullanıcı güncellendi');
       } else {
         // Create new user
         const response = await usersAPI.create(formData);
-        
+
         // Update new user's projects
         if (formData.projectIds && formData.projectIds.length > 0) {
           const newUserId = response.data._id || response.data.id;
           await usersAPI.updateProjects(newUserId, formData.projectIds);
         }
-        
+
         toast.success('Kullanıcı oluşturuldu');
       }
       onSuccess();
@@ -380,7 +380,7 @@ const UserFormModal = ({ isOpen, onClose, onSuccess, user = null, projects = [] 
                 {selectAllProjects ? 'Hiçbirini Seçme' : 'Tüm Projeleri Seç'}
               </button>
             </div>
-            
+
             {projects.length === 0 ? (
               <p className="text-sm text-gray-500 italic py-2">Henüz proje yok</p>
             ) : (
@@ -392,22 +392,22 @@ const UserFormModal = ({ isOpen, onClose, onSuccess, user = null, projects = [] 
                       checked={formData.projectIds.includes(project._id)}
                       onChange={(e) => {
                         if (e.target.checked) {
-                          setFormData({ 
-                            ...formData, 
-                            projectIds: [...formData.projectIds, project._id] 
+                          setFormData({
+                            ...formData,
+                            projectIds: [...formData.projectIds, project._id]
                           });
                         } else {
-                          setFormData({ 
-                            ...formData, 
-                            projectIds: formData.projectIds.filter(id => id !== project._id) 
+                          setFormData({
+                            ...formData,
+                            projectIds: formData.projectIds.filter(id => id !== project._id)
                           });
                         }
                       }}
                       className="rounded border-gray-300"
                     />
                     <div className="flex items-center gap-2 flex-1">
-                      <div 
-                        className="w-3 h-3 rounded-full" 
+                      <div
+                        className="w-3 h-3 rounded-full"
                         style={{ backgroundColor: project.color || '#6366f1' }}
                       />
                       <span className="text-sm text-gray-700">{project.name}</span>

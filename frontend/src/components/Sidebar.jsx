@@ -18,7 +18,7 @@ const UserProfile = () => {
     <div className="relative">
       <button
         onClick={() => setShowMenu(!showMenu)}
-        className="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-white transition-colors"
+        className="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-white dark:hover:bg-gray-800 transition-colors"
       >
         <Avatar className="w-8 h-8">
           <AvatarImage src={user.avatar} alt={user.fullName} />
@@ -27,17 +27,17 @@ const UserProfile = () => {
           </AvatarFallback>
         </Avatar>
         <div className="flex-1 text-left">
-          <p className="text-sm font-medium text-gray-900">{user.fullName}</p>
-          <p className="text-xs text-gray-500">{user.role}</p>
+          <p className="text-sm font-medium text-gray-900 dark:text-gray-100">{user.fullName}</p>
+          <p className="text-xs text-gray-500 dark:text-gray-400">{user.role}</p>
         </div>
       </button>
 
       {showMenu && (
-        <div className="absolute bottom-full left-3 right-3 mb-2 bg-white rounded-lg shadow-lg border border-gray-200 py-2">
+        <div className="absolute bottom-full left-3 right-3 mb-2 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 py-2">
           <Link
             to="/profile"
             onClick={() => setShowMenu(false)}
-            className="w-full flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+            className="w-full flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
           >
             <Settings size={16} />
             <span>Profil Ayarları</span>
@@ -46,7 +46,7 @@ const UserProfile = () => {
             <Link
               to="/admin"
               onClick={() => setShowMenu(false)}
-              className="w-full flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+              className="w-full flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
             >
               <Users size={16} />
               <span>Admin Panel</span>
@@ -57,7 +57,7 @@ const UserProfile = () => {
               logout();
               setShowMenu(false);
             }}
-            className="w-full flex items-center gap-2 px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors"
+            className="w-full flex items-center gap-2 px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
           >
             <LogOut size={16} />
             <span>Çıkış Yap</span>
@@ -92,17 +92,17 @@ const Sidebar = ({ currentBoard, onBoardChange, onNewBoard }) => {
   const allBoards = projects;
 
   return (
-    <div className="w-64 bg-[#f6f7fb] border-r border-gray-200 h-screen flex flex-col">
+    <div className="w-64 bg-[#f6f7fb] dark:bg-gray-950 border-r border-gray-200 dark:border-gray-800 h-screen flex flex-col">
       {/* Logo */}
-      <div className="p-3 border-b border-gray-200">
+      <div className="p-3 border-b border-gray-200 dark:border-gray-800">
         <div className="flex items-center gap-2">
           <div className="flex items-center gap-1.5 group cursor-pointer">
             <div className="w-7 h-7 bg-gradient-to-br from-[#6366f1] to-[#8b5cf6] rounded-lg flex items-center justify-center">
               <span className="text-base font-black text-white">4</span>
             </div>
             <div className="flex flex-col">
-              <span className="text-sm font-bold text-gray-900 leading-none">Flow</span>
-              <span className="text-[9px] text-gray-500 tracking-wide">PROJECT MANAGEMENT</span>
+              <span className="text-sm font-bold text-gray-900 dark:text-gray-100 leading-none">Flow</span>
+              <span className="text-[9px] text-gray-500 dark:text-gray-400 tracking-wide">PROJECT MANAGEMENT</span>
             </div>
           </div>
         </div>
@@ -114,21 +114,21 @@ const Sidebar = ({ currentBoard, onBoardChange, onNewBoard }) => {
         <div className="px-2 mb-4">
           <Link
             to="/dashboard"
-            className="w-full flex items-center gap-2 px-2 py-1.5 rounded hover:bg-white transition-colors text-gray-700 text-xs"
+            className="w-full flex items-center gap-2 px-2 py-1.5 rounded hover:bg-white dark:hover:bg-gray-800 transition-colors text-gray-700 dark:text-gray-300 text-xs"
           >
             <Home size={16} />
             <span>Ana Sayfa</span>
           </Link>
           <Link
             to="/team"
-            className="w-full flex items-center gap-2 px-2 py-1.5 rounded hover:bg-white transition-colors text-gray-700 text-xs"
+            className="w-full flex items-center gap-2 px-2 py-1.5 rounded hover:bg-white dark:hover:bg-gray-800 transition-colors text-gray-700 dark:text-gray-300 text-xs"
           >
             <Users size={16} />
             <span>Ekibim</span>
           </Link>
           <Link
             to="/tests"
-            className="w-full flex items-center gap-2 px-2 py-1.5 rounded hover:bg-white transition-colors text-gray-700 text-xs"
+            className="w-full flex items-center gap-2 px-2 py-1.5 rounded hover:bg-white dark:hover:bg-gray-800 transition-colors text-gray-700 dark:text-gray-300 text-xs"
           >
             <FlaskConical size={16} />
             <span>Test Sonuçları</span>
@@ -151,8 +151,8 @@ const Sidebar = ({ currentBoard, onBoardChange, onNewBoard }) => {
                   key={board._id}
                   to={`/board/${board._id}`}
                   className={`w-full flex items-center gap-3 px-6 py-2 rounded-lg transition-colors ${currentBoard === board._id
-                    ? 'bg-white text-gray-900 font-semibold'
-                    : 'text-gray-700 hover:bg-white font-normal'
+                    ? 'bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 font-semibold shadow-sm'
+                    : 'text-gray-700 dark:text-gray-300 hover:bg-white dark:hover:bg-gray-800 font-normal'
                     }`}
                 >
                   <span className="text-lg">{board.icon}</span>
@@ -180,8 +180,8 @@ const Sidebar = ({ currentBoard, onBoardChange, onNewBoard }) => {
                   key={board._id}
                   to={`/board/${board._id}`}
                   className={`w-full flex items-center gap-3 px-6 py-2 rounded-lg transition-colors ${currentBoard === board._id
-                    ? 'bg-white text-gray-900 font-semibold'
-                    : 'text-gray-700 hover:bg-white font-normal'
+                    ? 'bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 font-semibold shadow-sm'
+                    : 'text-gray-700 dark:text-gray-300 hover:bg-white dark:hover:bg-gray-800 font-normal'
                     }`}
                 >
                   <div
@@ -193,7 +193,7 @@ const Sidebar = ({ currentBoard, onBoardChange, onNewBoard }) => {
               ))}
               <button
                 onClick={() => setShowNewProjectModal(true)}
-                className="w-full flex items-center gap-3 px-6 py-2 rounded-lg hover:bg-white transition-colors text-gray-500 hover:text-gray-700"
+                className="w-full flex items-center gap-3 px-6 py-2 rounded-lg hover:bg-white dark:hover:bg-gray-800 transition-colors text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
               >
                 <Plus size={16} />
                 <span className="text-sm">Yeni Pano Ekle</span>
@@ -204,11 +204,11 @@ const Sidebar = ({ currentBoard, onBoardChange, onNewBoard }) => {
       </div>
 
       {/* User Profile & Settings */}
-      <div className="p-3 border-t border-gray-200 space-y-2">
+      <div className="p-3 border-t border-gray-200 dark:border-gray-800 space-y-2">
         <UserProfile />
-        <Link to="/settings" className="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-white transition-colors text-gray-700">
+        <Link to="/settings" className="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-white dark:hover:bg-gray-800 transition-colors text-gray-700 dark:text-gray-300">
           <Settings size={20} />
-          <span className="font-normal">Ayarlar</span>
+          <span className="font-normal text-sm">Ayarlar</span>
         </Link>
 
         {/* Version */}

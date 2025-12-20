@@ -17,7 +17,7 @@ const Settings = () => {
   const [activeTab, setActiveTab] = useState('profile');
   const [isEditing, setIsEditing] = useState(false);
   const [avatarPreview, setAvatarPreview] = useState(null);
-  
+
   const [formData, setFormData] = useState({
     fullName: user?.fullName || '',
     email: user?.email || '',
@@ -89,14 +89,14 @@ const Settings = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
       {/* Header */}
-      <div className="bg-white border-b border-gray-200">
+      <div className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800">
         <div className="max-w-6xl mx-auto px-6 py-6">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-2xl font-bold text-gray-900">Ayarlar</h1>
-              <p className="text-sm text-gray-500 mt-1">Profil ve hesap ayarlarını yönetin</p>
+              <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Ayarlar</h1>
+              <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Profil ve hesap ayarlarını yönetin</p>
             </div>
             <Button variant="outline" onClick={() => window.history.back()}>
               <X size={16} className="mr-2" />
@@ -110,18 +110,17 @@ const Settings = () => {
         <div className="grid grid-cols-12 gap-6">
           {/* Sidebar - Tabs */}
           <div className="col-span-3">
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-2">
+            <div className="bg-white dark:bg-gray-900 rounded-lg shadow-sm border border-gray-200 dark:border-gray-800 p-2">
               {tabs.map(tab => {
                 const Icon = tab.icon;
                 return (
                   <button
                     key={tab.id}
                     onClick={() => setActiveTab(tab.id)}
-                    className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all ${
-                      activeTab === tab.id
+                    className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all ${activeTab === tab.id
                         ? 'bg-[#6366f1] text-white shadow-md'
-                        : 'text-gray-700 hover:bg-gray-100'
-                    }`}
+                        : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800'
+                      }`}
                   >
                     <Icon size={18} />
                     {tab.label}
@@ -133,13 +132,13 @@ const Settings = () => {
 
           {/* Main Content */}
           <div className="col-span-9">
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-              
+            <div className="bg-white dark:bg-gray-900 rounded-lg shadow-sm border border-gray-200 dark:border-gray-800">
+
               {/* Profile Tab */}
               {activeTab === 'profile' && (
                 <div className="p-8">
                   <div className="flex items-center justify-between mb-8">
-                    <h2 className="text-xl font-bold text-gray-900">Profil Bilgileri</h2>
+                    <h2 className="text-xl font-bold text-gray-900 dark:text-white">Profil Bilgileri</h2>
                     <Button
                       onClick={() => isEditing ? handleSaveProfile() : setIsEditing(true)}
                       className="bg-[#6366f1] hover:bg-[#5558e3]"
@@ -149,7 +148,7 @@ const Settings = () => {
                   </div>
 
                   {/* Avatar Section */}
-                  <div className="mb-8 p-6 bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl">
+                  <div className="mb-8 p-6 bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-900 rounded-xl">
                     <div className="flex items-center gap-6">
                       <div className="relative">
                         <Avatar className="w-24 h-24 border-4 border-white shadow-lg">
@@ -170,15 +169,15 @@ const Settings = () => {
                           </label>
                         )}
                       </div>
-                      
+
                       <div className="flex-1">
-                        <h3 className="text-lg font-semibold text-gray-900">{user?.fullName}</h3>
-                        <p className="text-sm text-gray-500">{user?.email}</p>
-                        <p className="text-xs text-gray-400 mt-2">Üye olma tarihi: {new Date(user?.createdAt).toLocaleDateString('tr-TR')}</p>
-                        
+                        <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{user?.fullName}</h3>
+                        <p className="text-sm text-gray-500 dark:text-gray-400">{user?.email}</p>
+                        <p className="text-xs text-gray-400 dark:text-gray-500 mt-2">Üye olma tarihi: {new Date(user?.createdAt).toLocaleDateString('tr-TR')}</p>
+
                         {isEditing && (
                           <div className="mt-4">
-                            <p className="text-xs font-semibold text-gray-700 mb-2">Avatar Rengi Seç:</p>
+                            <p className="text-xs font-semibold text-gray-700 dark:text-gray-300 mb-2">Avatar Rengi Seç:</p>
                             <div className="flex gap-2 flex-wrap">
                               {avatarColors.map((color, idx) => (
                                 <button
@@ -268,15 +267,15 @@ const Settings = () => {
               {/* Account Tab */}
               {activeTab === 'account' && (
                 <div className="p-8">
-                  <h2 className="text-xl font-bold text-gray-900 mb-6">Hesap Ayarları</h2>
-                  
+                  <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-6">Hesap Ayarları</h2>
+
                   <div className="space-y-6">
-                    <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                    <div className="p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
                       <div className="flex items-start gap-3">
-                        <Mail size={20} className="text-blue-600 mt-0.5" />
+                        <Mail size={20} className="text-blue-600 dark:text-blue-400 mt-0.5" />
                         <div className="flex-1">
-                          <h3 className="font-semibold text-gray-900">E-posta Adresi</h3>
-                          <p className="text-sm text-gray-600 mt-1">{user?.email}</p>
+                          <h3 className="font-semibold text-gray-900 dark:text-gray-100">E-posta Adresi</h3>
+                          <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">{user?.email}</p>
                           <Button variant="outline" size="sm" className="mt-3">
                             E-posta Değiştir
                           </Button>
@@ -284,12 +283,12 @@ const Settings = () => {
                       </div>
                     </div>
 
-                    <div className="p-4 bg-gray-50 border border-gray-200 rounded-lg">
+                    <div className="p-4 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg">
                       <div className="flex items-start gap-3">
-                        <Shield size={20} className="text-gray-600 mt-0.5" />
+                        <Shield size={20} className="text-gray-600 dark:text-gray-400 mt-0.5" />
                         <div className="flex-1">
-                          <h3 className="font-semibold text-gray-900">Hesap Tipi</h3>
-                          <p className="text-sm text-gray-600 mt-1">
+                          <h3 className="font-semibold text-gray-900 dark:text-gray-100">Hesap Tipi</h3>
+                          <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
                             <span className="inline-block px-2 py-1 bg-purple-100 text-purple-700 rounded font-medium text-xs">
                               {user?.role || 'Kullanıcı'}
                             </span>
@@ -298,8 +297,8 @@ const Settings = () => {
                       </div>
                     </div>
 
-                    <div className="border-t pt-6">
-                      <h3 className="font-semibold text-gray-900 mb-4 text-red-600">Tehlikeli Bölge</h3>
+                    <div className="border-t dark:border-gray-800 pt-6">
+                      <h3 className="font-semibold text-gray-900 dark:text-white mb-4 text-red-600 dark:text-red-400">Tehlikeli Bölge</h3>
                       <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
                         <p className="text-sm text-gray-700 mb-3">
                           Hesabınızı kalıcı olarak silmek isterseniz, bu işlem geri alınamaz.
@@ -316,11 +315,11 @@ const Settings = () => {
               {/* Security Tab */}
               {activeTab === 'security' && (
                 <div className="p-8">
-                  <h2 className="text-xl font-bold text-gray-900 mb-6">Güvenlik</h2>
-                  
+                  <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-6">Güvenlik</h2>
+
                   <div className="space-y-6">
                     <div>
-                      <h3 className="font-semibold text-gray-900 mb-4">Şifre Değiştir</h3>
+                      <h3 className="font-semibold text-gray-900 dark:text-gray-100 mb-4">Şifre Değiştir</h3>
                       <div className="space-y-4">
                         <div>
                           <Label htmlFor="currentPassword">Mevcut Şifre</Label>
@@ -362,9 +361,9 @@ const Settings = () => {
                       </div>
                     </div>
 
-                    <div className="border-t pt-6">
-                      <h3 className="font-semibold text-gray-900 mb-4">İki Faktörlü Kimlik Doğrulama</h3>
-                      <p className="text-sm text-gray-600 mb-4">
+                    <div className="border-t dark:border-gray-800 pt-6">
+                      <h3 className="font-semibold text-gray-900 dark:text-white mb-4">İki Faktörlü Kimlik Doğrulama</h3>
+                      <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
                         Hesabınıza ekstra bir güvenlik katmanı ekleyin.
                       </p>
                       <Button variant="outline">
@@ -378,8 +377,8 @@ const Settings = () => {
               {/* Notifications Tab */}
               {activeTab === 'notifications' && (
                 <div className="p-8">
-                  <h2 className="text-xl font-bold text-gray-900 mb-6">Bildirim Tercihleri</h2>
-                  
+                  <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-6">Bildirim Tercihleri</h2>
+
                   <div className="space-y-4">
                     {[
                       { label: 'E-posta Bildirimleri', desc: 'Önemli güncellemeler için e-posta alın' },
@@ -388,10 +387,10 @@ const Settings = () => {
                       { label: 'Proje Bildirimleri', desc: 'Projelerinizle ilgili güncellemeler' },
                       { label: 'Haftalık Özet', desc: 'Haftalık aktivite özeti e-postası' }
                     ].map((item, idx) => (
-                      <div key={idx} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+                      <div key={idx} className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800/50 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
                         <div>
-                          <h4 className="font-medium text-gray-900">{item.label}</h4>
-                          <p className="text-sm text-gray-500">{item.desc}</p>
+                          <h4 className="font-medium text-gray-900 dark:text-white">{item.label}</h4>
+                          <p className="text-sm text-gray-500 dark:text-gray-400">{item.desc}</p>
                         </div>
                         <label className="relative inline-flex items-center cursor-pointer">
                           <input type="checkbox" className="sr-only peer" defaultChecked={idx < 3} />
@@ -406,12 +405,12 @@ const Settings = () => {
               {/* Appearance Tab */}
               {activeTab === 'appearance' && (
                 <div className="p-8">
-                  <h2 className="text-xl font-bold text-gray-900 mb-6">Görünüm</h2>
-                  
+                  <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-6">Görünüm</h2>
+
                   <div className="space-y-6">
                     <div>
-                      <h3 className="font-semibold text-gray-900 mb-4">Tema</h3>
-                      
+                      <h3 className="font-semibold text-gray-900 dark:text-white mb-4">Tema</h3>
+
                       <div className="grid grid-cols-3 gap-4">
                         {[
                           { id: 'light', label: 'Açık', bg: 'bg-white border border-gray-300' },
@@ -424,17 +423,16 @@ const Settings = () => {
                               setThemeMode(themeOption.id);
                               toast.success(`${themeOption.label} tema seçildi`);
                             }}
-                            className={`p-4 border-2 rounded-lg transition-colors hover:border-blue-400 ${
-                              theme === themeOption.id 
-                                ? 'border-blue-500 bg-blue-50' 
-                                : 'border-gray-200'
-                            }`}
+                            className={`p-4 border-2 rounded-lg transition-colors hover:border-blue-400 ${theme === themeOption.id
+                                ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
+                                : 'border-gray-200 dark:border-gray-700'
+                              }`}
                           >
                             <div className="text-center">
                               <div className={`w-full h-20 rounded mb-2 ${themeOption.bg}`} />
-                              <p className="text-sm font-medium">{themeOption.label}</p>
+                              <p className="text-sm font-medium dark:text-gray-100">{themeOption.label}</p>
                               {theme === themeOption.id && (
-                                <span className="text-xs text-blue-600 font-semibold mt-1 block">✓ Aktif</span>
+                                <span className="text-xs text-blue-600 dark:text-blue-400 font-semibold mt-1 block">✓ Aktif</span>
                               )}
                             </div>
                           </button>
@@ -443,8 +441,8 @@ const Settings = () => {
                     </div>
 
                     <div>
-                      <h3 className="font-semibold text-gray-900 mb-4">Dil</h3>
-                      <select className="w-full p-2 border border-gray-300 rounded-lg">
+                      <h3 className="font-semibold text-gray-900 dark:text-white mb-4">Dil</h3>
+                      <select className="w-full p-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg text-gray-900 dark:text-gray-100">
                         <option>Türkçe</option>
                         <option>English</option>
                         <option>Deutsch</option>

@@ -86,19 +86,30 @@ export const DataProvider = ({ children }) => {
     try {
       if (projectId) {
         const response = await labelsAPI.getByProject(projectId);
-        setLabels(response.data);
+        setLabels(prevLabels => {
+          // Filter out existing labels for this project and add new ones
+          const otherLabels = prevLabels.filter(l => l.projectId !== projectId);
+          return [...otherLabels, ...response.data];
+        });
       } else {
+        // If no projectId, fetch for all projects (or whatever the logic was)
+        const response = await projectsAPI.getAll();
+        const allProjects = response.data;
         const allLabels = [];
-        for (const project of projects) {
-          const response = await labelsAPI.getByProject(project._id);
-          allLabels.push(...response.data);
+        for (const project of allProjects) {
+          try {
+            const labelResponse = await labelsAPI.getByProject(project._id);
+            allLabels.push(...labelResponse.data);
+          } catch (e) {
+            console.error(`Error fetching labels for project ${project._id}:`, e);
+          }
         }
         setLabels(allLabels);
       }
     } catch (error) {
       console.error('Error fetching labels:', error);
     }
-  }, [projects]);
+  }, []);
 
   const fetchAllData = useCallback(async () => {
     setLoading(true);
@@ -256,6 +267,7 @@ export const DataProvider = ({ children }) => {
     fetchTasks,
     fetchUsers,
     fetchDepartments,
+    fetchLabels,
     createProject,
     updateProject,
     deleteProject,
@@ -270,6 +282,7 @@ export const DataProvider = ({ children }) => {
     fetchTasks,
     fetchUsers,
     fetchDepartments,
+    fetchLabels,
     createProject,
     updateProject,
     deleteProject,

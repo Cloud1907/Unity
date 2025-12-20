@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { Plus, MoreHorizontal, User, Calendar } from 'lucide-react';
-import { useData } from '../contexts/DataContext';
+import { useDataState, useDataActions } from '../contexts/DataContext';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
 import ModernTaskModal from './ModernTaskModal';
 import InlineLabelPicker from './InlineLabelPicker';
@@ -652,7 +652,7 @@ const CompactTaskCard = React.memo(({ task, onDragStart, onDragEnd, isDragging, 
 
 const KanbanViewV2 = ({ boardId, searchQuery, filters }) => {
   const { tasks, users } = useDataState();
-  const { fetchTasks, updateTaskStatus, updateTask } = useDataActions();
+  const { fetchTasks, fetchLabels, updateTaskStatus, updateTask } = useDataActions();
 
   const [draggedTask, setDraggedTask] = useState(null);
   const [dragOverColumn, setDragOverColumn] = useState(null);
@@ -666,8 +666,10 @@ const KanbanViewV2 = ({ boardId, searchQuery, filters }) => {
       if (!hasTasks) {
         fetchTasks(boardId);
       }
+      // Ensure labels are loaded centrally
+      fetchLabels(boardId);
     }
-  }, [boardId, fetchTasks]);
+  }, [boardId, fetchTasks, fetchLabels]);
 
   const filteredTasks = React.useMemo(() => {
     let filtered = tasks.filter(task => task.projectId === boardId);

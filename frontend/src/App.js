@@ -103,7 +103,7 @@ const Dashboard = () => {
   };
 
   return (
-    <div className="flex h-screen bg-gray-50 overflow-hidden">
+    <div className="flex h-screen bg-background overflow-hidden">
       <Sidebar
         currentBoard={currentBoard}
         onBoardChange={handleBoardChange}
@@ -119,7 +119,7 @@ const Dashboard = () => {
           filters={filters}
           onFilterChange={setFilters}
         />
-        <div key={currentView} className="flex-1 overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+        <div className="flex-1 overflow-hidden animate-in fade-in duration-200">
           {renderView()}
         </div>
       </div>

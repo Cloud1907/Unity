@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import ReactDOM from 'react-dom';
 import { X, Calendar, User as UserIcon, MessageSquare, Paperclip, BarChart3, Clock, Plus, CheckCircle2, ListTodo, Trash2 } from 'lucide-react';
-import { useData } from '../contexts/DataContext';
+import { useDataState, useDataActions } from '../contexts/DataContext';
 import { useAuth } from '../contexts/AuthContext';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
 import { Button } from './ui/button';
@@ -590,7 +590,7 @@ const ModernTaskModal = ({ task, isOpen, onClose, initialSection = 'activity' })
                   </label>
                   <div className="flex flex-wrap gap-2">
                     {/* Display existing labels */}
-                    {labels
+                    {allLabels
                       .filter(l => taskData.labels?.includes(l.id) || taskData.tags?.includes(l.id))
                       .map(label => (
                         <div
@@ -621,7 +621,7 @@ const ModernTaskModal = ({ task, isOpen, onClose, initialSection = 'activity' })
                       {/* Dropdown Menu */}
                       <div className="absolute top-full left-0 mt-2 w-48 bg-white rounded-lg shadow-xl border border-gray-200 z-50 hidden group-hover:block before:block before:absolute before:-top-4 before:left-0 before:w-full before:h-4 before:content-['']">
                         <div className="p-2 space-y-1 max-h-48 overflow-y-auto">
-                          {labels
+                          {allLabels
                             .filter(l => l.projectId === task.projectId && !(taskData.labels?.includes(l.id) || taskData.tags?.includes(l.id)))
                             .map(label => (
                               <button
@@ -636,7 +636,7 @@ const ModernTaskModal = ({ task, isOpen, onClose, initialSection = 'activity' })
                                 {label.name}
                               </button>
                             ))}
-                          {labels.filter(l => l.projectId === task.projectId).length === 0 && (
+                          {allLabels.filter(l => l.projectId === task.projectId).length === 0 && (
                             <p className="text-xs text-gray-500 p-2 text-center">Etiket bulunamadı</p>
                           )}
                         </div>

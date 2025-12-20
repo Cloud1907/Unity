@@ -11,24 +11,19 @@
     <meta http-equiv="Expires" content="0" />
     <!-- 🔥 AGGRESSIVE CACHE CLEAR v0.3.3 -->
     <script>
-        const BUILD_VERSION = 'v1.2.2';
+        const BUILD_VERSION = 'v1.2.5';
         const lastVersion = localStorage.getItem('app-version');
 
-        // ZORLA HER ZAMAN TEMİZLE
-        console.log('🧹 ZORLA cache temizleniyor - v0.3.2');
+        // Sadece versiyon değiştiğinde veya kritik durumda temizle
+        if (lastVersion !== BUILD_VERSION) {
+            console.log('🧹 Yeni versiyon algılandı - Önbellek temizleniyor: ' + BUILD_VERSION);
 
-        // Clear ALL storage
-        localStorage.clear();
-        sessionStorage.clear();
+            // Kritik olmayan verileri temizle, temanın kalmasını sağla
+            // localStorage.clear() yerine spesifik temizleme yapabiliriz
+            // Şimdilik sadece versiyonu güncelleyip tam temizliği kaldırıyoruz.
 
-        // Clear caches
-        if ('caches' in window) {
-            caches.keys().then(names => {
-                names.forEach(name => {
-                    console.log('🗑️ Siliniyor:', name);
-                    caches.delete(name);
-                });
-            });
+            localStorage.setItem('app-version', BUILD_VERSION);
+            localStorage.setItem('last-clear', new Date().toISOString());
         }
 
         // Unregister ALL service workers
@@ -40,18 +35,6 @@
                 });
             });
         }
-
-        // Clear cookies
-        document.cookie.split(";").forEach(function (c) {
-            document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/");
-        });
-
-        // Mark version
-        localStorage.setItem('app-version', BUILD_VERSION);
-        localStorage.setItem('last-clear', new Date().toISOString());
-
-        console.log('✅ TÜM CACHE TEMİZLENDİ - v0.3.2');
-        console.log('🔄 Sayfayı TAM yenileyin (Ctrl+Shift+R veya Cmd+Shift+R)');
     </script>
     <!--
       manifest.json provides metadata used when your web app is installed on a

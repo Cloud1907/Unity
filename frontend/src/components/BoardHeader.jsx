@@ -135,7 +135,7 @@ const BoardHeader = ({
               placeholder="Görev ara..."
               value={searchQuery || ''}
               onChange={(e) => setSearchQuery && setSearchQuery(e.target.value)}
-              className="pl-7 pr-2 py-1 bg-white border border-gray-300 rounded text-xs focus:outline-none focus:border-[#6366f1] transition-colors w-48"
+              className="pl-7 pr-2 py-1 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded text-xs focus:outline-none focus:border-[#6366f1] transition-colors w-48 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500"
             />
           </div>
           <div className="relative">
@@ -143,7 +143,7 @@ const BoardHeader = ({
               onClick={() => setShowFilterMenu(!showFilterMenu)}
               variant="outline"
               size="sm"
-              className="gap-1 rounded px-2 py-1 border border-gray-300 hover:border-gray-400 hover:bg-gray-50 transition-colors text-xs h-6"
+              className="gap-1 rounded px-2 py-1 border border-gray-300 dark:border-gray-700 hover:border-gray-400 dark:hover:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors text-xs h-6 text-gray-700 dark:text-gray-300"
             >
               <Filter size={13} />
               <span>Filtrele</span>
@@ -277,7 +277,7 @@ const BoardHeader = ({
             onClick={() => setShowLabelManager(true)}
             variant="outline"
             size="sm"
-            className="gap-1 rounded px-2 py-1 border border-gray-300 hover:border-gray-400 hover:bg-gray-50 transition-colors text-xs h-6"
+            className="gap-1 rounded px-2 py-1 border border-gray-300 dark:border-gray-700 hover:border-gray-400 dark:hover:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors text-xs h-6 text-gray-700 dark:text-gray-300"
           >
             <Tag size={13} />
             <span>Etiketler</span>

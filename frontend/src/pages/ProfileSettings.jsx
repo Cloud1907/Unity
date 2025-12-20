@@ -79,36 +79,34 @@ const ProfileSettings = () => {
   };
 
   return (
-    <div className="h-full bg-gray-50 overflow-auto relative">
+    <div className="h-full bg-gray-50 dark:bg-gray-950 overflow-auto relative">
       <div className="max-w-4xl mx-auto p-6">
         {/* Header */}
         <div className="mb-6">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Ayarlar</h1>
-          <p className="text-gray-600">Profil bilgilerinizi ve ayarlarınızı yönetin</p>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">Ayarlar</h1>
+          <p className="text-gray-600 dark:text-gray-400">Profil bilgilerinizi ve ayarlarınızı yönetin</p>
         </div>
 
         <div className="grid grid-cols-12 gap-6">
           {/* Sidebar */}
           <div className="col-span-12 md:col-span-3">
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-2">
+            <div className="bg-white dark:bg-gray-900 rounded-xl shadow-sm border border-gray-200 dark:border-gray-800 p-2">
               <button
                 onClick={() => setActiveTab('profile')}
-                className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
-                  activeTab === 'profile'
-                    ? 'bg-blue-50 text-blue-600 font-semibold'
-                    : 'text-gray-700 hover:bg-gray-50'
-                }`}
+                className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${activeTab === 'profile'
+                    ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 font-semibold'
+                    : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800'
+                  }`}
               >
                 <UserIcon size={18} />
                 <span>Profil</span>
               </button>
               <button
                 onClick={() => setActiveTab('password')}
-                className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
-                  activeTab === 'password'
-                    ? 'bg-blue-50 text-blue-600 font-semibold'
-                    : 'text-gray-700 hover:bg-gray-50'
-                }`}
+                className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${activeTab === 'password'
+                    ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 font-semibold'
+                    : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800'
+                  }`}
               >
                 <Lock size={18} />
                 <span>Şifre</span>
@@ -118,13 +116,13 @@ const ProfileSettings = () => {
 
           {/* Content */}
           <div className="col-span-12 md:col-span-9">
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <div className="bg-white dark:bg-gray-900 rounded-xl shadow-sm border border-gray-200 dark:border-gray-800 p-6">
               {activeTab === 'profile' && (
                 <div>
-                  <h2 className="text-xl font-bold text-gray-900 mb-6">Profil Bilgileri</h2>
+                  <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-6">Profil Bilgileri</h2>
 
                   {/* Avatar Section */}
-                  <div className="flex items-center gap-6 mb-8 pb-8 border-b border-gray-200">
+                  <div className="flex items-center gap-6 mb-8 pb-8 border-b border-gray-200 dark:border-gray-800">
                     <div className="relative">
                       <Avatar className="w-24 h-24">
                         <AvatarImage src={profileForm.avatar} />
@@ -143,9 +141,9 @@ const ProfileSettings = () => {
                       </label>
                     </div>
                     <div>
-                      <h3 className="text-lg font-semibold text-gray-900">{profileForm.fullName}</h3>
-                      <p className="text-gray-600">{profileForm.email}</p>
-                      <p className="text-sm text-gray-500 mt-1">
+                      <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{profileForm.fullName}</h3>
+                      <p className="text-gray-600 dark:text-gray-400">{profileForm.email}</p>
+                      <p className="text-sm text-gray-500 dark:text-gray-500 mt-1">
                         Rol: <span className="font-medium capitalize">{user?.role}</span>
                       </p>
                     </div>
@@ -154,7 +152,7 @@ const ProfileSettings = () => {
                   {/* Profile Form */}
                   <form onSubmit={handleProfileUpdate} className="space-y-6">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                         <div className="flex items-center gap-2">
                           <UserIcon size={16} />
                           Ad Soyad
@@ -164,13 +162,13 @@ const ProfileSettings = () => {
                         type="text"
                         value={profileForm.fullName}
                         onChange={(e) => setProfileForm({ ...profileForm, fullName: e.target.value })}
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className="w-full px-4 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 dark:text-gray-100"
                         required
                       />
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                         <div className="flex items-center gap-2">
                           <Mail size={16} />
                           Email
@@ -180,23 +178,23 @@ const ProfileSettings = () => {
                         type="email"
                         value={profileForm.email}
                         onChange={(e) => setProfileForm({ ...profileForm, email: e.target.value })}
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className="w-full px-4 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 dark:text-gray-100"
                         required
                       />
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                         Avatar URL (opsiyonel)
                       </label>
                       <input
                         type="url"
                         value={profileForm.avatar}
                         onChange={(e) => setProfileForm({ ...profileForm, avatar: e.target.value })}
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className="w-full px-4 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 dark:text-gray-100"
                         placeholder="https://..."
                       />
-                      <p className="text-xs text-gray-500 mt-1">
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                         Veya yukarıdaki kamera ikonundan dosya yükleyin
                       </p>
                     </div>
@@ -217,45 +215,45 @@ const ProfileSettings = () => {
 
               {activeTab === 'password' && (
                 <div>
-                  <h2 className="text-xl font-bold text-gray-900 mb-6">Şifre Değiştir</h2>
+                  <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-6">Şifre Değiştir</h2>
 
                   <form onSubmit={handlePasswordChange} className="space-y-6 max-w-md">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                         Mevcut Şifre
                       </label>
                       <input
                         type="password"
                         value={passwordForm.currentPassword}
                         onChange={(e) => setPasswordForm({ ...passwordForm, currentPassword: e.target.value })}
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className="w-full px-4 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 dark:text-gray-100"
                         required
                       />
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                         Yeni Şifre
                       </label>
                       <input
                         type="password"
                         value={passwordForm.newPassword}
                         onChange={(e) => setPasswordForm({ ...passwordForm, newPassword: e.target.value })}
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className="w-full px-4 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 dark:text-gray-100"
                         required
                       />
                       <p className="text-xs text-gray-500 mt-1">En az 6 karakter</p>
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                         Yeni Şifre (Tekrar)
                       </label>
                       <input
                         type="password"
                         value={passwordForm.confirmPassword}
                         onChange={(e) => setPasswordForm({ ...passwordForm, confirmPassword: e.target.value })}
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className="w-full px-4 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 dark:text-gray-100"
                         required
                       />
                     </div>

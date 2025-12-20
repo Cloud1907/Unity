@@ -11,7 +11,9 @@ from pathlib import Path
 from routes import auth, users, departments, projects, tasks, subtasks, comments, timelogs, notifications, activity, analytics, labels, upload
 
 ROOT_DIR = Path(__file__).parent
-load_dotenv(ROOT_DIR / '.env')
+env_path = ROOT_DIR / '.env'
+if env_path.exists():
+    load_dotenv(env_path)
 
 # MongoDB connection
 mongo_url = os.environ['MONGO_URL']
