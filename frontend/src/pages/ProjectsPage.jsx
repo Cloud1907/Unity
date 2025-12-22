@@ -56,8 +56,8 @@ const ProjectsPage = () => {
           <button
             onClick={() => setFilter('all')}
             className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${filter === 'all'
-                ? 'bg-blue-600 dark:bg-blue-500 text-white'
-                : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700'
+              ? 'bg-blue-600 dark:bg-blue-500 text-white'
+              : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700'
               }`}
           >
             Tümü ({projects.length})
@@ -65,8 +65,8 @@ const ProjectsPage = () => {
           <button
             onClick={() => setFilter('favorites')}
             className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${filter === 'favorites'
-                ? 'bg-blue-600 dark:bg-blue-500 text-white'
-                : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700'
+              ? 'bg-blue-600 dark:bg-blue-500 text-white'
+              : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700'
               }`}
           >
             Favoriler ({projects.filter(p => p.favorite).length})
@@ -74,8 +74,8 @@ const ProjectsPage = () => {
           <button
             onClick={() => setFilter('active')}
             className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${filter === 'active'
-                ? 'bg-blue-600 dark:bg-blue-500 text-white'
-                : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700'
+              ? 'bg-blue-600 dark:bg-blue-500 text-white'
+              : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700'
               }`}
           >
             Aktif Projeler

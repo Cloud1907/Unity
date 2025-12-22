@@ -207,16 +207,16 @@ const AdminPanel = () => {
 
       {/* Delete Confirmation */}
       {deleteConfirm && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => setDeleteConfirm(null)}>
-          <div className="bg-white rounded-xl p-6 max-w-md w-full mx-4" onClick={(e) => e.stopPropagation()}>
-            <h3 className="text-lg font-bold text-gray-900 mb-2">Kullanıcıyı Sil</h3>
-            <p className="text-gray-600 mb-6">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={() => setDeleteConfirm(null)}>
+          <div className="bg-white dark:bg-gray-800 rounded-xl p-6 max-w-md w-full" onClick={(e) => e.stopPropagation()}>
+            <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">Kullanıcıyı Sil</h3>
+            <p className="text-gray-600 dark:text-gray-400 mb-6">
               <strong>{deleteConfirm.fullName}</strong> kullanıcısını silmek istediğinizden emin misiniz? Bu işlem geri alınamaz.
             </p>
             <div className="flex gap-3 justify-end">
               <button
                 onClick={() => setDeleteConfirm(null)}
-                className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                className="px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors text-gray-700 dark:text-gray-300"
               >
                 İptal
               </button>
@@ -295,54 +295,54 @@ const UserFormModal = ({ isOpen, onClose, onSuccess, user = null, projects = [] 
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={onClose}>
-      <div className="bg-white rounded-xl p-6 max-w-lg w-full mx-4 max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
-        <h2 className="text-2xl font-bold text-gray-900 mb-6">
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={onClose}>
+      <div className="bg-white dark:bg-gray-800 rounded-xl p-6 max-w-lg w-full max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+        <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">
           {user ? 'Kullanıcıyı Düzenle' : 'Yeni Kullanıcı Ekle'}
         </h2>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Ad Soyad</label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Ad Soyad</label>
             <input
               type="text"
               value={formData.fullName}
               onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-4 py-2 bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 dark:text-gray-100"
               required
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Email</label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Email</label>
             <input
               type="email"
               value={formData.email}
               onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-4 py-2 bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 dark:text-gray-100"
               required
             />
           </div>
 
           {!user && (
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Şifre</label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Şifre</label>
               <input
                 type="password"
                 value={formData.password}
                 onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-4 py-2 bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 dark:text-gray-100"
                 required
               />
             </div>
           )}
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Rol</label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Rol</label>
             <select
               value={formData.role}
               onChange={(e) => setFormData({ ...formData, role: e.target.value })}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-4 py-2 bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 dark:text-gray-100"
             >
               <option value="admin">Admin</option>
               <option value="member">Üye</option>
@@ -351,12 +351,12 @@ const UserFormModal = ({ isOpen, onClose, onSuccess, user = null, projects = [] 
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Avatar URL (opsiyonel)</label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Avatar URL (opsiyonel)</label>
             <input
               type="url"
               value={formData.avatar}
               onChange={(e) => setFormData({ ...formData, avatar: e.target.value })}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-4 py-2 bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 dark:text-gray-100"
               placeholder="https://..."
             />
           </div>
@@ -364,7 +364,7 @@ const UserFormModal = ({ isOpen, onClose, onSuccess, user = null, projects = [] 
           {/* Projects Selection */}
           <div>
             <div className="flex items-center justify-between mb-3">
-              <label className="block text-sm font-medium text-gray-700">Projeler</label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Projeler</label>
               <button
                 type="button"
                 onClick={() => {
@@ -375,7 +375,7 @@ const UserFormModal = ({ isOpen, onClose, onSuccess, user = null, projects = [] 
                   }
                   setSelectAllProjects(!selectAllProjects);
                 }}
-                className="text-xs text-blue-600 hover:text-blue-700 font-medium"
+                className="text-xs text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-medium"
               >
                 {selectAllProjects ? 'Hiçbirini Seçme' : 'Tüm Projeleri Seç'}
               </button>
@@ -384,9 +384,9 @@ const UserFormModal = ({ isOpen, onClose, onSuccess, user = null, projects = [] 
             {projects.length === 0 ? (
               <p className="text-sm text-gray-500 italic py-2">Henüz proje yok</p>
             ) : (
-              <div className="max-h-48 overflow-y-auto border border-gray-300 rounded-lg p-3 space-y-2">
+              <div className="max-h-48 overflow-y-auto border border-gray-300 dark:border-gray-700 rounded-lg p-3 space-y-2">
                 {projects.map(project => (
-                  <label key={project._id} className="flex items-center gap-2 cursor-pointer hover:bg-gray-50 p-2 rounded">
+                  <label key={project._id} className="flex items-center gap-2 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-900/50 p-2 rounded">
                     <input
                       type="checkbox"
                       checked={formData.projectIds.includes(project._id)}
@@ -410,7 +410,7 @@ const UserFormModal = ({ isOpen, onClose, onSuccess, user = null, projects = [] 
                         className="w-3 h-3 rounded-full"
                         style={{ backgroundColor: project.color || '#6366f1' }}
                       />
-                      <span className="text-sm text-gray-700">{project.name}</span>
+                      <span className="text-sm text-gray-700 dark:text-gray-300">{project.name}</span>
                     </div>
                   </label>
                 ))}
@@ -425,7 +425,7 @@ const UserFormModal = ({ isOpen, onClose, onSuccess, user = null, projects = [] 
             <button
               type="button"
               onClick={onClose}
-              className="px-6 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+              className="px-6 py-2 border border-gray-300 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors text-gray-700 dark:text-gray-300"
             >
               İptal
             </button>

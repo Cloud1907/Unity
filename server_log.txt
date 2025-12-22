@@ -1,0 +1,496 @@
+INFO:     Will watch for changes in these directories: ['/Users/cloudsmac/Documents/GitHub/4Flow']
+INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
+INFO:     Started reloader process [34226] using WatchFiles
+/Users/cloudsmac/Documents/GitHub/4Flow/backend/utils/auth.py:13: UserWarning: Using default JWT_SECRET. Set JWT_SECRET environment variable in production!
+  warnings.warn("Using default JWT_SECRET. Set JWT_SECRET environment variable in production!")
+INFO:     Started server process [34272]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+2025-12-20 19:58:52,117 - passlib.handlers.bcrypt - WARNING - (trapped) error reading bcrypt version
+Traceback (most recent call last):
+  File "/Users/cloudsmac/Documents/GitHub/4Flow/backend/venv/lib/python3.12/site-packages/passlib/handlers/bcrypt.py", line 620, in _load_backend_mixin
+    version = _bcrypt.__about__.__version__
+              ^^^^^^^^^^^^^^^^^
+AttributeError: module 'bcrypt' has no attribute '__about__'
+INFO:     127.0.0.1:55518 - "POST /api/auth/login HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55523 - "POST /api/users HTTP/1.1" 201 Created
+INFO:     127.0.0.1:55580 - "OPTIONS /api/auth/login HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55580 - "POST /api/auth/login HTTP/1.1" 401 Unauthorized
+INFO:     127.0.0.1:55650 - "OPTIONS /api/auth/login HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55650 - "POST /api/auth/login HTTP/1.1" 422 Unprocessable Entity
+INFO:     127.0.0.1:55848 - "OPTIONS /api/auth/login HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55848 - "POST /api/auth/login HTTP/1.1" 422 Unprocessable Entity
+INFO:     127.0.0.1:55956 - "OPTIONS /api/auth/register HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55956 - "POST /api/auth/register HTTP/1.1" 400 Bad Request
+INFO:     127.0.0.1:56079 - "OPTIONS /api/auth/login HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56079 - "POST /api/auth/login HTTP/1.1" 422 Unprocessable Entity
+INFO:     127.0.0.1:56155 - "OPTIONS /api/auth/login HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56155 - "POST /api/auth/login HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56182 - "OPTIONS /api/auth/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56183 - "OPTIONS /api/auth/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56182 - "GET /api/auth/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56183 - "GET /api/auth/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56183 - "OPTIONS /api/projects HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56182 - "OPTIONS /api/tasks HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56186 - "OPTIONS /api/users HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56187 - "OPTIONS /api/departments HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56183 - "GET /api/projects HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56182 - "GET /api/tasks HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56186 - "GET /api/users HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56187 - "GET /api/departments HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56196 - "OPTIONS /api/projects HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56196 - "GET /api/projects HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56196 - "OPTIONS /api/labels/project/694254a6206bea2d38bc43e5 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56196 - "GET /api/labels/project/694254a6206bea2d38bc43e5 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56196 - "OPTIONS /api/labels/project/694254a6206bea2d38bc43f7 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56196 - "GET /api/labels/project/694254a6206bea2d38bc43f7 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56196 - "OPTIONS /api/labels/project/694254a6206bea2d38bc4409 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56196 - "GET /api/labels/project/694254a6206bea2d38bc4409 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56196 - "OPTIONS /api/labels/project/694254a6206bea2d38bc441b HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56196 - "GET /api/labels/project/694254a6206bea2d38bc441b HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56196 - "OPTIONS /api/labels/project/694254a6206bea2d38bc442d HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56196 - "GET /api/labels/project/694254a6206bea2d38bc442d HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56277 - "OPTIONS /api/labels/project/694254a6206bea2d38bc4409 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56278 - "OPTIONS /api/labels/project/694254a6206bea2d38bc4409 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56277 - "GET /api/labels/project/694254a6206bea2d38bc4409 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56277 - "GET /api/labels/project/694254a6206bea2d38bc4409 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56290 - "OPTIONS /api/labels/project/694254a6206bea2d38bc4409 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56291 - "OPTIONS /api/labels/project/694254a6206bea2d38bc4409 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56290 - "GET /api/labels/project/694254a6206bea2d38bc4409 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56290 - "GET /api/labels/project/694254a6206bea2d38bc4409 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56308 - "OPTIONS /api/labels/project/694254a6206bea2d38bc4409 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56309 - "OPTIONS /api/labels/project/694254a6206bea2d38bc4409 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56308 - "GET /api/labels/project/694254a6206bea2d38bc4409 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56308 - "GET /api/labels/project/694254a6206bea2d38bc4409 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56375 - "OPTIONS /api/labels/project/694254a6206bea2d38bc4409 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56376 - "OPTIONS /api/labels/project/694254a6206bea2d38bc4409 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56375 - "GET /api/labels/project/694254a6206bea2d38bc4409 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56375 - "GET /api/labels/project/694254a6206bea2d38bc4409 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56521 - "OPTIONS /api/auth/login HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56521 - "POST /api/auth/login HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56521 - "OPTIONS /api/projects HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56525 - "OPTIONS /api/tasks HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56526 - "OPTIONS /api/users HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56527 - "OPTIONS /api/departments HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56521 - "GET /api/projects HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56527 - "GET /api/departments HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56525 - "GET /api/tasks HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56526 - "GET /api/users HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56526 - "OPTIONS /api/projects HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56526 - "GET /api/projects HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56526 - "OPTIONS /api/labels/project/694254a6206bea2d38bc43e5 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56526 - "GET /api/labels/project/694254a6206bea2d38bc43e5 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56526 - "OPTIONS /api/labels/project/694254a6206bea2d38bc43f7 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56526 - "GET /api/labels/project/694254a6206bea2d38bc43f7 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56526 - "OPTIONS /api/labels/project/694254a6206bea2d38bc4409 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56526 - "GET /api/labels/project/694254a6206bea2d38bc4409 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56526 - "OPTIONS /api/labels/project/694254a6206bea2d38bc441b HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56526 - "GET /api/labels/project/694254a6206bea2d38bc441b HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56526 - "OPTIONS /api/labels/project/694254a6206bea2d38bc442d HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56526 - "GET /api/labels/project/694254a6206bea2d38bc442d HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56607 - "OPTIONS /api/labels/project/694254a6206bea2d38bc4409 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56608 - "OPTIONS /api/labels/project/694254a6206bea2d38bc4409 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56607 - "GET /api/labels/project/694254a6206bea2d38bc4409 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56607 - "GET /api/labels/project/694254a6206bea2d38bc4409 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56671 - "OPTIONS /api/labels/project/694254a6206bea2d38bc4409 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56672 - "OPTIONS /api/labels/project/694254a6206bea2d38bc4409 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56671 - "GET /api/labels/project/694254a6206bea2d38bc4409 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56671 - "GET /api/labels/project/694254a6206bea2d38bc4409 HTTP/1.1" 200 OK
+WARNING:  WatchFiles detected changes in 'backend/models/user.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [34272]
+WARNING:  WatchFiles detected changes in 'backend/models/user.py'. Reloading...
+/Users/cloudsmac/Documents/GitHub/4Flow/backend/utils/auth.py:13: UserWarning: Using default JWT_SECRET. Set JWT_SECRET environment variable in production!
+  warnings.warn("Using default JWT_SECRET. Set JWT_SECRET environment variable in production!")
+INFO:     Started server process [36421]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+WARNING:  WatchFiles detected changes in 'backend/models/user.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [36421]
+/Users/cloudsmac/Documents/GitHub/4Flow/backend/utils/auth.py:13: UserWarning: Using default JWT_SECRET. Set JWT_SECRET environment variable in production!
+  warnings.warn("Using default JWT_SECRET. Set JWT_SECRET environment variable in production!")
+INFO:     Started server process [36433]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+WARNING:  WatchFiles detected changes in 'backend/routes/users.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [36433]
+/Users/cloudsmac/Documents/GitHub/4Flow/backend/utils/auth.py:13: UserWarning: Using default JWT_SECRET. Set JWT_SECRET environment variable in production!
+  warnings.warn("Using default JWT_SECRET. Set JWT_SECRET environment variable in production!")
+INFO:     Started server process [36435]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+WARNING:  WatchFiles detected changes in 'backend/routes/users.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [36435]
+/Users/cloudsmac/Documents/GitHub/4Flow/backend/utils/auth.py:13: UserWarning: Using default JWT_SECRET. Set JWT_SECRET environment variable in production!
+  warnings.warn("Using default JWT_SECRET. Set JWT_SECRET environment variable in production!")
+INFO:     Started server process [36453]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     127.0.0.1:56756 - "OPTIONS /api/labels/project/694254a6206bea2d38bc4409 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56756 - "GET /api/labels/project/694254a6206bea2d38bc4409 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56775 - "GET /api/health HTTP/1.1" 200 OK
+2025-12-20 20:37:40,332 - passlib.handlers.bcrypt - WARNING - (trapped) error reading bcrypt version
+Traceback (most recent call last):
+  File "/Users/cloudsmac/Documents/GitHub/4Flow/backend/venv/lib/python3.12/site-packages/passlib/handlers/bcrypt.py", line 620, in _load_backend_mixin
+    version = _bcrypt.__about__.__version__
+              ^^^^^^^^^^^^^^^^^
+AttributeError: module 'bcrypt' has no attribute '__about__'
+INFO:     127.0.0.1:56778 - "POST /api/auth/login HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56780 - "POST /api/users HTTP/1.1" 201 Created
+WARNING:  WatchFiles detected changes in 'verify_project_updates.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [36453]
+/Users/cloudsmac/Documents/GitHub/4Flow/backend/utils/auth.py:13: UserWarning: Using default JWT_SECRET. Set JWT_SECRET environment variable in production!
+  warnings.warn("Using default JWT_SECRET. Set JWT_SECRET environment variable in production!")
+WARNING:  WatchFiles detected changes in 'verify_project_updates.py'. Reloading...
+/Users/cloudsmac/Documents/GitHub/4Flow/backend/utils/auth.py:13: UserWarning: Using default JWT_SECRET. Set JWT_SECRET environment variable in production!
+  warnings.warn("Using default JWT_SECRET. Set JWT_SECRET environment variable in production!")
+INFO:     Started server process [36878]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+2025-12-20 20:37:57,478 - passlib.handlers.bcrypt - WARNING - (trapped) error reading bcrypt version
+Traceback (most recent call last):
+  File "/Users/cloudsmac/Documents/GitHub/4Flow/backend/venv/lib/python3.12/site-packages/passlib/handlers/bcrypt.py", line 620, in _load_backend_mixin
+    version = _bcrypt.__about__.__version__
+              ^^^^^^^^^^^^^^^^^
+AttributeError: module 'bcrypt' has no attribute '__about__'
+INFO:     127.0.0.1:56788 - "POST /api/auth/login HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56793 - "GET /api/auth/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56795 - "GET /api/api/projects HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:56797 - "GET /api/projects HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56799 - "PUT /api/users/694250242e256a3b1456e625/projects HTTP/1.1" 200 OK
+WARNING:  WatchFiles detected changes in 'verify_project_updates.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [36878]
+/Users/cloudsmac/Documents/GitHub/4Flow/backend/utils/auth.py:13: UserWarning: Using default JWT_SECRET. Set JWT_SECRET environment variable in production!
+  warnings.warn("Using default JWT_SECRET. Set JWT_SECRET environment variable in production!")
+INFO:     Started server process [37112]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     127.0.0.1:56869 - "OPTIONS /api/labels/project/694254a6206bea2d38bc43e5 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56870 - "OPTIONS /api/labels/project/694254a6206bea2d38bc43e5 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56869 - "GET /api/labels/project/694254a6206bea2d38bc43e5 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56869 - "GET /api/labels/project/694254a6206bea2d38bc43e5 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56883 - "OPTIONS /api/labels/project/694254a6206bea2d38bc43e5 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56884 - "OPTIONS /api/labels/project/694254a6206bea2d38bc43e5 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56883 - "GET /api/labels/project/694254a6206bea2d38bc43e5 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56883 - "GET /api/labels/project/694254a6206bea2d38bc43e5 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56887 - "OPTIONS /api/tasks/694254a6206bea2d38bc43f5/status?status=done HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56887 - "PUT /api/tasks/694254a6206bea2d38bc43f5/status?status=done HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56887 - "OPTIONS /api/tasks/694254a6206bea2d38bc43f5/status?status=working HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56887 - "PUT /api/tasks/694254a6206bea2d38bc43f5/status?status=working HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56890 - "OPTIONS /api/users HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56891 - "OPTIONS /api/users HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56890 - "GET /api/users HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56891 - "GET /api/users HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56896 - "OPTIONS /api/users/694250242e256a3b1456e625 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56896 - "PUT /api/users/694250242e256a3b1456e625 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56896 - "OPTIONS /api/users/694250242e256a3b1456e625/projects HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56896 - "PUT /api/users/694250242e256a3b1456e625/projects HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56896 - "OPTIONS /api/users HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56896 - "GET /api/users HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56909 - "OPTIONS /api/auth/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56910 - "OPTIONS /api/auth/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56909 - "GET /api/auth/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56910 - "GET /api/auth/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56910 - "OPTIONS /api/projects HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56909 - "OPTIONS /api/tasks HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56913 - "OPTIONS /api/users HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56914 - "OPTIONS /api/departments HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56910 - "GET /api/projects HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56914 - "GET /api/departments HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56909 - "GET /api/tasks HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56913 - "GET /api/users HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56913 - "OPTIONS /api/projects HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56913 - "GET /api/projects HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56913 - "OPTIONS /api/labels/project/694254a6206bea2d38bc43e5 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56913 - "GET /api/labels/project/694254a6206bea2d38bc43e5 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56913 - "OPTIONS /api/labels/project/694254a6206bea2d38bc43f7 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56913 - "GET /api/labels/project/694254a6206bea2d38bc43f7 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56913 - "OPTIONS /api/labels/project/694254a6206bea2d38bc4409 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56913 - "GET /api/labels/project/694254a6206bea2d38bc4409 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56913 - "OPTIONS /api/labels/project/694254a6206bea2d38bc441b HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56913 - "GET /api/labels/project/694254a6206bea2d38bc441b HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56913 - "OPTIONS /api/labels/project/694254a6206bea2d38bc442d HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56913 - "GET /api/labels/project/694254a6206bea2d38bc442d HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56913 - "OPTIONS /api/labels/project/694254a6206bea2d38bc442d HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56909 - "OPTIONS /api/labels/project/694254a6206bea2d38bc442d HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56913 - "GET /api/labels/project/694254a6206bea2d38bc442d HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56913 - "GET /api/labels/project/694254a6206bea2d38bc442d HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56925 - "OPTIONS /api/users HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56926 - "OPTIONS /api/users HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56925 - "GET /api/users HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56926 - "GET /api/users HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56940 - "OPTIONS /api/users HTTP/1.1" 200 OK
+2025-12-20 20:42:48,087 - passlib.handlers.bcrypt - WARNING - (trapped) error reading bcrypt version
+Traceback (most recent call last):
+  File "/Users/cloudsmac/Documents/GitHub/4Flow/backend/venv/lib/python3.12/site-packages/passlib/handlers/bcrypt.py", line 620, in _load_backend_mixin
+    version = _bcrypt.__about__.__version__
+              ^^^^^^^^^^^^^^^^^
+AttributeError: module 'bcrypt' has no attribute '__about__'
+INFO:     127.0.0.1:56940 - "POST /api/users HTTP/1.1" 201 Created
+INFO:     127.0.0.1:56940 - "OPTIONS /api/users HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56940 - "GET /api/users HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56946 - "OPTIONS /api/auth/login HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56946 - "POST /api/auth/login HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56946 - "OPTIONS /api/projects HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56946 - "GET /api/projects HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56950 - "OPTIONS /api/tasks HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56951 - "OPTIONS /api/users HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56952 - "OPTIONS /api/departments HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56950 - "GET /api/tasks HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56952 - "GET /api/departments HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56951 - "GET /api/users HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56951 - "OPTIONS /api/projects HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56951 - "GET /api/projects HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56991 - "OPTIONS /api/auth/login HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56991 - "POST /api/auth/login HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56991 - "OPTIONS /api/projects HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56994 - "OPTIONS /api/tasks HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56996 - "OPTIONS /api/users HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56997 - "OPTIONS /api/departments HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56991 - "GET /api/projects HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56994 - "GET /api/tasks HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56996 - "GET /api/users HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56997 - "GET /api/departments HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57002 - "OPTIONS /api/projects HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57002 - "GET /api/projects HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57002 - "OPTIONS /api/labels/project/694254a6206bea2d38bc43e5 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57002 - "GET /api/labels/project/694254a6206bea2d38bc43e5 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57002 - "OPTIONS /api/labels/project/694254a6206bea2d38bc43f7 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57002 - "GET /api/labels/project/694254a6206bea2d38bc43f7 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57002 - "OPTIONS /api/labels/project/694254a6206bea2d38bc4409 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57002 - "GET /api/labels/project/694254a6206bea2d38bc4409 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57002 - "OPTIONS /api/labels/project/694254a6206bea2d38bc441b HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57002 - "GET /api/labels/project/694254a6206bea2d38bc441b HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57002 - "OPTIONS /api/labels/project/694254a6206bea2d38bc442d HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57002 - "GET /api/labels/project/694254a6206bea2d38bc442d HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57002 - "OPTIONS /api/labels/project/694254a6206bea2d38bc43e5 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57004 - "OPTIONS /api/labels/project/694254a6206bea2d38bc43e5 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57002 - "GET /api/labels/project/694254a6206bea2d38bc43e5 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57002 - "GET /api/labels/project/694254a6206bea2d38bc43e5 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57087 - "OPTIONS /api/labels/project/694254a6206bea2d38bc43e5 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57087 - "GET /api/labels/project/694254a6206bea2d38bc43e5 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57168 - "OPTIONS /api/auth/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57169 - "OPTIONS /api/auth/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57168 - "GET /api/auth/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57169 - "GET /api/auth/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57169 - "OPTIONS /api/projects HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57168 - "OPTIONS /api/tasks HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57172 - "OPTIONS /api/users HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57173 - "OPTIONS /api/departments HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57169 - "GET /api/projects HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57168 - "GET /api/tasks HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57172 - "GET /api/users HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57173 - "GET /api/departments HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57172 - "OPTIONS /api/projects HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57172 - "GET /api/projects HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57172 - "OPTIONS /api/labels/project/694254a6206bea2d38bc43e5 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57172 - "GET /api/labels/project/694254a6206bea2d38bc43e5 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57172 - "OPTIONS /api/labels/project/694254a6206bea2d38bc43f7 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57172 - "GET /api/labels/project/694254a6206bea2d38bc43f7 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57172 - "OPTIONS /api/labels/project/694254a6206bea2d38bc4409 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57172 - "GET /api/labels/project/694254a6206bea2d38bc4409 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57172 - "OPTIONS /api/labels/project/694254a6206bea2d38bc441b HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57172 - "GET /api/labels/project/694254a6206bea2d38bc441b HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57172 - "OPTIONS /api/labels/project/694254a6206bea2d38bc442d HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57172 - "GET /api/labels/project/694254a6206bea2d38bc442d HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57194 - "OPTIONS /api/auth/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57195 - "OPTIONS /api/auth/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57194 - "GET /api/auth/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57195 - "GET /api/auth/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57195 - "OPTIONS /api/projects HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57194 - "OPTIONS /api/tasks HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57198 - "OPTIONS /api/users HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57199 - "OPTIONS /api/departments HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57195 - "GET /api/projects HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57194 - "GET /api/tasks HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57198 - "GET /api/users HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57199 - "GET /api/departments HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57198 - "OPTIONS /api/projects HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57198 - "GET /api/projects HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57198 - "OPTIONS /api/labels/project/694254a6206bea2d38bc43e5 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57198 - "GET /api/labels/project/694254a6206bea2d38bc43e5 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57198 - "OPTIONS /api/labels/project/694254a6206bea2d38bc43f7 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57198 - "GET /api/labels/project/694254a6206bea2d38bc43f7 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57198 - "OPTIONS /api/labels/project/694254a6206bea2d38bc4409 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57198 - "GET /api/labels/project/694254a6206bea2d38bc4409 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57198 - "OPTIONS /api/labels/project/694254a6206bea2d38bc441b HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57198 - "GET /api/labels/project/694254a6206bea2d38bc441b HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57198 - "OPTIONS /api/labels/project/694254a6206bea2d38bc442d HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57198 - "GET /api/labels/project/694254a6206bea2d38bc442d HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57203 - "GET /api/health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57212 - "OPTIONS /api/labels/project/694254a6206bea2d38bc43e5 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57213 - "OPTIONS /api/labels/project/694254a6206bea2d38bc43e5 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57212 - "GET /api/labels/project/694254a6206bea2d38bc43e5 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57212 - "GET /api/labels/project/694254a6206bea2d38bc43e5 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57220 - "GET /api/health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57243 - "OPTIONS /api/labels/project/694254a6206bea2d38bc43e5 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57244 - "OPTIONS /api/labels/project/694254a6206bea2d38bc43e5 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57243 - "GET /api/labels/project/694254a6206bea2d38bc43e5 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57243 - "GET /api/labels/project/694254a6206bea2d38bc43e5 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57249 - "OPTIONS /api/labels/project/694254a6206bea2d38bc441b HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57249 - "GET /api/labels/project/694254a6206bea2d38bc441b HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57252 - "OPTIONS /api/tasks/694254a6206bea2d38bc4423 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57252 - "PUT /api/tasks/694254a6206bea2d38bc4423 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57257 - "OPTIONS /api/labels/project/694254a6206bea2d38bc43f7 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57257 - "GET /api/labels/project/694254a6206bea2d38bc43f7 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57257 - "OPTIONS /api/labels/project/694254a6206bea2d38bc43f7 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57259 - "OPTIONS /api/labels/project/694254a6206bea2d38bc43f7 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57257 - "GET /api/labels/project/694254a6206bea2d38bc43f7 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57257 - "GET /api/labels/project/694254a6206bea2d38bc43f7 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57264 - "OPTIONS /api/tasks/694254a6206bea2d38bc43ff HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57264 - "PUT /api/tasks/694254a6206bea2d38bc43ff HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57279 - "OPTIONS /api/tasks/694254a6206bea2d38bc43ff HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57279 - "PUT /api/tasks/694254a6206bea2d38bc43ff HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57290 - "OPTIONS /api/auth/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57291 - "OPTIONS /api/auth/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57290 - "GET /api/auth/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57291 - "GET /api/auth/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57291 - "OPTIONS /api/tasks?projectId=694254a6206bea2d38bc43f7 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57290 - "OPTIONS /api/labels/project/694254a6206bea2d38bc43f7 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57291 - "OPTIONS /api/tasks HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57295 - "OPTIONS /api/projects HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57297 - "OPTIONS /api/users HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57298 - "OPTIONS /api/departments HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57299 - "OPTIONS /api/tasks?projectId=694254a6206bea2d38bc43f7 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57291 - "OPTIONS /api/labels/project/694254a6206bea2d38bc43f7 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57290 - "GET /api/tasks?projectId=694254a6206bea2d38bc43f7 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57295 - "GET /api/labels/project/694254a6206bea2d38bc43f7 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57297 - "GET /api/tasks HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57291 - "GET /api/departments HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57298 - "GET /api/projects HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57299 - "GET /api/users HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57290 - "GET /api/tasks?projectId=694254a6206bea2d38bc43f7 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57295 - "GET /api/labels/project/694254a6206bea2d38bc43f7 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57295 - "OPTIONS /api/projects HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57295 - "GET /api/projects HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57295 - "OPTIONS /api/labels/project/694254a6206bea2d38bc43e5 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57295 - "GET /api/labels/project/694254a6206bea2d38bc43e5 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57295 - "OPTIONS /api/labels/project/694254a6206bea2d38bc43f7 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57295 - "GET /api/labels/project/694254a6206bea2d38bc43f7 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57295 - "OPTIONS /api/labels/project/694254a6206bea2d38bc4409 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57295 - "GET /api/labels/project/694254a6206bea2d38bc4409 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57295 - "OPTIONS /api/labels/project/694254a6206bea2d38bc441b HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57295 - "GET /api/labels/project/694254a6206bea2d38bc441b HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57295 - "OPTIONS /api/labels/project/694254a6206bea2d38bc442d HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57295 - "GET /api/labels/project/694254a6206bea2d38bc442d HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57363 - "OPTIONS /api/labels/project/694254a6206bea2d38bc43f7 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57363 - "GET /api/labels/project/694254a6206bea2d38bc43f7 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57379 - "OPTIONS /api/labels/project/694254a6206bea2d38bc43f7 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57379 - "GET /api/labels/project/694254a6206bea2d38bc43f7 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57393 - "OPTIONS /api/auth/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57395 - "OPTIONS /api/auth/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57393 - "GET /api/auth/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57393 - "OPTIONS /api/projects HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57395 - "GET /api/auth/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57399 - "OPTIONS /api/tasks HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57401 - "OPTIONS /api/users HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57403 - "OPTIONS /api/departments HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57393 - "GET /api/projects HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57399 - "GET /api/tasks HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57403 - "GET /api/departments HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57401 - "GET /api/users HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57401 - "OPTIONS /api/projects HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57401 - "GET /api/projects HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57401 - "OPTIONS /api/labels/project/694254a6206bea2d38bc43e5 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57401 - "GET /api/labels/project/694254a6206bea2d38bc43e5 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57401 - "OPTIONS /api/labels/project/694254a6206bea2d38bc43f7 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57401 - "GET /api/labels/project/694254a6206bea2d38bc43f7 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57401 - "OPTIONS /api/labels/project/694254a6206bea2d38bc4409 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57401 - "GET /api/labels/project/694254a6206bea2d38bc4409 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57401 - "OPTIONS /api/labels/project/694254a6206bea2d38bc441b HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57401 - "GET /api/labels/project/694254a6206bea2d38bc441b HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57401 - "OPTIONS /api/labels/project/694254a6206bea2d38bc442d HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57401 - "GET /api/labels/project/694254a6206bea2d38bc442d HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57420 - "OPTIONS /api/labels/project/694254a6206bea2d38bc43e5 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57421 - "OPTIONS /api/labels/project/694254a6206bea2d38bc43e5 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57420 - "GET /api/labels/project/694254a6206bea2d38bc43e5 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57420 - "GET /api/labels/project/694254a6206bea2d38bc43e5 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57486 - "OPTIONS /api/auth/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57487 - "OPTIONS /api/auth/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57486 - "GET /api/auth/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57486 - "OPTIONS /api/projects HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57489 - "OPTIONS /api/tasks HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57491 - "OPTIONS /api/users HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57493 - "OPTIONS /api/departments HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57487 - "GET /api/auth/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57489 - "GET /api/tasks HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57493 - "GET /api/departments HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57491 - "GET /api/users HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57486 - "GET /api/projects HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57491 - "OPTIONS /api/projects HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57491 - "GET /api/projects HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57491 - "OPTIONS /api/labels/project/694254a6206bea2d38bc43e5 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57491 - "GET /api/labels/project/694254a6206bea2d38bc43e5 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57491 - "OPTIONS /api/labels/project/694254a6206bea2d38bc43f7 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57491 - "GET /api/labels/project/694254a6206bea2d38bc43f7 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57491 - "OPTIONS /api/labels/project/694254a6206bea2d38bc4409 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57491 - "GET /api/labels/project/694254a6206bea2d38bc4409 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57491 - "OPTIONS /api/labels/project/694254a6206bea2d38bc441b HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57491 - "GET /api/labels/project/694254a6206bea2d38bc441b HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57491 - "OPTIONS /api/labels/project/694254a6206bea2d38bc442d HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57491 - "GET /api/labels/project/694254a6206bea2d38bc442d HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57506 - "OPTIONS /api/labels/project/694254a6206bea2d38bc43e5 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57507 - "OPTIONS /api/labels/project/694254a6206bea2d38bc43e5 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57507 - "GET /api/labels/project/694254a6206bea2d38bc43e5 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57507 - "GET /api/labels/project/694254a6206bea2d38bc43e5 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57517 - "OPTIONS /api/labels/project/694254a6206bea2d38bc43e5 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57518 - "OPTIONS /api/labels/project/694254a6206bea2d38bc43e5 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57517 - "GET /api/labels/project/694254a6206bea2d38bc43e5 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57517 - "GET /api/labels/project/694254a6206bea2d38bc43e5 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58031 - "OPTIONS /api/auth/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58032 - "OPTIONS /api/auth/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58031 - "GET /api/auth/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58031 - "OPTIONS /api/projects HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58032 - "GET /api/auth/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58035 - "OPTIONS /api/tasks HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58037 - "OPTIONS /api/users HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58038 - "OPTIONS /api/departments HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58038 - "GET /api/departments HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58035 - "GET /api/tasks HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58037 - "GET /api/users HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58031 - "GET /api/projects HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58037 - "OPTIONS /api/projects HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58037 - "GET /api/projects HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58037 - "OPTIONS /api/labels/project/694254a6206bea2d38bc43e5 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58037 - "GET /api/labels/project/694254a6206bea2d38bc43e5 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58037 - "OPTIONS /api/labels/project/694254a6206bea2d38bc43f7 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58037 - "GET /api/labels/project/694254a6206bea2d38bc43f7 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58037 - "OPTIONS /api/labels/project/694254a6206bea2d38bc4409 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58037 - "GET /api/labels/project/694254a6206bea2d38bc4409 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58037 - "OPTIONS /api/labels/project/694254a6206bea2d38bc441b HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58037 - "GET /api/labels/project/694254a6206bea2d38bc441b HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58037 - "OPTIONS /api/labels/project/694254a6206bea2d38bc442d HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58037 - "GET /api/labels/project/694254a6206bea2d38bc442d HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58045 - "OPTIONS /api/labels/project/694254a6206bea2d38bc43e5 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58046 - "OPTIONS /api/labels/project/694254a6206bea2d38bc43e5 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58045 - "GET /api/labels/project/694254a6206bea2d38bc43e5 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58046 - "GET /api/labels/project/694254a6206bea2d38bc43e5 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58063 - "OPTIONS /api/tasks/694254a6206bea2d38bc43ed HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58063 - "PUT /api/tasks/694254a6206bea2d38bc43ed HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58065 - "OPTIONS /api/tasks/694254a6206bea2d38bc43ed HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58065 - "PUT /api/tasks/694254a6206bea2d38bc43ed HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58209 - "OPTIONS /api/tasks/694254a6206bea2d38bc43ed HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58209 - "PUT /api/tasks/694254a6206bea2d38bc43ed HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58211 - "OPTIONS /api/tasks/694254a6206bea2d38bc43ed HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58211 - "PUT /api/tasks/694254a6206bea2d38bc43ed HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58222 - "OPTIONS /api/labels/project/694254a6206bea2d38bc43e5 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58223 - "OPTIONS /api/labels/project/694254a6206bea2d38bc43e5 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58222 - "GET /api/labels/project/694254a6206bea2d38bc43e5 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58222 - "GET /api/labels/project/694254a6206bea2d38bc43e5 HTTP/1.1" 200 OK

@@ -14,8 +14,10 @@ const Dashboard = () => {
   const inProgressTasks = tasks.filter(t => t.status === 'working').length;
   const myTasks = tasks.filter(t => t.assignees?.includes(localStorage.getItem('userId')));
 
-  // Recent projects
-  const recentProjects = projects.slice(0, 6);
+  // Recent projects - filter by membership
+  const currentUserId = localStorage.getItem('userId');
+  const userProjects = projects.filter(p => p.members?.includes(currentUserId));
+  const recentProjects = userProjects.slice(0, 6);
 
   // Quick stats
   const stats = [
@@ -111,7 +113,7 @@ const Dashboard = () => {
                 <div
                   key={project._id}
                   onClick={() => navigate(`/board/${project._id}`)}
-                  className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 hover:shadow-lg dark:hover:shadow-gray-900 transition-all bg-white dark:bg-gray-900 cursor-pointer group"
+                  className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 hover:shadow-lg dark:hover:shadow-gray-900 transition-all bg-white dark:bg-gray-800 cursor-pointer group"
                 >
                   <div className="flex items-start justify-between mb-3">
                     <div className="flex items-center gap-2">
@@ -137,7 +139,7 @@ const Dashboard = () => {
                       <span>{projectTasks.length} görev</span>
                       <span>{progress}%</span>
                     </div>
-                    <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                    <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 overflow-hidden">
                       <div
                         className="bg-blue-600 dark:bg-blue-500 h-2 rounded-full transition-all"
                         style={{ width: `${progress}%` }}

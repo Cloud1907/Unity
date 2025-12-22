@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { MoreHorizontal, Plus, Calendar, User, Tag, TrendingUp, ChevronDown, X } from 'lucide-react';
+import { MoreHorizontal, Plus, Calendar, User, Tag, TrendingUp, ChevronDown, X, GitMerge, MessageSquare } from 'lucide-react';
 import { useDataState, useDataActions } from '../contexts/DataContext';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
 import ModernTaskModal from './ModernTaskModal';
@@ -324,7 +324,7 @@ const MainTable = ({ boardId, searchQuery, filters }) => {
     return Math.round((completed / task.subtasks.length) * 100);
   };
 
-  const openTaskModal = (task, section = 'activity') => {
+  const openTaskModal = (task, section = 'subtasks') => {
     setSelectedTask(task);
     setModalInitialSection(section);
     setIsModalOpen(true);
@@ -430,10 +430,33 @@ const MainTable = ({ boardId, searchQuery, filters }) => {
                       >
                         <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: getStatusColor(task.status) }}></div>
                         {task.title}
-                        {hasSubtasks && (
-                          <span className="text-[9px] px-1 py-0.5 bg-gray-100 text-gray-500 rounded border border-gray-200">
-                            {task.subtasks.length} alt
+                        <div
+                          className="flex items-center gap-1.5 px-2 py-1 bg-gray-50 dark:bg-gray-800/50 text-gray-500 dark:text-gray-400 rounded-md border border-gray-100 dark:border-gray-700/50 shadow-sm hover:border-[#6366f1] transition-colors cursor-pointer"
+                          title="Alt Görevler"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            openTaskModal(task, 'subtasks');
+                          }}
+                        >
+                          <GitMerge size={10} className="rotate-90 text-[#6366f1]" />
+                          <span className="text-[10px] font-bold tracking-tight">
+                            {task.subtasks.filter(st => st.completed).length}/{task.subtasks.length}
                           </span>
+                        </div>
+                        {task.comments && (
+                          <div
+                            className="flex items-center gap-1.5 px-2 py-1 bg-gray-50 dark:bg-gray-800/50 text-gray-500 dark:text-gray-400 rounded-md border border-gray-100 dark:border-gray-700/50 shadow-sm hover:border-[#00c875] transition-colors cursor-pointer"
+                            title="Yorumlar"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              openTaskModal(task, 'comments');
+                            }}
+                          >
+                            <MessageSquare size={10} className="text-[#00c875]" />
+                            <span className="text-[10px] font-bold tracking-tight">
+                              {task.comments.length}
+                            </span>
+                          </div>
                         )}
                       </div>
                     </div>

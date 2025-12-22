@@ -16,6 +16,7 @@ class TaskBase(BaseModel):
     dueDate: Optional[datetime] = None
     progress: int = 0  # 0-100
     subtasks: List[dict] = []  # List of subtask objects
+    comments: List[dict] = []  # List of comments
     attachments: List[dict] = []  # List of attachment objects {id, name, url, type, size, uploadedAt}
 
 class TaskCreate(TaskBase):
@@ -33,6 +34,7 @@ class TaskUpdate(BaseModel):
     dueDate: Optional[datetime] = None
     progress: Optional[int] = None
     subtasks: Optional[List[dict]] = None
+    comments: Optional[List[dict]] = None
     attachments: Optional[List[dict]] = None
 
 class Task(TaskBase):

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { Plus, MoreHorizontal, User, Calendar } from 'lucide-react';
+import { Plus, MoreHorizontal, User, Calendar, GitMerge, MessageSquare } from 'lucide-react';
 import { useDataState, useDataActions } from '../contexts/DataContext';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
 import ModernTaskModal from './ModernTaskModal';
@@ -550,6 +550,38 @@ const CompactTaskCard = React.memo(({ task, onDragStart, onDragEnd, isDragging, 
         />
       </div>
 
+      {/* Task Indicators */}
+      <div className="flex items-center gap-2 mb-3">
+        {task.subtasks?.length > 0 && (
+          <div
+            className="flex items-center gap-1 px-1.5 py-0.5 bg-gray-50 rounded border border-gray-100 text-gray-500 hover:border-[#6366f1] transition-colors cursor-pointer"
+            title="Alt Görevler"
+            onClick={(e) => {
+              e.stopPropagation();
+              onTaskClick(task, 'subtasks');
+            }}
+          >
+            <GitMerge size={10} className="rotate-90 text-[#6366f1]" />
+            <span className="text-[9px] font-bold">
+              {task.subtasks.filter(st => st.completed).length}/{task.subtasks.length}
+            </span>
+          </div>
+        )}
+        {task.comments && (
+          <div
+            className="flex items-center gap-1 px-1.5 py-0.5 bg-gray-50 rounded border border-gray-100 text-gray-500 hover:border-[#00c875] transition-colors cursor-pointer"
+            title="Yorumlar"
+            onClick={(e) => {
+              e.stopPropagation();
+              onTaskClick(task, 'comments');
+            }}
+          >
+            <MessageSquare size={10} className="text-[#00c875]" />
+            <span className="text-[9px] font-bold">{task.comments.length}</span>
+          </div>
+        )}
+      </div>
+
       {/* Labels Row */}
       <div className="mb-3">
         <InlineLabelPicker
@@ -658,6 +690,7 @@ const KanbanViewV2 = ({ boardId, searchQuery, filters }) => {
   const [dragOverColumn, setDragOverColumn] = useState(null);
   const [selectedTask, setSelectedTask] = useState(null);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
+  const [modalInitialSection, setModalInitialSection] = useState('subtasks');
 
   useEffect(() => {
     if (boardId) {
@@ -777,8 +810,9 @@ const KanbanViewV2 = ({ boardId, searchQuery, filters }) => {
     await updateTask(taskId, data);
   }, [updateTask]);
 
-  const handleTaskClick = (task) => {
+  const handleTaskClick = (task, section = 'subtasks') => {
     setSelectedTask(task);
+    setModalInitialSection(section);
     setIsDetailOpen(true);
   };
 
@@ -941,6 +975,7 @@ const KanbanViewV2 = ({ boardId, searchQuery, filters }) => {
           task={selectedTask}
           isOpen={isDetailOpen}
           onClose={handleCloseDetail}
+          initialSection={modalInitialSection}
         />
       )}
     </div>

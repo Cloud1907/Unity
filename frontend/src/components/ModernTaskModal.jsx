@@ -47,6 +47,32 @@ const ModernTaskModal = ({ task, isOpen, onClose, initialSection = 'subtasks' })
     }
   }, [isOpen, initialSection]);
 
+  // Keyboard shortcuts
+  React.useEffect(() => {
+    if (!isOpen) return;
+
+    const handleKeyDown = (e) => {
+      // Esc to close
+      if (e.key === 'Escape') {
+        onClose();
+      }
+      // Cmd/Ctrl + S to save
+      if ((e.metaKey || e.ctrlKey) && e.key === 's') {
+        e.preventDefault();
+        updateTask(task._id, {
+          ...taskData,
+          subtasks,
+          attachments,
+          comments
+        });
+        toast.success('Değişiklikler kaydedildi');
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onClose, taskData, subtasks, attachments, comments, task._id, updateTask]);
+
   if (!isOpen) return null;
 
   const getStatusData = (statusId) => {
@@ -204,7 +230,7 @@ const ModernTaskModal = ({ task, isOpen, onClose, initialSection = 'subtasks' })
         onClick={(e) => e.stopPropagation()}
         style={{ pointerEvents: 'auto', zIndex: 1000000 }}
       >
-        {/* Header */}
+        {/* Header - Simplified */}
         <div className="flex shrink-0 items-center justify-between px-8 py-4 border-b border-gray-200 bg-white">
           <div className="flex-1">
             {isEditing ? (
@@ -213,38 +239,28 @@ const ModernTaskModal = ({ task, isOpen, onClose, initialSection = 'subtasks' })
                 onChange={(e) => setTaskData({ ...taskData, title: e.target.value })}
                 onBlur={handleTitleUpdate}
                 onKeyPress={(e) => e.key === 'Enter' && handleTitleUpdate()}
-                className="text-2xl font-semibold border-none shadow-none focus:ring-2 focus:ring-[#0086c0] px-0"
+                className="text-2xl font-semibold border-none shadow-none focus:ring-2 focus:ring-indigo-500 px-0"
                 autoFocus
               />
             ) : (
               <h2
-                className="text-2xl font-semibold text-gray-900 cursor-pointer hover:text-[#0086c0] transition-colors"
+                className="text-2xl font-semibold text-gray-900 cursor-pointer hover:text-indigo-600 transition-colors"
                 onClick={() => setIsEditing(true)}
               >
                 {taskData.title}
               </h2>
             )}
-
-            {/* Description Field */}
-            <div className="mt-2">
-              <Textarea
-                value={taskData.description || ''}
-                onChange={(e) => setTaskData({ ...taskData, description: e.target.value })}
-                placeholder="Görev açıklaması ekle..."
-                className="min-h-[60px] resize-none border-none shadow-none focus:ring-0 p-0 text-gray-600 dark:text-gray-400 text-sm bg-transparent placeholder-gray-400"
-              />
-            </div>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
             <Button
               onClick={() => {
-                onClose();
                 updateTask(task._id, {
                   ...taskData,
                   subtasks,
                   attachments,
                   comments
                 });
+                onClose();
               }}
               className="bg-indigo-500 hover:bg-indigo-600 text-white px-6 shadow-sm"
             >
@@ -257,6 +273,13 @@ const ModernTaskModal = ({ task, isOpen, onClose, initialSection = 'subtasks' })
             >
               Kapat
             </Button>
+            <button
+              onClick={onClose}
+              className="p-2 hover:bg-gray-100 rounded-lg transition-colors ml-2"
+              aria-label="Close"
+            >
+              <X size={20} className="text-gray-500" />
+            </button>
           </div>
         </div>
 
@@ -264,13 +287,18 @@ const ModernTaskModal = ({ task, isOpen, onClose, initialSection = 'subtasks' })
           {/* Left Sidebar - Quick Actions */}
           <div className="w-20 bg-gray-50 border-r border-gray-200 flex flex-col items-center py-6 gap-4">
 
-            {/* Subtasks Button */}
+            {/* Subtasks Button with Badge */}
             <button
               onClick={() => setActiveSection('subtasks')}
-              className={`p-3 hover:bg-white rounded-lg transition-colors ${activeSection === 'subtasks' ? 'bg-white shadow-md' : ''}`}
+              className={`p-3 hover:bg-white rounded-lg transition-colors relative ${activeSection === 'subtasks' ? 'bg-white shadow-md' : ''}`}
               title="Alt Görevler"
             >
               <ListTodo size={20} className={activeSection === 'subtasks' ? 'text-[#6366f1]' : 'text-gray-600'} />
+              {subtasks.filter(st => !st.completed).length > 0 && (
+                <div className="absolute -top-1 -right-1 bg-orange-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[18px] flex items-center justify-center border-2 border-gray-50">
+                  {subtasks.filter(st => !st.completed).length}
+                </div>
+              )}
             </button>
             <button
               onClick={() => setActiveSection('comments')}
@@ -289,10 +317,15 @@ const ModernTaskModal = ({ task, isOpen, onClose, initialSection = 'subtasks' })
             </button>
             <button
               onClick={() => setActiveSection('files')}
-              className={`p-3 hover:bg-white rounded-lg transition-colors ${activeSection === 'files' ? 'bg-white shadow-md' : ''}`}
+              className={`p-3 hover:bg-white rounded-lg transition-colors relative ${activeSection === 'files' ? 'bg-white shadow-md' : ''}`}
               title="Dosyalar"
             >
               <Paperclip size={20} className={activeSection === 'files' ? 'text-[#6366f1]' : 'text-gray-600'} />
+              {attachments.length > 0 && (
+                <div className="absolute -top-1 -right-1 bg-blue-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[18px] flex items-center justify-center border-2 border-gray-50">
+                  {attachments.length}
+                </div>
+              )}
             </button>
 
             <div className="flex-1" />

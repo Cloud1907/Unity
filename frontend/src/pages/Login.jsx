@@ -34,9 +34,12 @@ const Login = () => {
       <div className="w-full max-w-md">
         {/* Logo */}
         <div className="text-center mb-8">
-          <div className="flex items-center justify-center gap-2 mb-2">
-            <span className="text-4xl font-bold text-[#6366f1]">4</span>
-            <span className="text-4xl font-semibold text-gray-800 dark:text-gray-100">Flow</span>
+          <div className="flex items-center justify-center mb-4">
+            <img
+              src="/4flow-text-logo.png"
+              alt="4Flow"
+              className="h-16 w-auto"
+            />
           </div>
           <p className="text-gray-600 dark:text-gray-400">Proje ve Görev Yönetimi</p>
         </div>

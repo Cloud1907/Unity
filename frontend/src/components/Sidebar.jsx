@@ -93,20 +93,6 @@ const Sidebar = ({ currentBoard, onBoardChange, onNewBoard }) => {
 
   return (
     <div className="w-64 bg-[#f6f7fb] dark:bg-gray-950 border-r border-gray-200 dark:border-gray-800 h-screen flex flex-col">
-      {/* Logo */}
-      <div className="p-3 border-b border-gray-200 dark:border-gray-800">
-        <div className="flex items-center gap-2">
-          <div className="flex items-center gap-1.5 group cursor-pointer">
-            <div className="w-7 h-7 bg-gradient-to-br from-[#6366f1] to-[#8b5cf6] rounded-lg flex items-center justify-center">
-              <span className="text-base font-black text-white">4</span>
-            </div>
-            <div className="flex flex-col">
-              <span className="text-sm font-bold text-gray-900 dark:text-gray-100 leading-none">Flow</span>
-              <span className="text-[9px] text-gray-500 dark:text-gray-400 tracking-wide">PROJECT MANAGEMENT</span>
-            </div>
-          </div>
-        </div>
-      </div>
 
       {/* Navigation */}
       <div className="flex-1 overflow-y-auto py-4">
@@ -188,7 +174,7 @@ const Sidebar = ({ currentBoard, onBoardChange, onNewBoard }) => {
                     className="w-2 h-2 rounded-full"
                     style={{ backgroundColor: board.color }}
                   />
-                  <span className="flex-1 text-left truncate text-sm">{board.name}</span>
+                  <span className="flex-1 text-left truncate text-sm text-gray-700 dark:text-gray-200">{board.name}</span>
                 </Link>
               ))}
               <button

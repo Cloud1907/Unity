@@ -30,6 +30,7 @@ class UserBase(BaseModel):
 
 class UserCreate(UserBase):
     password: str
+    projectIds: Optional[List[str]] = None
 
 class UserUpdate(BaseModel):
     fullName: Optional[str] = None
@@ -40,6 +41,7 @@ class UserUpdate(BaseModel):
     avatar: Optional[str] = None
     color: Optional[str] = None
     isActive: Optional[bool] = None
+    projectIds: Optional[List[str]] = None
 
 class User(UserBase):
     id: str = Field(default_factory=lambda: str(ObjectId()), alias="_id")
