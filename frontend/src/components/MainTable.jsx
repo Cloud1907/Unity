@@ -5,6 +5,7 @@ import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
 import ModernTaskModal from './ModernTaskModal';
 import NewTaskModal from './NewTaskModal';
 import InlineLabelPicker from './InlineLabelPicker';
+import MobileBoardView from './MobileBoardView';
 import pkg from '../../package.json';
 
 // Monday.com benzeri durum renkleri (Daha canlı ve pastel)
@@ -243,6 +244,13 @@ const MainTable = ({ boardId, searchQuery, filters }) => {
   const [showNewTaskModal, setShowNewTaskModal] = useState(false);
 
   const [expandedRows, setExpandedRows] = useState(new Set());
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   // Optimize data fetching: Only fetch if needed
   React.useEffect(() => {
@@ -338,6 +346,42 @@ const MainTable = ({ boardId, searchQuery, filters }) => {
           <p className="text-lg">Bir proje seçin veya yeni proje oluşturun</p>
         </div>
       </div>
+    );
+  }
+
+  // Mobile View Render
+  if (isMobile) {
+    return (
+      <>
+        <MobileBoardView
+          tasks={boardTasks}
+          onTaskClick={(task) => openTaskModal(task)}
+          onNewTaskClick={() => setShowNewTaskModal(true)}
+          getStatusColor={getStatusColor}
+          getPriorityData={getPriorityData}
+          getAssignees={getAssignees}
+          searchQuery={searchQuery}
+        />
+
+        {/* Task Modal */}
+        {isModalOpen && selectedTask && (
+          <ModernTaskModal
+            task={selectedTask}
+            isOpen={isModalOpen}
+            onClose={() => setIsModalOpen(false)}
+            initialSection={modalInitialSection}
+          />
+        )}
+
+        {/* New Task Modal */}
+        {showNewTaskModal && (
+          <NewTaskModal
+            isOpen={showNewTaskModal}
+            onClose={() => setShowNewTaskModal(false)}
+            boardId={boardId}
+          />
+        )}
+      </>
     );
   }
 
