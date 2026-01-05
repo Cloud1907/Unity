@@ -30,76 +30,79 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 transition-colors duration-200">
-      <div className="w-full max-w-md">
-        {/* Logo */}
-        <div className="text-center mb-8">
-          <div className="flex items-center justify-center mb-4">
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 p-4 font-sans">
+      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl w-full max-w-4xl flex overflow-hidden min-h-[500px]">
+        {/* Left Side - Brand */}
+        <div className="w-1/2 bg-white dark:bg-gray-800 flex flex-col items-center justify-center p-12 border-r border-gray-100 dark:border-gray-700">
+          <div className="mb-6">
             <img
-              src="/4flow-text-logo.png"
-              alt="4Flow"
-              className="h-16 w-auto"
+              src="/unity-logo-3d.png"
+              alt="Unity"
+              className="w-48 h-auto object-contain"
             />
           </div>
-          <p className="text-gray-600 dark:text-gray-400">Proje ve Görev Yönetimi</p>
+          <h1 className="text-[#1e1b4b] dark:text-white text-5xl font-bold mb-2 tracking-tight">Unity</h1>
+          <p className="text-gray-500 dark:text-gray-400 text-lg">Proje ve Görev Yönetimi</p>
         </div>
 
-        {/* Login Form */}
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-8 transition-colors duration-200">
-          <h2 className="text-2xl font-semibold text-gray-900 dark:text-white mb-6">Giriş Yap</h2>
+        {/* Right Side - Form */}
+        <div className="w-1/2 p-12 flex flex-col justify-center bg-white dark:bg-gray-800">
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-8">Giriş Yap</h2>
 
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <Label htmlFor="email" className="dark:text-gray-200">E-posta</Label>
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div className="space-y-2">
+              <Label htmlFor="email" className="text-gray-700 dark:text-gray-300 font-medium">E-mail</Label>
               <Input
                 id="email"
                 type="email"
-                placeholder="ornek@4flow.com"
+                placeholder="Email.adresiniz@gmail.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
-                className="mt-1 dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:placeholder-gray-400"
+                className="h-11 rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-indigo-500 transition-all"
               />
             </div>
 
-            <div>
-              <Label htmlFor="password" className="dark:text-gray-200">Şifre</Label>
-              <Input
-                id="password"
-                type="password"
-                placeholder="••••••••"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                className="mt-1 dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:placeholder-gray-400"
-              />
+            <div className="space-y-2">
+              <Label htmlFor="password" className="text-gray-700 dark:text-gray-300 font-medium">Şifre</Label>
+              <div className="relative">
+                <Input
+                  id="password"
+                  type="password"
+                  placeholder="••••••••"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  className="h-11 rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-indigo-500 transition-all pr-10"
+                />
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end">
+              <a href="#" className="text-sm font-medium text-indigo-600 hover:text-indigo-500">Giriş yapamadın mı?</a>
             </div>
 
             <Button
               type="submit"
-              className="w-full bg-[#6366f1] hover:bg-[#5558e3] text-white"
+              className="w-full h-11 bg-[#3758f9] hover:bg-[#2f4ac4] text-white font-medium rounded-lg text-base shadow-lg shadow-indigo-200 dark:shadow-none transition-all"
               disabled={loading}
             >
               {loading ? 'Giriş yapılıyor...' : 'Giriş Yap'}
             </Button>
           </form>
 
-          <div className="mt-6 text-center">
-            <p className="text-sm text-gray-600 dark:text-gray-400">
-              Hesabınız yok mu?{' '}
-              <Link to="/register" className="text-[#6366f1] hover:underline font-medium">
-                Kayıt Ol
-              </Link>
+          <div className="mt-8 text-center">
+            <p className="text-gray-500 text-sm">
+              Görev dünyası sağlar?
             </p>
           </div>
         </div>
-
-        {/* Version Badge */}
-        <div className="absolute bottom-4 right-4">
-          <span className="text-xs text-gray-400 font-mono bg-white/80 dark:bg-gray-800/80 px-2 py-1 rounded shadow">
-            v1.2.2
-          </span>
-        </div>
+      </div>
+      {/* Version Badge */}
+      <div className="absolute bottom-4 right-4">
+        <span className="text-xs text-gray-400 font-mono">
+          v1.2.2
+        </span>
       </div>
     </div>
   );

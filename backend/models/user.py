@@ -21,7 +21,7 @@ class PyObjectId(ObjectId):
 class UserBase(BaseModel):
     fullName: str
     email: EmailStr
-    department: Optional[str] = None
+    departments: Optional[List[str]] = []
     role: str = "member"  # admin, manager, member, guest
     manager: Optional[str] = None
     avatar: Optional[str] = None
@@ -35,13 +35,15 @@ class UserCreate(UserBase):
 class UserUpdate(BaseModel):
     fullName: Optional[str] = None
     email: Optional[EmailStr] = None
-    department: Optional[str] = None
+    departments: Optional[List[str]] = None
     role: Optional[str] = None
     manager: Optional[str] = None
     avatar: Optional[str] = None
     color: Optional[str] = None
     isActive: Optional[bool] = None
     projectIds: Optional[List[str]] = None
+    password: Optional[str] = None
+
 
 class User(UserBase):
     id: str = Field(default_factory=lambda: str(ObjectId()), alias="_id")

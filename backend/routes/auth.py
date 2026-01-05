@@ -117,6 +117,33 @@ async def get_me(current_user: dict = Depends(get_current_active_user)):
     """Get current user"""
     return {k: v for k, v in current_user.items() if k != "password"}
 
+class PasswordChangeRequest(BaseModel):
+    current_password: str
+    new_password: str
+
+@router.post("/change-password", response_model=dict)
+async def change_password(
+    password_data: PasswordChangeRequest,
+    current_user: dict = Depends(get_current_active_user)
+):
+    """Change current user password"""
+    # Verify current password
+    user = await db.users.find_one({"_id": current_user["_id"]})
+    if not verify_password(password_data.current_password, user["password"]):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Mevcut şifre yanlış"
+        )
+    
+    # Update password
+    new_hash = get_password_hash(password_data.new_password)
+    await db.users.update_one(
+        {"_id": current_user["_id"]},
+        {"$set": {"password": new_hash}}
+    )
+    
+    return {"message": "Şifre başarıyla güncellendi"}
+
 class ProfileUpdateRequest(BaseModel):
     fullName: Optional[str] = None
     email: Optional[str] = None

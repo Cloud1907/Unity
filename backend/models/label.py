@@ -5,7 +5,8 @@ from datetime import datetime
 class LabelBase(BaseModel):
     name: str
     color: str  # Hex color code
-    projectId: str
+    projectId: Optional[str] = None
+    isGlobal: bool = False
 
 class LabelCreate(LabelBase):
     pass

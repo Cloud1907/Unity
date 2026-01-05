@@ -111,6 +111,19 @@ export const DataProvider = ({ children }) => {
     }
   }, []);
 
+  const createLabel = useCallback(async (data) => {
+    try {
+      const response = await labelsAPI.create(data);
+      setLabels(prev => [...prev, response.data]);
+      toast.success('Etiket oluşturuldu');
+      return { success: true, data: response.data };
+    } catch (error) {
+      console.error('Label creation error:', error);
+      toast.error('Etiket oluşturulamadı');
+      return { success: false, error };
+    }
+  }, []);
+
   const fetchAllData = useCallback(async () => {
     setLoading(true);
     try {
@@ -159,13 +172,17 @@ export const DataProvider = ({ children }) => {
   }, []);
 
   const deleteProject = useCallback(async (id) => {
+    console.log('Attempting to delete project:', id);
     try {
       await projectsAPI.delete(id);
       setProjects(prev => prev.filter(p => p._id !== id));
       toast.success('Proje silindi!');
       return { success: true };
     } catch (error) {
-      toast.error('Proje silinemedi');
+      console.error('Delete project error:', error);
+      const errorMessage = error.response?.data?.detail || error.message;
+      window.alert('HATA: Proje silinemedi!\n\nDetay: ' + errorMessage);
+      // toast.error('Proje silinemedi: ' + errorMessage);
       return { success: false, error };
     }
   }, []);
@@ -177,6 +194,43 @@ export const DataProvider = ({ children }) => {
       return { success: true, data: response.data };
     } catch (error) {
       toast.error('Favori durumu değiştirilemedi');
+      return { success: false, error };
+    }
+  }, []);
+
+  // Department operations
+  const createDepartment = useCallback(async (data) => {
+    try {
+      const response = await departmentsAPI.create(data);
+      setDepartments(prev => [...prev, response.data]);
+      toast.success('Departman oluşturuldu!');
+      return { success: true, data: response.data };
+    } catch (error) {
+      toast.error('Departman oluşturulamadı');
+      return { success: false, error };
+    }
+  }, []);
+
+  const updateDepartment = useCallback(async (id, data) => {
+    try {
+      const response = await departmentsAPI.update(id, data);
+      setDepartments(prev => prev.map(d => (d._id === id || d.id === id) ? response.data : d));
+      toast.success('Departman güncellendi!');
+      return { success: true, data: response.data };
+    } catch (error) {
+      toast.error('Departman güncellenemedi');
+      return { success: false, error };
+    }
+  }, []);
+
+  const deleteDepartment = useCallback(async (id) => {
+    try {
+      await departmentsAPI.delete(id);
+      setDepartments(prev => prev.filter(d => (d._id !== id && d.id !== id)));
+      toast.success('Departman silindi!');
+      return { success: true };
+    } catch (error) {
+      toast.error('Departman silinemedi');
       return { success: false, error };
     }
   }, []);
@@ -272,10 +326,14 @@ export const DataProvider = ({ children }) => {
     updateProject,
     deleteProject,
     toggleFavorite,
+    createDepartment,
+    updateDepartment,
+    deleteDepartment,
     createTask,
     updateTask,
     deleteTask,
     updateTaskStatus,
+    createLabel,
     refreshData: fetchAllData
   }), [
     fetchProjects,
@@ -287,10 +345,14 @@ export const DataProvider = ({ children }) => {
     updateProject,
     deleteProject,
     toggleFavorite,
+    createDepartment,
+    updateDepartment,
+    deleteDepartment,
     createTask,
     updateTask,
     deleteTask,
     updateTaskStatus,
+    createLabel,
     fetchAllData
   ]);
 

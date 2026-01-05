@@ -22,9 +22,9 @@ db = client[os.environ['DB_NAME']]
 
 # Create the main app without a prefix
 app = FastAPI(
-    title="4Flow API",
+    title="Unity API",
     version="1.0.3",
-    description="Monday.com clone API",
+    description="Unity Project Management API",
     redirect_slashes=False
 )
 
@@ -65,7 +65,7 @@ app.include_router(api_router)
 
 @app.get("/")
 async def root():
-    return {"message": "Welcome to 4Flow API", "docs": "/docs"}
+    return {"message": "Welcome to Unity API", "docs": "/docs"}
 
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import Response, JSONResponse

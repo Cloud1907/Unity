@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Home, Users, Settings, Plus, ChevronDown, ChevronRight, Star, LogOut, FlaskConical, Menu, X } from 'lucide-react';
+import { Home, Settings, Plus, ChevronDown, ChevronRight, Star, LogOut, Menu, X, Lock, Users } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useData } from '../contexts/DataContext';
@@ -42,7 +42,7 @@ const UserProfile = () => {
             <Settings size={16} />
             <span>Profil Ayarları</span>
           </Link>
-          {user.role === 'admin' && (
+          {(user.role === 'admin' || user.role === 'manager') && (
             <Link
               to="/admin"
               onClick={() => setShowMenu(false)}
@@ -123,9 +123,9 @@ const Sidebar = ({ currentBoard, onBoardChange, onNewBoard }) => {
 
         {/* App Logo/Header */}
         <div className="h-16 flex items-center px-6 border-b border-slate-100 dark:border-slate-900">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center text-white font-bold text-xl shadow-md shadow-indigo-200 dark:shadow-none">4</div>
-            <span className="font-bold text-xl text-slate-900 dark:text-white tracking-tight">Flow</span>
+          <div className="flex items-center gap-3">
+            <img src="/unity-logo-3d.png" alt="Unity" className="h-10 w-auto" />
+            <span className="font-bold text-xl text-slate-900 dark:text-white tracking-tight">Unity</span>
           </div>
         </div>
 
@@ -146,20 +146,6 @@ const Sidebar = ({ currentBoard, onBoardChange, onNewBoard }) => {
             >
               <Home size={18} className="group-hover:scale-110 transition-transform" />
               <span>Ana Sayfa</span>
-            </Link>
-            <Link
-              to="/team"
-              className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-indigo-50 dark:hover:bg-indigo-900/20 hover:text-indigo-600 dark:hover:text-indigo-400 transition-all font-medium text-slate-600 dark:text-slate-400 text-sm group"
-            >
-              <Users size={18} className="group-hover:scale-110 transition-transform" />
-              <span>Ekibim</span>
-            </Link>
-            <Link
-              to="/tests"
-              className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-indigo-50 dark:hover:bg-indigo-900/20 hover:text-indigo-600 dark:hover:text-indigo-400 transition-all font-medium text-slate-600 dark:text-slate-400 text-sm group"
-            >
-              <FlaskConical size={18} className="group-hover:scale-110 transition-transform" />
-              <span>Test Sonuçları</span>
             </Link>
           </div>
 
@@ -221,7 +207,10 @@ const Sidebar = ({ currentBoard, onBoardChange, onNewBoard }) => {
                       className="w-2.5 h-2.5 rounded-full ring-2 ring-transparent group-hover:ring-indigo-100 dark:group-hover:ring-indigo-900 transition-all"
                       style={{ backgroundColor: board.color }}
                     />
-                    <span className="flex-1 text-left truncate text-sm">{board.name}</span>
+                    <span className="flex-1 text-left truncate text-sm flex items-center gap-1.5">
+                      {board.name}
+                      {board.isPrivate && <Lock size={12} className="text-slate-400" />}
+                    </span>
                   </Link>
                 ))}
                 <button
@@ -243,18 +232,19 @@ const Sidebar = ({ currentBoard, onBoardChange, onNewBoard }) => {
           <UserProfile />
 
           <div className="mt-2 flex items-center justify-center gap-2 text-[10px] text-slate-400 font-medium">
-            <span>4Flow v{pkg.version}</span>
+            <span>Unity v{pkg.version}</span>
             <span>•</span>
             <Link to="/settings" className="hover:text-indigo-500 transition-colors">Gizlilik</Link>
           </div>
         </div>
 
-        {/* New Project Modal */}
-        <NewProjectModal
-          isOpen={showNewProjectModal}
-          onClose={() => setShowNewProjectModal(false)}
-        />
       </div>
+
+      {/* New Project Modal - Moved outside to escape sidebar constraints */}
+      <NewProjectModal
+        isOpen={showNewProjectModal}
+        onClose={() => setShowNewProjectModal(false)}
+      />
     </>
   );
 };

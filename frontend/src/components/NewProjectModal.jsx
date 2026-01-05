@@ -9,7 +9,7 @@ import { useAuth } from '../contexts/AuthContext';
 
 const NewProjectModal = ({ isOpen, onClose }) => {
   const { user } = useAuth();
-  const { createProject } = useData();
+  const { createProject, departments, fetchDepartments } = useData();
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
@@ -17,7 +17,9 @@ const NewProjectModal = ({ isOpen, onClose }) => {
     icon: '📁',
     color: '#0086c0',
     priority: 'medium',
-    status: 'planning'
+    status: 'planning',
+    department: '',
+    isPrivate: false
   });
 
   // Reset form when modal closes
@@ -29,18 +31,36 @@ const NewProjectModal = ({ isOpen, onClose }) => {
         icon: '📁',
         color: '#0086c0',
         priority: 'medium',
-        status: 'planning'
+        status: 'planning',
+        department: '', // Will be set automatically for non-admins below
+        isPrivate: false
       });
+    } else {
+      fetchDepartments();
     }
-  }, [isOpen]);
+  }, [isOpen, fetchDepartments]);
+
+  // Filter departments based on role
+  const availableDepartments = React.useMemo(() => {
+    if (user?.role === 'admin') return departments;
+    return departments.filter(d => d.name === user?.department);
+  }, [departments, user]);
+
+  // Auto-select department if single option
+  React.useEffect(() => {
+    if (isOpen && availableDepartments.length === 1 && !formData.department) {
+      setFormData(prev => ({ ...prev, department: availableDepartments[0].name }));
+    }
+  }, [isOpen, availableDepartments, formData.department]);
 
   const icons = ['📁', '🎯', '🚀', '💼', '🌟', '⚡', '🔥', '💡', '🎨', '🏆'];
   const colors = ['#0086c0', '#6366f1', '#8b5cf6', '#00c875', '#fdab3d', '#e2445c', '#ff5a5f'];
 
   const handleChange = (e) => {
+    const value = e.target.type === 'checkbox' ? e.target.checked : e.target.value;
     setFormData({
       ...formData,
-      [e.target.name]: e.target.value
+      [e.target.name]: value
     });
   };
 
@@ -65,8 +85,8 @@ const NewProjectModal = ({ isOpen, onClose }) => {
   if (!isOpen) return null;
 
   return (
-    <div 
-      className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4" 
+    <div
+      className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4"
       style={{ zIndex: 9999 }}
       onClick={onClose}
     >
@@ -118,9 +138,8 @@ const NewProjectModal = ({ isOpen, onClose }) => {
                   key={icon}
                   type="button"
                   onClick={() => setFormData({ ...formData, icon })}
-                  className={`text-2xl p-3 rounded-lg border-2 transition-all hover:scale-110 ${
-                    formData.icon === icon ? 'border-[#6366f1] bg-blue-50' : 'border-gray-200'
-                  }`}
+                  className={`text-2xl p-3 rounded-lg border-2 transition-all hover:scale-110 ${formData.icon === icon ? 'border-[#6366f1] bg-blue-50' : 'border-gray-200'
+                    }`}
                 >
                   {icon}
                 </button>
@@ -136,46 +155,47 @@ const NewProjectModal = ({ isOpen, onClose }) => {
                   key={color}
                   type="button"
                   onClick={() => setFormData({ ...formData, color })}
-                  className={`w-10 h-10 rounded-lg transition-all hover:scale-110 ${
-                    formData.color === color ? 'ring-2 ring-offset-2 ring-gray-400' : ''
-                  }`}
+                  className={`w-10 h-10 rounded-lg transition-all hover:scale-110 ${formData.color === color ? 'ring-2 ring-offset-2 ring-gray-400' : ''
+                    }`}
                   style={{ backgroundColor: color }}
                 />
               ))}
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+
+
+          <div className="space-y-4">
             <div>
-              <Label htmlFor="priority">Öncelik</Label>
+              <Label htmlFor="department">Departman Seçin</Label>
               <select
-                id="priority"
-                name="priority"
-                value={formData.priority}
+                id="department"
+                name="department"
+                value={formData.department}
                 onChange={handleChange}
                 className="mt-1 w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#6366f1]"
               >
-                <option value="low">Düşük</option>
-                <option value="medium">Orta</option>
-                <option value="high">Yüksek</option>
-                <option value="urgent">Acil</option>
+                <option value="">Departman Seçilmedi</option>
+                {availableDepartments.map(dept => (
+                  <option key={dept._id} value={dept.name}>{dept.name}</option>
+                ))}
               </select>
+              <p className="mt-1 text-xs text-gray-500 italic">Departman seçilirse projeniz o departmandaki herkes tarafından görülebilir.</p>
             </div>
 
-            <div>
-              <Label htmlFor="status">Durum</Label>
-              <select
-                id="status"
-                name="status"
-                value={formData.status}
+            <div className="flex items-center gap-3 p-4 bg-blue-50 rounded-xl border border-blue-100">
+              <input
+                type="checkbox"
+                id="isPrivate"
+                name="isPrivate"
+                checked={formData.isPrivate}
                 onChange={handleChange}
-                className="mt-1 w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#6366f1]"
-              >
-                <option value="planning">Planlama</option>
-                <option value="in_progress">Devam Ediyor</option>
-                <option value="on_hold">Beklemede</option>
-                <option value="completed">Tamamlandı</option>
-              </select>
+                className="w-5 h-5 text-indigo-600 rounded focus:ring-indigo-500"
+              />
+              <div className="flex-1">
+                <Label htmlFor="isPrivate" className="font-semibold text-blue-900 mb-0 cursor-pointer">Özel Proje (Private)</Label>
+                <p className="text-sm text-blue-700">Bu seçeneği işaretlerseniz, departman seçili olsa bile proje sadece sahibi ve eklenen üyeler tarafından görülebilir.</p>
+              </div>
             </div>
           </div>
 

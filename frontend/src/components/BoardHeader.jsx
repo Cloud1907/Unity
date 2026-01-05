@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
-import { Star, MoreHorizontal, Filter, Search, Users as UsersIcon, Tag, Table, LayoutGrid, Calendar, BarChart3, Users } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Star, MoreHorizontal, Filter, Search, Users as UsersIcon, Tag, Table, LayoutGrid, Calendar, BarChart3, Users, Trash2, MoreVertical, Settings } from 'lucide-react';
 import { useData } from '../contexts/DataContext';
+import { useNavigate } from 'react-router-dom';
 import { Button } from './ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
 import NewTaskModal from './NewTaskModal';
@@ -16,10 +17,13 @@ const BoardHeader = ({
   filters = { status: [], priority: [], assignee: [], labels: [] },
   onFilterChange
 }) => {
-  const { projects, users, toggleFavorite, labels } = useData();
+  const { projects, users, toggleFavorite, labels, deleteProject } = useData();
+  const navigate = useNavigate();
   const [showNewTaskModal, setShowNewTaskModal] = useState(false);
   const [showLabelManager, setShowLabelManager] = useState(false);
   const [showFilterMenu, setShowFilterMenu] = useState(false);
+  const [showSettingsMenu, setShowSettingsMenu] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   const board = projects.find(b => b._id === boardId);
   const boardMembers = users.filter(u => board?.members?.includes(u._id));
@@ -31,16 +35,34 @@ const BoardHeader = ({
     }
   };
 
-  // Close filter menu when clicking outside
-  React.useEffect(() => {
+  const handleDeleteProject = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setShowSettingsMenu(false);
+    setShowDeleteConfirm(true);
+  };
+
+  const confirmDelete = async () => {
+    setShowDeleteConfirm(false);
+    const result = await deleteProject(boardId);
+    if (result.success) {
+      navigate('/');
+    }
+  };
+
+  // Close menus when clicking outside
+  useEffect(() => {
     const handleClickOutside = (event) => {
       if (showFilterMenu && !event.target.closest('.relative')) {
         setShowFilterMenu(false);
       }
+      if (showSettingsMenu && !event.target.closest('.settings-menu')) {
+        setShowSettingsMenu(false);
+      }
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [showFilterMenu]);
+  }, [showFilterMenu, showSettingsMenu]);
 
   const views = [
     { id: 'main', label: 'Ana Tablo', Icon: Table, shortLabel: 'Tablo' },
@@ -72,9 +94,28 @@ const BoardHeader = ({
                   v{pkg.version}
                 </span>
               </div>
-              {board.description && (
-                <p className="text-xs text-gray-500 mt-0.5">{board.description}</p>
-              )}
+              {/* Project Settings Menu Relocated Here */}
+              <div className="relative settings-menu ml-1">
+                <button
+                  onClick={() => setShowSettingsMenu(!showSettingsMenu)}
+                  className="p-1 hover:bg-gray-100 rounded-md text-gray-400 hover:text-gray-600 transition-colors"
+                  title="Proje Ayarları"
+                >
+                  <MoreHorizontal size={16} />
+                </button>
+
+                {showSettingsMenu && (
+                  <div className="absolute left-0 top-full mt-1 w-48 bg-white rounded-lg shadow-xl border border-gray-200 z-50 py-1">
+                    <button
+                      onClick={handleDeleteProject}
+                      className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2"
+                    >
+                      <Trash2 size={16} />
+                      Projeyi Sil
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </div>
@@ -101,8 +142,10 @@ const BoardHeader = ({
 
           <Button onClick={() => setShowNewTaskModal(true)} size="sm" className="gap-1 bg-[#6366f1] hover:bg-[#5558e3] text-white text-xs h-7 px-3">
             <span className="text-sm">+</span>
-            Yeni Öğe
+            Yeni Görev
           </Button>
+
+
         </div>
       </div>
 
@@ -293,13 +336,41 @@ const BoardHeader = ({
       />
 
       {/* Label Manager Modal */}
-      {showLabelManager && (
-        <LabelManager
-          projectId={boardId}
-          onClose={() => setShowLabelManager(false)}
-        />
+      {
+        showLabelManager && (
+          <LabelManager
+            projectId={boardId}
+            onClose={() => setShowLabelManager(false)}
+          />
+        )
+      }
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[100]" onClick={() => setShowDeleteConfirm(false)}>
+          <div className="bg-white rounded-lg shadow-xl p-6 max-w-md w-full mx-4" onClick={(e) => e.stopPropagation()}>
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">Projeyi Sil</h3>
+            <p className="text-sm text-gray-600 mb-6">
+              Bu projeyi silmek istediğinizden emin misiniz? Bu işlem geri alınamaz.
+            </p>
+            <div className="flex gap-3 justify-end">
+              <button
+                onClick={() => setShowDeleteConfirm(false)}
+                className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+              >
+                Vazgeç
+              </button>
+              <button
+                onClick={confirmDelete}
+                className="px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors"
+              >
+                Sil
+              </button>
+            </div>
+          </div>
+        </div>
       )}
-    </div>
+    </div >
   );
 };
 

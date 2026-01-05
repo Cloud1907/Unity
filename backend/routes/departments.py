@@ -15,7 +15,7 @@ async def get_departments(current_user: dict = Depends(get_current_active_user))
 @router.post("", response_model=Department, status_code=status.HTTP_201_CREATED)
 async def create_department(
     department_data: DepartmentCreate,
-    current_user: dict = Depends(get_admin_user)
+    current_user: dict = Depends(get_current_active_user)
 ):
     """Create department (admin only)"""
     department_dict = department_data.dict()
@@ -45,7 +45,7 @@ async def update_department(
 @router.delete("/{department_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_department(
     department_id: str,
-    current_user: dict = Depends(get_admin_user)
+    current_user: dict = Depends(get_current_active_user)
 ):
     """Delete department (admin only)"""
     result = await db.departments.delete_one({"_id": department_id})

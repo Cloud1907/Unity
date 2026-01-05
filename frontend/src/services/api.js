@@ -44,6 +44,7 @@ export const authAPI = {
   login: (data) => api.post('/auth/login', data),
   getMe: () => api.get('/auth/me'),
   updateProfile: (data) => api.put('/auth/profile', data),
+  changePassword: (data) => api.post('/auth/change-password', data),
 };
 
 // Users API
@@ -106,6 +107,7 @@ export const commentsAPI = {
 
 // Labels API
 export const labelsAPI = {
+  getAll: (globalOnly = false) => api.get('/labels', { params: { global_only: globalOnly } }),
   getByProject: (projectId) => api.get(`/labels/project/${projectId}`),
   create: (data) => api.post('/labels', data),
   update: (id, data) => api.put(`/labels/${id}`, data),

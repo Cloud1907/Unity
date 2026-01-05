@@ -1,7 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react';
 import ReactDOM from 'react-dom';
 import { X, Calendar, User as UserIcon, MessageSquare, Paperclip, Clock, Plus, CheckCircle2, ListTodo, Trash2, History, ChevronDown, Layout } from 'lucide-react';
-import { useDataState, useDataActions } from '../contexts/DataContext';
+import { format } from 'date-fns';
+import { tr } from 'date-fns/locale';
+import { cn } from '../lib/utils';
+import { Calendar as CalendarComponent } from './ui/calendar';
+import InlineLabelPicker from './InlineLabelPicker';
+import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
+import { useData } from '../contexts/DataContext';
 import { useAuth } from '../contexts/AuthContext';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
 import { Button } from './ui/button';
@@ -25,8 +31,7 @@ const priorities = [
 ];
 
 const ModernTaskModal = ({ task, isOpen, onClose, initialSection = 'subtasks' }) => {
-  const { updateTask } = useDataActions();
-  const { users, labels: allLabels } = useDataState();
+  const { updateTask, users, projects } = useData();
   const { user: currentUser } = useAuth();
 
   const [taskData, setTaskData] = useState(task);
@@ -39,8 +44,29 @@ const ModernTaskModal = ({ task, isOpen, onClose, initialSection = 'subtasks' })
   const [newComment, setNewComment] = useState('');
   const [isUploading, setIsUploading] = useState(false);
   const [showStatusMenu, setShowStatusMenu] = useState(false);
+  const [showAssigneeMenu, setShowAssigneeMenu] = useState(false);
+  const [openSubtaskAssignee, setOpenSubtaskAssignee] = useState(null);
+  const [subtaskDropdownPos, setSubtaskDropdownPos] = useState({ top: 0, left: 0 }); // New state for portal position
+  const [mainDropdownPos, setMainDropdownPos] = useState({ top: 0, left: 0 }); // New state for main portal position
+  const [searchQuery, setSearchQuery] = useState('');
 
   const statusMenuRef = useRef(null);
+  const assigneeMenuRef = useRef(null);
+
+  // Get current project to filter users
+  const currentProject = projects.find(p => p._id === task.projectId);
+
+  // Filter users: must be in project members OR be the current user OR be admin
+  const projectUsers = users.filter(u =>
+    currentProject?.members?.includes(u._id) ||
+    u._id === currentProject?.owner ||
+    u.role === 'admin'
+  );
+
+  const filteredUsers = projectUsers.filter(u =>
+    u.fullName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    u.email.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   useEffect(() => {
     if (isOpen) setActiveSection(initialSection);
@@ -52,10 +78,17 @@ const ModernTaskModal = ({ task, isOpen, onClose, initialSection = 'subtasks' })
       if (statusMenuRef.current && !statusMenuRef.current.contains(event.target)) {
         setShowStatusMenu(false);
       }
+      if (assigneeMenuRef.current && !assigneeMenuRef.current.contains(event.target) && !event.target.closest('.main-assignee-dropdown')) {
+        setShowAssigneeMenu(false);
+      }
+      // Close subtask assignee dropdown ONLY if clicking outside of it
+      if (openSubtaskAssignee !== null && !event.target.closest('.subtask-assignee-dropdown')) {
+        setOpenSubtaskAssignee(null);
+      }
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
+  }, [openSubtaskAssignee]);
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -205,8 +238,8 @@ const ModernTaskModal = ({ task, isOpen, onClose, initialSection = 'subtasks' })
                 key={item.id}
                 onClick={() => setActiveSection(item.id)}
                 className={`w-10 h-10 flex items-center justify-center rounded-xl transition-all relative group ${activeSection === item.id
-                    ? 'bg-indigo-100 text-indigo-600 dark:bg-indigo-900/30 dark:text-indigo-400'
-                    : 'text-slate-400 hover:bg-white hover:text-slate-600 dark:hover:bg-slate-800 dark:hover:text-slate-300'
+                  ? 'bg-indigo-100 text-indigo-600 dark:bg-indigo-900/30 dark:text-indigo-400'
+                  : 'text-slate-400 hover:bg-white hover:text-slate-600 dark:hover:bg-slate-800 dark:hover:text-slate-300'
                   }`}
                 title={item.label}
               >
@@ -239,8 +272,8 @@ const ModernTaskModal = ({ task, isOpen, onClose, initialSection = 'subtasks' })
                             setTaskData(prev => ({ ...prev, subtasks: updated }));
                           }}
                           className={`mt-0.5 w-5 h-5 rounded-md border flex items-center justify-center transition-colors ${subtask.completed
-                              ? 'bg-indigo-500 border-indigo-500 text-white'
-                              : 'border-slate-300 dark:border-slate-600 text-transparent hover:border-indigo-400'
+                            ? 'bg-indigo-500 border-indigo-500 text-white'
+                            : 'border-slate-300 dark:border-slate-600 text-transparent hover:border-indigo-400'
                             }`}
                         >
                           <CheckCircle2 size={14} />
@@ -248,6 +281,118 @@ const ModernTaskModal = ({ task, isOpen, onClose, initialSection = 'subtasks' })
                         <span className={`flex-1 text-sm ${subtask.completed ? 'text-slate-400 line-through' : 'text-slate-700 dark:text-slate-200'}`}>
                           {subtask.title}
                         </span>
+
+                        {/* Assignee Selector */}
+                        <div className="relative">
+                          {subtask.assignee ? (
+                            <div className="flex items-center gap-1">
+                              <Avatar
+                                className="w-6 h-6 cursor-pointer hover:ring-2 hover:ring-indigo-100 transition-all"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  if (openSubtaskAssignee === subtask.id) {
+                                    setOpenSubtaskAssignee(null);
+                                  } else {
+                                    const rect = e.currentTarget.getBoundingClientRect();
+                                    // Calculate position: open DOWNWARDS (top = bottom + gap)
+                                    setSubtaskDropdownPos({
+                                      top: rect.bottom + 8,
+                                      left: rect.left - 200 // Shift left to keep in screen
+                                    });
+                                    setOpenSubtaskAssignee(subtask.id);
+                                  }
+                                }}
+                              >
+                                <AvatarImage src={users.find(u => u._id === subtask.assignee)?.avatar} />
+                                <AvatarFallback className="text-[10px] bg-indigo-100 text-indigo-600">
+                                  {users.find(u => u._id === subtask.assignee)?.fullName?.[0]}
+                                </AvatarFallback>
+                              </Avatar>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  const updated = subtasks.map(s => s.id === subtask.id ? { ...s, assignee: null } : s);
+                                  setSubtasks(updated);
+                                  setTaskData(prev => ({ ...prev, subtasks: updated }));
+                                }}
+                                className="opacity-0 group-hover:opacity-100 text-slate-400 hover:text-red-500 transition-all"
+                              >
+                                <X size={12} />
+                              </button>
+                            </div>
+                          ) : (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                if (openSubtaskAssignee === subtask.id) {
+                                  setOpenSubtaskAssignee(null);
+                                } else {
+                                  const rect = e.currentTarget.getBoundingClientRect();
+                                  setSubtaskDropdownPos({
+                                    top: rect.bottom + 8,
+                                    left: rect.left - 200
+                                  });
+                                  setOpenSubtaskAssignee(subtask.id);
+                                }
+                              }}
+                              className="w-6 h-6 rounded-full border border-dashed border-slate-300 dark:border-slate-600 flex items-center justify-center text-slate-400 hover:border-indigo-400 hover:text-indigo-600 transition-colors opacity-0 group-hover:opacity-100"
+                            >
+                              <UserIcon size={12} />
+                            </button>
+                          )}
+
+                          {/* Dropdown - Using Portal to escape modal overflow */}
+                          {openSubtaskAssignee === subtask.id && ReactDOM.createPortal(
+                            <div
+                              className="fixed z-[99999] bg-white dark:bg-slate-900 rounded-xl shadow-2xl border border-slate-100 dark:border-slate-800 p-2 animate-in zoom-in-95 duration-150 subtask-assignee-dropdown"
+                              style={{
+                                top: subtaskDropdownPos.top,
+                                left: subtaskDropdownPos.left,
+                                width: '16rem'
+                              }}
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <Input
+                                placeholder="Kullanıcı ara..."
+                                value={searchQuery}
+                                onChange={e => setSearchQuery(e.target.value)}
+                                className="mb-2 h-9 text-sm"
+                                autoFocus
+                                onClick={(e) => e.stopPropagation()}
+                              />
+                              <div className="max-h-48 overflow-y-auto space-y-1">
+                                {filteredUsers.length > 0 ? (
+                                  filteredUsers.map(user => (
+                                    <button
+                                      key={user._id}
+                                      onClick={(e) => {
+                                        e.preventDefault();
+                                        e.stopPropagation();
+                                        const updated = subtasks.map(s => s.id === subtask.id ? { ...s, assignee: user._id } : s);
+                                        setSubtasks(updated);
+                                        setTaskData(prev => ({ ...prev, subtasks: updated }));
+                                        setOpenSubtaskAssignee(null);
+                                        setSearchQuery('');
+                                      }}
+                                      className="flex items-center gap-2 w-full p-2 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg text-sm text-left transition-colors"
+                                    >
+                                      <Avatar className="w-5 h-5">
+                                        <AvatarImage src={user.avatar} />
+                                        <AvatarFallback className="text-[10px]">{user.fullName?.[0]}</AvatarFallback>
+                                      </Avatar>
+                                      <span className="truncate text-slate-700 dark:text-slate-200">{user.fullName}</span>
+                                      {subtask.assignee === user._id && <CheckCircle2 size={14} className="ml-auto text-indigo-600" />}
+                                    </button>
+                                  ))
+                                ) : (
+                                  <div className="p-2 text-xs text-slate-400 text-center">Kullanıcı bulunamadı</div>
+                                )}
+                              </div>
+                            </div>,
+                            document.body
+                          )}
+                        </div>
+
                         <button
                           onClick={() => {
                             const filtered = subtasks.filter(s => s.id !== subtask.id);
@@ -370,9 +515,126 @@ const ModernTaskModal = ({ task, isOpen, onClose, initialSection = 'subtasks' })
                   <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-6 flex items-center gap-2">
                     <History size={16} /> Görev Geçmişi
                   </h3>
-                  <div className="text-center text-slate-500 py-10">
-                    <History size={32} className="mx-auto mb-3 opacity-20" />
-                    <p>Henüz geçmiş kaydı yok.</p>
+
+                  <div className="space-y-4">
+                    {/* Task Created */}
+                    <div className="flex gap-4 relative">
+                      <div className="flex flex-col items-center">
+                        <div className="w-8 h-8 rounded-full bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center text-indigo-600 dark:text-indigo-400 ring-4 ring-white dark:ring-slate-950">
+                          <Plus size={14} />
+                        </div>
+                        <div className="w-0.5 h-full bg-slate-200 dark:bg-slate-800 mt-2"></div>
+                      </div>
+                      <div className="flex-1 pb-6">
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="font-semibold text-sm text-slate-900 dark:text-white">Görev Oluşturuldu</span>
+                          <span className="text-xs text-slate-400">
+                            {new Date(taskData.createdAt || Date.now()).toLocaleDateString('tr-TR', {
+                              day: 'numeric',
+                              month: 'long',
+                              year: 'numeric',
+                              hour: '2-digit',
+                              minute: '2-digit'
+                            })}
+                          </span>
+                        </div>
+                        <p className="text-sm text-slate-600 dark:text-slate-400">
+                          {users.find(u => u._id === taskData.assignedBy)?.fullName || 'Kullanıcı'} tarafından oluşturuldu
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Status Changes */}
+                    {taskData.status && (
+                      <div className="flex gap-4 relative">
+                        <div className="flex flex-col items-center">
+                          <div className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-blue-600 dark:text-blue-400 ring-4 ring-white dark:ring-slate-950">
+                            <CheckCircle2 size={14} />
+                          </div>
+                          <div className="w-0.5 h-full bg-slate-200 dark:bg-slate-800 mt-2"></div>
+                        </div>
+                        <div className="flex-1 pb-6">
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="font-semibold text-sm text-slate-900 dark:text-white">Durum Güncellendi</span>
+                            <span className="text-xs text-slate-400">
+                              {new Date(taskData.updatedAt || Date.now()).toLocaleDateString('tr-TR', {
+                                day: 'numeric',
+                                month: 'short',
+                                hour: '2-digit',
+                                minute: '2-digit'
+                              })}
+                            </span>
+                          </div>
+                          <p className="text-sm text-slate-600 dark:text-slate-400">
+                            Durum: <span className="font-medium" style={{ color: statuses.find(s => s.id === taskData.status)?.color }}>
+                              {statuses.find(s => s.id === taskData.status)?.label}
+                            </span>
+                          </p>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Subtasks Added */}
+                    {subtasks.length > 0 && (
+                      <div className="flex gap-4 relative">
+                        <div className="flex flex-col items-center">
+                          <div className="w-8 h-8 rounded-full bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center text-purple-600 dark:text-purple-400 ring-4 ring-white dark:ring-slate-950">
+                            <ListTodo size={14} />
+                          </div>
+                          <div className="w-0.5 h-full bg-slate-200 dark:bg-slate-800 mt-2"></div>
+                        </div>
+                        <div className="flex-1 pb-6">
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="font-semibold text-sm text-slate-900 dark:text-white">Alt Görevler</span>
+                            <span className="text-xs text-slate-400">Şimdi</span>
+                          </div>
+                          <p className="text-sm text-slate-600 dark:text-slate-400">
+                            {subtasks.length} alt görev • {subtasks.filter(s => s.completed).length} tamamlandı
+                          </p>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Comments Added */}
+                    {comments.length > 0 && (
+                      <div className="flex gap-4 relative">
+                        <div className="flex flex-col items-center">
+                          <div className="w-8 h-8 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center text-green-600 dark:text-green-400 ring-4 ring-white dark:ring-slate-950">
+                            <MessageSquare size={14} />
+                          </div>
+                          <div className="w-0.5 h-full bg-slate-200 dark:bg-slate-800 mt-2"></div>
+                        </div>
+                        <div className="flex-1 pb-6">
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="font-semibold text-sm text-slate-900 dark:text-white">Yorumlar</span>
+                            <span className="text-xs text-slate-400">Şimdi</span>
+                          </div>
+                          <p className="text-sm text-slate-600 dark:text-slate-400">
+                            {comments.length} yorum eklendi
+                          </p>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Attachments */}
+                    {attachments.length > 0 && (
+                      <div className="flex gap-4">
+                        <div className="flex flex-col items-center">
+                          <div className="w-8 h-8 rounded-full bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center text-orange-600 dark:text-orange-400 ring-4 ring-white dark:ring-slate-950">
+                            <Paperclip size={14} />
+                          </div>
+                        </div>
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="font-semibold text-sm text-slate-900 dark:text-white">Dosyalar</span>
+                            <span className="text-xs text-slate-400">Şimdi</span>
+                          </div>
+                          <p className="text-sm text-slate-600 dark:text-slate-400">
+                            {attachments.length} dosya eklendi
+                          </p>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
               )}
@@ -425,8 +687,8 @@ const ModernTaskModal = ({ task, isOpen, onClose, initialSection = 'subtasks' })
                     key={p.id}
                     onClick={() => setTaskData({ ...taskData, priority: p.id })}
                     className={`flex items-center justify-center py-2 px-3 rounded-lg text-xs font-bold transition-all border ${taskData.priority === p.id
-                        ? 'border-transparent shadow-sm scale-105'
-                        : 'border-transparent bg-slate-100 dark:bg-slate-800 text-slate-500 opacity-70 hover:opacity-100'
+                      ? 'border-transparent shadow-sm scale-105'
+                      : 'border-transparent bg-slate-100 dark:bg-slate-800 text-slate-500 opacity-70 hover:opacity-100'
                       }`}
                     style={taskData.priority === p.id ? { backgroundColor: p.color, color: p.textColor } : {}}
                   >
@@ -436,17 +698,97 @@ const ModernTaskModal = ({ task, isOpen, onClose, initialSection = 'subtasks' })
               </div>
             </div>
 
+            {/* Labels */}
+            <div className="space-y-3">
+              <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Etiketler</label>
+              <div className="bg-white border border-slate-200 dark:border-slate-700 rounded-lg p-2 min-h-[42px] flex items-center">
+                <InlineLabelPicker
+                  taskId={taskData._id}
+                  projectId={taskData.projectId}
+                  currentLabels={taskData.labels || []}
+                  onUpdate={async (tid, newLabels) => {
+                    // Update local state immediately
+                    setTaskData(prev => ({ ...prev, labels: newLabels }));
+                    // Also trigger parent update if needed, but InlineLabelPicker usually calls updateTask
+                    // We might need to handle the API call here if InlineLabelPicker expects an onUpdate that does the API call
+                    // Let's check InlineLabelPicker props: onUpdate(taskId, newLabels)
+                    // It calls onUpdate. If we pass this, we update LOCAL state. 
+                    // AND we should probably call updateTask too? 
+                    // ModernTaskModal saves changes via "handleSave" generally, but inline controls might save immediately.
+                    // If InlineLabelPicker logic is "update on click", it expects `onUpdate` to persist it.
+                    // We should call `updateTask(tid, { tags: newLabels })`? Or `labels`.
+                    // DataContext `updateTask` takes data.
+                    await updateTask(tid, { labels: newLabels });
+                  }}
+                />
+              </div>
+            </div>
+
+            {/* Start Date */}
+            <div className="space-y-3">
+              <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Başlangıç Tarihi</label>
+              <div className="relative">
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant={"outline"}
+                      className={cn(
+                        "w-full justify-start text-left font-medium bg-white border-slate-200 dark:border-slate-700 hover:bg-slate-50",
+                        !taskData.startDate && "text-slate-400"
+                      )}
+                    >
+                      <Calendar size={16} className="mr-2 text-slate-400" />
+                      {taskData.startDate ? (
+                        format(new Date(taskData.startDate), "d MMMM yyyy", { locale: tr })
+                      ) : (
+                        <span>Tarih seçin</span>
+                      )}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0 z-[99999]" align="start" side="bottom">
+                    <CalendarComponent
+                      mode="single"
+                      selected={taskData.startDate ? new Date(taskData.startDate) : undefined}
+                      onSelect={(date) => setTaskData({ ...taskData, startDate: date ? date.toISOString() : null })}
+                      initialFocus
+                      locale={tr}
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
+            </div>
+
             {/* Due Date */}
             <div className="space-y-3">
               <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Son Tarih</label>
               <div className="relative">
-                <Input
-                  type="date"
-                  value={taskData.dueDate ? new Date(taskData.dueDate).toISOString().split('T')[0] : ''}
-                  onChange={e => setTaskData({ ...taskData, dueDate: e.target.value })}
-                  className="pl-10 font-medium text-slate-700 bg-white"
-                />
-                <Calendar size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant={"outline"}
+                      className={cn(
+                        "w-full justify-start text-left font-medium bg-white border-slate-200 dark:border-slate-700 hover:bg-slate-50",
+                        !taskData.dueDate && "text-slate-400"
+                      )}
+                    >
+                      <Calendar size={16} className="mr-2 text-slate-400" />
+                      {taskData.dueDate ? (
+                        format(new Date(taskData.dueDate), "d MMMM yyyy", { locale: tr })
+                      ) : (
+                        <span>Tarih seçin</span>
+                      )}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0 z-[99999]" align="start" side="bottom">
+                    <CalendarComponent
+                      mode="single"
+                      selected={taskData.dueDate ? new Date(taskData.dueDate) : undefined}
+                      onSelect={(date) => setTaskData({ ...taskData, dueDate: date ? date.toISOString() : null })}
+                      initialFocus
+                      locale={tr}
+                    />
+                  </PopoverContent>
+                </Popover>
               </div>
             </div>
 
@@ -468,24 +810,106 @@ const ModernTaskModal = ({ task, isOpen, onClose, initialSection = 'subtasks' })
                     </div>
                   );
                 })}
-                <div className="relative group">
-                  <button className="w-7 h-7 flex items-center justify-center rounded-full border border-dashed border-slate-300 text-slate-400 hover:border-indigo-400 hover:text-indigo-600 transition-colors">
+                <div className="relative" ref={assigneeMenuRef}>
+                  <button
+                    onClick={(e) => {
+                      if (showAssigneeMenu) {
+                        setShowAssigneeMenu(false);
+                      } else {
+                        const rect = e.currentTarget.getBoundingClientRect();
+                        setMainDropdownPos({
+                          top: rect.bottom + 8, // Open downwards
+                          left: rect.left - 200 // Align roughly or offset
+                        });
+                        setShowAssigneeMenu(true);
+                      }
+                    }}
+                    className="w-7 h-7 flex items-center justify-center rounded-full border border-dashed border-slate-300 text-slate-400 hover:border-indigo-400 hover:text-indigo-600 transition-colors"
+                  >
                     <Plus size={14} />
                   </button>
-                  {/* Dropdown for adding users would go here */}
-                  <div className="absolute top-full left-0 mt-2 w-48 bg-white rounded-xl shadow-xl border border-slate-100 z-10 hidden group-hover:block p-1">
-                    {users.filter(u => !taskData.assignees?.includes(u._id)).map(user => (
-                      <button
-                        key={user._id}
-                        onClick={() => setTaskData({ ...taskData, assignees: [...(taskData.assignees || []), user._id] })}
-                        className="flex items-center gap-2 w-full p-2 hover:bg-slate-50 rounded-lg text-sm text-left"
-                      >
-                        <Avatar className="w-5 h-5"><AvatarImage src={user.avatar} /></Avatar>
-                        <span className="truncate">{user.fullName}</span>
-                      </button>
-                    ))}
-                  </div>
+
+                  {/* Dropdown for adding users - Portal */}
+                  {showAssigneeMenu && ReactDOM.createPortal(
+                    <div
+                      className="fixed z-[99999] bg-white dark:bg-slate-900 rounded-xl shadow-2xl border border-slate-100 dark:border-slate-800 p-2 animate-in zoom-in-95 duration-150 main-assignee-dropdown"
+                      style={{
+                        top: mainDropdownPos.top,
+                        left: mainDropdownPos.left,
+                        width: '18rem'
+                      }}
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <Input
+                        placeholder="Kullanıcı ara..."
+                        value={searchQuery}
+                        onChange={e => setSearchQuery(e.target.value)}
+                        className="mb-2 h-9 text-sm"
+                        autoFocus
+                        onClick={(e) => e.stopPropagation()}
+                      />
+                      <div className="max-h-60 overflow-y-auto space-y-1">
+                        {filteredUsers.length > 0 ? (
+                          filteredUsers.filter(u => !taskData.assignees?.includes(u._id)).length > 0 ? (
+                            filteredUsers.filter(u => !taskData.assignees?.includes(u._id)).map(user => (
+                              <button
+                                key={user._id}
+                                onClick={() => {
+                                  setTaskData({ ...taskData, assignees: [...(taskData.assignees || []), user._id] });
+                                  setShowAssigneeMenu(false);
+                                  setSearchQuery('');
+                                }}
+                                className="flex items-center gap-3 w-full p-2 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg text-sm text-left transition-colors"
+                              >
+                                <Avatar className="w-6 h-6 border border-slate-100">
+                                  <AvatarImage src={user.avatar} />
+                                  <AvatarFallback className="text-[10px] bg-slate-100">{user.fullName?.[0]}</AvatarFallback>
+                                </Avatar>
+                                <div className="flex-1 overflow-hidden">
+                                  <span className="block truncate font-medium text-slate-700 dark:text-slate-200">{user.fullName}</span>
+                                  <span className="block truncate text-xs text-slate-400">{user.email}</span>
+                                </div>
+                              </button>
+                            ))
+                          ) : (
+                            <div className="p-3 text-xs text-slate-400 text-center">Tüm uygun kullanıcılar eklendi</div>
+                          )
+                        ) : (
+                          <div className="p-3 text-xs text-slate-400 text-center">Kullanıcı bulunamadı</div>
+                        )}
+                      </div>
+                    </div>,
+                    document.body
+                  )}
                 </div>
+              </div>
+            </div>
+
+            {/* Progress - Manual Slider */}
+            <div className="space-y-3">
+              <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">İlerleme</label>
+              <div className="space-y-3">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-slate-600 dark:text-slate-400">Tamamlanma</span>
+                  <span className="font-bold text-indigo-600 dark:text-indigo-400">{taskData.progress || 0}%</span>
+                </div>
+                <div className="w-full bg-slate-200 dark:bg-slate-800 rounded-full h-3 overflow-hidden shadow-inner">
+                  <div
+                    className="h-3 rounded-full transition-all duration-500 bg-gradient-to-r from-indigo-500 to-purple-500"
+                    style={{ width: `${taskData.progress || 0}%` }}
+                  />
+                </div>
+                <input
+                  type="range"
+                  min="0"
+                  max="100"
+                  value={taskData.progress || 0}
+                  onChange={(e) => setTaskData({ ...taskData, progress: parseInt(e.target.value) })}
+                  className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-indigo-600 dark:bg-slate-700"
+                  style={{
+                    background: `linear-gradient(to right, rgb(99 102 241) 0%, rgb(99 102 241) ${taskData.progress || 0}%, rgb(226 232 240) ${taskData.progress || 0}%, rgb(226 232 240) 100%)`
+                  }}
+                />
               </div>
             </div>
 

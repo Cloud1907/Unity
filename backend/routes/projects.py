@@ -13,15 +13,34 @@ async def get_projects(
     department: Optional[str] = Query(None),
     current_user: dict = Depends(get_current_active_user)
 ):
-    """Get all projects for current user"""
-    # Filter projects where user is owner or member
-    query = {
-        "$or": [
-            {"owner": current_user["_id"]},
-            {"members": current_user["_id"]}
-        ]
-    }
+    """Get projects for current user"""
+    # Admin sees everything
+    if current_user.get("role") == "admin":
+        query = {}
+    else:
+        # Visibility Logic:
+        # 1. User is owner or member (always see, even if private)
+        # 2. Project is NOT private AND user is in the same department (or one of the user's departments)
+        
+        user_depts = current_user.get("departments", [])
+        if current_user.get("department"):
+            user_depts.append(current_user.get("department"))
+
+        query = {
+            "$or": [
+                {"owner": current_user["_id"]},
+                {"members": current_user["_id"]},
+                {
+                    "$and": [
+                        {"isPrivate": {"$ne": True}}, # Not private
+                        {"department": {"$in": user_depts}}, # In one of user's departments
+                        {"department": {"$ne": None}}
+                    ]
+                }
+            ]
+        }
     
+    # Apply department filter if provided in query
     if department:
         query["department"] = department
     
@@ -39,7 +58,19 @@ async def get_project(
         raise HTTPException(status_code=404, detail="Project not found")
     
     # Check if user has access
-    if project["owner"] != current_user["_id"] and current_user["_id"] not in project.get("members", []):
+    is_admin = current_user.get("role") == "admin"
+    is_owner = project["owner"] == current_user["_id"]
+    is_member = current_user["_id"] in project.get("members", [])
+    is_private = project.get("isPrivate", False)
+    is_in_department = project.get("department") == current_user.get("department") and current_user.get("department") is not None
+    
+    # Access is allowed if:
+    # - User is Admin
+    # - User is Owner/Member
+    # - (Project is NOT private) AND (User is in the same department)
+    can_access = is_admin or is_owner or is_member or (not is_private and is_in_department)
+    
+    if not can_access:
         raise HTTPException(status_code=403, detail="Access denied")
     
     return project
@@ -83,7 +114,7 @@ async def update_project(
         raise HTTPException(status_code=404, detail="Project not found")
     
     # Check if user is owner or admin
-    if project["owner"] != current_user["_id"] and current_user["role"] != "admin":
+    if str(project["owner"]) != str(current_user["_id"]) and current_user["role"] != "admin":
         raise HTTPException(status_code=403, detail="Only project owner can update")
     
     update_data = {k: v for k, v in project_data.dict(exclude_unset=True).items()}
@@ -100,16 +131,28 @@ async def delete_project(
     project_id: str,
     current_user: dict = Depends(get_current_active_user)
 ):
-    """Delete project"""
+    # Retrieve project
     project = await db.projects.find_one({"_id": project_id})
     if not project:
+        # Fallback: Try ObjectId
+        try:
+            project = await db.projects.find_one({"_id": ObjectId(project_id)})
+        except:
+            pass
+            
+    if not project:
         raise HTTPException(status_code=404, detail="Project not found")
+
+    # Check if user is owner or admin or manager
+    is_owner = str(project["owner"]) == str(current_user["_id"])
+    is_admin = current_user["role"] == "admin"
+    is_manager = current_user["role"] == "manager"
     
-    # Check if user is owner or admin
-    if project["owner"] != current_user["_id"] and current_user["role"] != "admin":
-        raise HTTPException(status_code=403, detail="Only project owner can delete")
+    if not is_owner and not is_admin and not is_manager:
+        raise HTTPException(status_code=403, detail="Only project owner, admin, or manager can delete")
     
-    await db.projects.delete_one({"_id": project_id})
+    # Perform deletion
+    await db.projects.delete_one({"_id": project["_id"]})
     return None
 
 @router.post("/{project_id}/members", response_model=Project)
@@ -124,7 +167,7 @@ async def add_project_member(
         raise HTTPException(status_code=404, detail="Project not found")
     
     # Check if user is owner or admin
-    if project["owner"] != current_user["_id"] and current_user["role"] != "admin":
+    if str(project["owner"]) != str(current_user["_id"]) and current_user["role"] != "admin":
         raise HTTPException(status_code=403, detail="Only project owner can add members")
     
     # Check if user exists
@@ -154,7 +197,7 @@ async def remove_project_member(
         raise HTTPException(status_code=404, detail="Project not found")
     
     # Check if user is owner or admin
-    if project["owner"] != current_user["_id"] and current_user["role"] != "admin":
+    if str(project["owner"]) != str(current_user["_id"]) and current_user["role"] != "admin":
         raise HTTPException(status_code=403, detail="Only project owner can remove members")
     
     # Don't allow removing owner
@@ -180,7 +223,11 @@ async def toggle_favorite(
         raise HTTPException(status_code=404, detail="Project not found")
     
     # Check if user has access
-    if project["owner"] != current_user["_id"] and current_user["_id"] not in project.get("members", []):
+    # Check if user has access
+    is_owner = str(project["owner"]) == str(current_user["_id"])
+    is_member = str(current_user["_id"]) in [str(m) for m in project.get("members", [])]
+    
+    if not is_owner and not is_member:
         raise HTTPException(status_code=403, detail="Access denied")
     
     new_favorite = not project.get("favorite", False)

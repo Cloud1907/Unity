@@ -17,6 +17,7 @@ class ProjectBase(BaseModel):
     status: str = "planning"  # planning, in_progress, on_hold, completed, cancelled
     priority: str = "medium"  # low, medium, high, urgent
     favorite: bool = False
+    isPrivate: bool = False
 
 class ProjectCreate(ProjectBase):
     pass
@@ -34,6 +35,7 @@ class ProjectUpdate(BaseModel):
     status: Optional[str] = None
     priority: Optional[str] = None
     favorite: Optional[bool] = None
+    isPrivate: Optional[bool] = None
 
 class Project(ProjectBase):
     id: str = Field(default_factory=lambda: str(ObjectId()), alias="_id")

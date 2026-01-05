@@ -59,7 +59,8 @@ async def create_user(
 
 @router.get("", response_model=List[UserResponse])
 async def get_users(current_user: dict = Depends(get_current_active_user)):
-    """Get all users"""
+    """Get all users (removed restrictions for collaboration)"""
+    # Simply return all users so everyone can collaborate across departments
     users = await db.users.find().to_list(1000)
     return [{k: v for k, v in user.items() if k != "password"} for user in users]
 
@@ -69,20 +70,45 @@ async def get_user(user_id: str, current_user: dict = Depends(get_current_active
     user = await db.users.find_one({"_id": user_id})
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
+    
+    # Access check
+    is_admin = current_user.get("role") == "admin"
+    is_self = user_id == current_user["_id"]
+    # Access check (If user has multiple departments, check intersection)
+    user_depts = user.get("departments", [])
+    current_user_depts = current_user.get("departments", [])
+    # If legacy 'department' exists, add it to list for backward compatibility
+    if user.get("department"):
+        user_depts.append(user.get("department"))
+    if current_user.get("department"):
+        current_user_depts.append(current_user.get("department"))
+
+    is_same_dept = bool(set(user_depts) & set(current_user_depts)) if current_user_depts else False
+
+    
+    if not (is_admin or is_self or is_same_dept):
+        raise HTTPException(status_code=403, detail="Access denied")
+        
     return {k: v for k, v in user.items() if k != "password"}
 
 @router.put("/{user_id}", response_model=UserResponse)
 async def update_user(
     user_id: str,
     user_data: UserUpdate,
-    current_user: dict = Depends(get_admin_user)
+    current_user: dict = Depends(get_current_active_user)
 ):
-    """Update user (admin only)"""
+    """Update user"""
+    print(f"DEBUG: update_user called for {user_id} with data: {user_data.dict(exclude_unset=True)}")
     user = await db.users.find_one({"_id": user_id})
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
     
     update_data = {k: v for k, v in user_data.dict(exclude_unset=True).items()}
+    
+    # Hash password if it's being updated
+    if "password" in update_data:
+        update_data["password"] = get_password_hash(update_data["password"])
+        
     if update_data:
         await db.users.update_one({"_id": user_id}, {"$set": update_data})
     

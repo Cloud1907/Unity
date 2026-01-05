@@ -15,9 +15,24 @@ async def get_project_labels(
 ):
     """Get all labels for a project"""
     labels = await db.labels.find(
-        {"projectId": project_id},
+        {
+            "$or": [
+                {"projectId": project_id},
+                {"isGlobal": True}
+            ]
+        },
         {"_id": 0}
     ).to_list(100)
+    return labels
+
+@router.get("", response_model=List[Label])
+async def get_all_labels(
+    global_only: bool = False,
+    current_user: dict = Depends(get_current_active_user)
+):
+    """Get all labels (optionally filter by global)"""
+    query = {"isGlobal": True} if global_only else {}
+    labels = await db.labels.find(query, {"_id": 0}).to_list(1000)
     return labels
 
 @router.post("", response_model=Label)

@@ -55,10 +55,18 @@ const ProfileSettings = () => {
     setLoading(true);
 
     try {
-      // Backend'de password change endpoint'i yoksa, ekleyelim
-      toast.info('Şifre değiştirme özelliği yakında eklenecek');
+      await authAPI.changePassword({
+        current_password: passwordForm.currentPassword,
+        new_password: passwordForm.newPassword
+      });
+      toast.success('Şifre başarıyla değiştirildi');
+      setPasswordForm({
+        currentPassword: '',
+        newPassword: '',
+        confirmPassword: ''
+      });
     } catch (error) {
-      toast.error('Şifre değiştirilemedi');
+      toast.error(error.response?.data?.detail || 'Şifre değiştirilemedi');
     } finally {
       setLoading(false);
     }
@@ -94,8 +102,8 @@ const ProfileSettings = () => {
               <button
                 onClick={() => setActiveTab('profile')}
                 className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${activeTab === 'profile'
-                    ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 font-semibold'
-                    : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800'
+                  ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 font-semibold'
+                  : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800'
                   }`}
               >
                 <UserIcon size={18} />
@@ -104,8 +112,8 @@ const ProfileSettings = () => {
               <button
                 onClick={() => setActiveTab('password')}
                 className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${activeTab === 'password'
-                    ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 font-semibold'
-                    : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800'
+                  ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 font-semibold'
+                  : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800'
                   }`}
               >
                 <Lock size={18} />

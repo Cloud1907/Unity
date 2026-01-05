@@ -20,39 +20,40 @@ def get_password_hash(password):
 async def seed_data():
     mongo_url = os.environ.get('MONGO_URL', 'mongodb://localhost:27017')
     client = AsyncIOMotorClient(mongo_url)
-    db_name = os.environ.get('DB_NAME', '4flow')
+    db_name = os.environ.get('DB_NAME', 'univera')
     db = client[db_name]
 
-    print("🌱 Starting 4Flow Enhanced Data Seeding (v2)...")
+    print("🌱 Starting Unity/Univera Enhanced Data Seeding (v2)...")
 
     # Clear existing data for a clean slate (optional, but good for consistency)
     await db.projects.delete_many({})
     await db.tasks.delete_many({})
     await db.labels.delete_many({})
-    print("   🧹 Cleared Projects, Tasks, and Labels")
+    await db.users.delete_many({})
+    print("   🧹 Cleared Projects, Tasks, Labels, and Users")
 
     # 1. Ensure Users Exist
     users = [
         {
-            "email": "melih.bulut@4flow.com",
+            "email": "melih.bulut@unity.com",
             "name": "Melih Bulut",
             "role": "admin",
             "color": "#0086c0"
         },
         {
-            "email": "ahmet@4flow.com",
+            "email": "ahmet@unity.com",
             "name": "Ahmet Admin",
             "role": "admin",
             "color": "#e2445c"
         },
         {
-            "email": "test@4flow.com",
+            "email": "test@unity.com",
             "name": "Test Member",
             "role": "member",
             "color": "#fdab3d"
         },
         {
-            "email": "ayse@4flow.com",
+            "email": "ayse@unity.com",
             "name": "Ayşe Yılmaz",
             "role": "member",
             "color": "#00c875"
@@ -85,7 +86,7 @@ async def seed_data():
             user_map[u["email"]] = existing["_id"]
             print(f"   . User exists: {u['name']}")
 
-    melih_id = user_map["melih.bulut@4flow.com"]
+    melih_id = user_map["melih.bulut@unity.com"]
     others_ids = list(user_map.values())
 
     # 2. Rich Project Data

@@ -79,9 +79,8 @@ const GanttView = ({ boardId }) => {
                   return (
                     <div
                       key={index}
-                      className={`w-12 px-1 py-3 text-center border-r border-gray-200 ${
-                        isWeekend ? 'bg-gray-100' : ''
-                      }`}
+                      className={`w-12 px-1 py-3 text-center border-r border-gray-200 ${isWeekend ? 'bg-gray-100' : ''
+                        }`}
                     >
                       <div className="text-xs font-medium text-gray-600">
                         {date.getDate()}
@@ -99,8 +98,9 @@ const GanttView = ({ boardId }) => {
           {/* Gantt Rows */}
           <div>
             {boardTasks.map(task => {
-              const startPosition = getDayPosition(task.createdAt);
-              const duration = getTaskDuration(task.createdAt, task.dueDate);
+              const startProp = task.startDate || task.createdAt;
+              const startPosition = getDayPosition(startProp);
+              const duration = getTaskDuration(startProp, task.dueDate);
 
               return (
                 <div key={task._id} className="flex hover:bg-gray-50 transition-colors border-b border-gray-100">
@@ -115,9 +115,8 @@ const GanttView = ({ boardId }) => {
                         return (
                           <div
                             key={index}
-                            className={`w-12 border-r border-gray-100 ${
-                              isWeekend ? 'bg-gray-50' : ''
-                            }`}
+                            className={`w-12 border-r border-gray-100 ${isWeekend ? 'bg-gray-50' : ''
+                              }`}
                           />
                         );
                       })}
