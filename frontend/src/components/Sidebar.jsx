@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Home, Settings, Plus, ChevronDown, ChevronRight, Star, LogOut, Menu, X, Lock, Users } from 'lucide-react';
+import { Home, Settings, Plus, ChevronDown, ChevronRight, Star, LogOut, Menu, X, Lock, Users, Hexagon, TrendingUp } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useData } from '../contexts/DataContext';
@@ -35,12 +35,12 @@ const UserProfile = () => {
       {showMenu && (
         <div className="absolute bottom-full left-0 right-0 mb-3 bg-white dark:bg-slate-900 rounded-xl shadow-xl shadow-slate-200/50 dark:shadow-black/50 border border-slate-200 dark:border-slate-800 py-1.5 overflow-hidden animate-in slide-in-from-bottom-2 fade-in duration-200">
           <Link
-            to="/profile"
+            to="/settings"
             onClick={() => setShowMenu(false)}
             className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors"
           >
             <Settings size={16} />
-            <span>Profil Ayarları</span>
+            <span>Ayarlar</span>
           </Link>
           {(user.role === 'admin' || user.role === 'manager') && (
             <Link
@@ -124,7 +124,9 @@ const Sidebar = ({ currentBoard, onBoardChange, onNewBoard }) => {
         {/* App Logo/Header */}
         <div className="h-16 flex items-center px-6 border-b border-slate-100 dark:border-slate-900">
           <div className="flex items-center gap-3">
-            <img src="/unity-logo-3d.png" alt="Unity" className="h-10 w-auto" />
+            <div className="bg-indigo-600 p-1.5 rounded-lg shadow-sm shadow-indigo-200 dark:shadow-none">
+              <Hexagon className="w-6 h-6 text-white fill-indigo-600" strokeWidth={1.5} />
+            </div>
             <span className="font-bold text-xl text-slate-900 dark:text-white tracking-tight">Unity</span>
           </div>
         </div>
@@ -147,7 +149,15 @@ const Sidebar = ({ currentBoard, onBoardChange, onNewBoard }) => {
               <Home size={18} className="group-hover:scale-110 transition-transform" />
               <span>Ana Sayfa</span>
             </Link>
+            <Link
+              to="/reports"
+              className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-indigo-50 dark:hover:bg-indigo-900/20 hover:text-indigo-600 dark:hover:text-indigo-400 transition-all font-medium text-slate-600 dark:text-slate-400 text-sm group"
+            >
+              <TrendingUp size={18} className="group-hover:scale-110 transition-transform" />
+              <span>Raporlar</span>
+            </Link>
           </div>
+
 
           {/* Favorites */}
           <div className="space-y-1">
@@ -193,26 +203,41 @@ const Sidebar = ({ currentBoard, onBoardChange, onNewBoard }) => {
               {expandedSections.boards ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
             </button>
             {expandedSections.boards && (
-              <div className="space-y-0.5 mt-1">
-                {allBoards.map(board => (
-                  <Link
-                    key={board._id}
-                    to={`/board/${board._id}`}
-                    className={`group w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all ${currentBoard === board._id
-                      ? 'bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 font-semibold'
-                      : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 font-medium'
-                      }`}
-                  >
-                    <div
-                      className="w-2.5 h-2.5 rounded-full ring-2 ring-transparent group-hover:ring-indigo-100 dark:group-hover:ring-indigo-900 transition-all"
-                      style={{ backgroundColor: board.color }}
-                    />
-                    <span className="flex-1 text-left truncate text-sm flex items-center gap-1.5">
-                      {board.name}
-                      {board.isPrivate && <Lock size={12} className="text-slate-400" />}
-                    </span>
-                  </Link>
+              <div className="space-y-4 mt-2">
+                {Object.entries(
+                  allBoards.reduce((acc, board) => {
+                    const dept = board.department || 'Diğer';
+                    if (!acc[dept]) acc[dept] = [];
+                    acc[dept].push(board);
+                    return acc;
+                  }, {})
+                ).map(([department, deptBoards]) => (
+                  <div key={department} className="space-y-1">
+                    <div className="px-3 py-1 flex items-center justify-between text-[10px] font-bold text-slate-400/70 uppercase tracking-widest">
+                      <span>{department}</span>
+                    </div>
+                    {deptBoards.map(board => (
+                      <Link
+                        key={board._id}
+                        to={`/board/${board._id}`}
+                        className={`group w-full flex items-center gap-3 px-3 py-2 rounded-xl transition-all ${currentBoard === board._id
+                          ? 'bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 font-semibold shadow-sm'
+                          : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 font-medium'
+                          }`}
+                      >
+                        <div
+                          className="w-2.5 h-2.5 rounded-full ring-2 ring-transparent group-hover:ring-indigo-100 dark:group-hover:ring-indigo-900 transition-all"
+                          style={{ backgroundColor: board.color }}
+                        />
+                        <span className="flex-1 text-left truncate text-sm flex items-center gap-1.5">
+                          {board.name}
+                          {board.isPrivate && <Lock size={12} className="text-slate-400" />}
+                        </span>
+                      </Link>
+                    ))}
+                  </div>
                 ))}
+
                 <button
                   onClick={() => setShowNewProjectModal(true)}
                   className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 transition-all text-slate-500 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 group mt-2"
@@ -234,7 +259,7 @@ const Sidebar = ({ currentBoard, onBoardChange, onNewBoard }) => {
           <div className="mt-2 flex items-center justify-center gap-2 text-[10px] text-slate-400 font-medium">
             <span>Unity v{pkg.version}</span>
             <span>•</span>
-            <Link to="/settings" className="hover:text-indigo-500 transition-colors">Gizlilik</Link>
+            <Link to="/settings" className="hover:text-indigo-500 transition-colors">Ayarlar</Link>
           </div>
         </div>
 

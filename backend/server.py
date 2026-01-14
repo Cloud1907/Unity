@@ -39,7 +39,7 @@ api_router = APIRouter(prefix="/api")
 # Health check endpoint
 @api_router.get("/")
 async def root():
-    return {"message": "4Flow API is running", "version": "1.0.3"}
+    return {"message": "Unity API is running", "version": "1.0.3"}
 
 @api_router.get("/health")
 async def health_check():

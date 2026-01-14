@@ -35,7 +35,7 @@ const InlineTextEdit = ({ value, onSave, placeholder = 'Görev adı girin...', c
 
     if (isEditing) {
         return (
-            <div className="w-full" onClick={(e) => e.stopPropagation()}>
+            <div className="w-full h-full flex items-center" onClick={(e) => e.stopPropagation()}>
                 <input
                     ref={inputRef}
                     value={text}
@@ -43,7 +43,7 @@ const InlineTextEdit = ({ value, onSave, placeholder = 'Görev adı girin...', c
                     onBlur={handleSave}
                     onKeyDown={handleKeyDown}
                     placeholder={placeholder}
-                    className={`w-full bg-white border border-indigo-500 rounded px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500 ${className}`}
+                    className={`w-full h-full bg-white border border-indigo-500 rounded px-2 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500 flex items-center ${className}`}
                 />
             </div>
         );
@@ -55,7 +55,7 @@ const InlineTextEdit = ({ value, onSave, placeholder = 'Görev adı girin...', c
                 e.stopPropagation();
                 setIsEditing(true);
             }}
-            className={`w-full cursor-text hover:bg-gray-100 rounded px-2 py-1 text-xs transition-colors ${className}`}
+            className={`w-full h-full cursor-text hover:bg-gray-100 dark:hover:bg-gray-700/50 rounded px-2 py-1 text-xs transition-colors flex items-center ${className}`}
             title="Düzenlemek için tıklayın"
         >
             {value || <span className="text-gray-400 italic">{placeholder}</span>}

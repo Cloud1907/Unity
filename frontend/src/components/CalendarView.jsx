@@ -76,7 +76,7 @@ const CalendarView = ({ boardId }) => {
 
   return (
     <>
-      <div className="flex-1 overflow-auto bg-white p-6 relative">
+      <div className="flex-1 overflow-auto bg-white dark:bg-[#0f172a] p-6 relative">
         {/* 🎯 VERSİYON */}
         <div className="absolute top-2 right-2 z-10 px-2 py-1 bg-emerald-600 text-white text-[10px] font-bold rounded shadow-lg animate-fade-in">
           v{pkg.version}
@@ -84,7 +84,7 @@ const CalendarView = ({ boardId }) => {
 
         {/* Calendar Header */}
         <div className="flex items-center justify-between mb-6">
-          <h2 className="text-2xl font-bold text-gray-900">
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
             {monthNames[month]} {year}
           </h2>
           <div className="flex gap-2">
@@ -104,11 +104,11 @@ const CalendarView = ({ boardId }) => {
         </div>
 
         {/* Calendar Grid */}
-        <div className="border border-gray-200 rounded-lg overflow-hidden">
+        <div className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
           {/* Day Names */}
-          <div className="grid grid-cols-7 bg-gray-50">
+          <div className="grid grid-cols-7 bg-gray-50 dark:bg-gray-800">
             {dayNames.map(day => (
-              <div key={day} className="p-3 text-center font-semibold text-sm text-gray-600 border-b border-r border-gray-200 last:border-r-0">
+              <div key={day} className="p-3 text-center font-semibold text-sm text-gray-600 dark:text-gray-400 border-b border-r border-gray-200 dark:border-gray-700 last:border-r-0">
                 {day}
               </div>
             ))}
@@ -118,7 +118,7 @@ const CalendarView = ({ boardId }) => {
           <div className="grid grid-cols-7">
             {/* Empty cells for days before month starts */}
             {Array.from({ length: startingDayOfWeek }).map((_, index) => (
-              <div key={`empty-${index}`} className="min-h-[120px] bg-gray-50 border-b border-r border-gray-200 last:border-r-0" />
+              <div key={`empty-${index}`} className="min-h-[120px] bg-gray-50 dark:bg-gray-900/50 border-b border-r border-gray-200 dark:border-gray-700 last:border-r-0" />
             ))}
 
             {/* Days of the month */}
@@ -133,13 +133,13 @@ const CalendarView = ({ boardId }) => {
               return (
                 <div
                   key={day}
-                  className="min-h-[120px] border-b border-r border-gray-200 last:border-r-0 p-2 bg-white hover:bg-gray-50 transition-colors"
+                  className="min-h-[120px] border-b border-r border-gray-200 dark:border-gray-700 last:border-r-0 p-2 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
                 >
                   <div className="flex justify-between items-start mb-2">
                     <span
                       className={`text-sm font-medium ${isToday
-                          ? 'w-7 h-7 flex items-center justify-center rounded-full bg-[#0086c0] text-white'
-                          : 'text-gray-700'
+                        ? 'w-7 h-7 flex items-center justify-center rounded-full bg-[#0086c0] text-white'
+                        : 'text-gray-700 dark:text-gray-200'
                         }`}
                     >
                       {day}

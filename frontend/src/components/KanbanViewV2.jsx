@@ -7,6 +7,8 @@ import ModernTaskModal from './ModernTaskModal';
 import InlineLabelPicker from './InlineLabelPicker';
 import confetti from 'canvas-confetti';
 import pkg from '../../package.json';
+import { KanbanSkeleton } from './skeletons/KanbanSkeleton';
+import EmptyState from './ui/EmptyState';
 
 // Monday.com renk paleti - TAM eşleşme
 const STATUS_COLORS = {
@@ -119,7 +121,7 @@ const InlineStatusDropdown = ({ currentStatus, onStatusChange, taskId }) => {
       {isOpen && createPortal(
         <div
           ref={dropdownRef}
-          className="bg-white rounded-xl shadow-2xl border border-gray-200 min-w-[180px] py-2"
+          className="bg-white dark:bg-slate-900 rounded-xl shadow-2xl border border-gray-200 dark:border-slate-700 min-w-[180px] py-2"
           style={{
             position: 'fixed',
             top: `${position.top}px`,
@@ -135,13 +137,13 @@ const InlineStatusDropdown = ({ currentStatus, onStatusChange, taskId }) => {
             <button
               key={status}
               onClick={() => handleStatusSelect(status)}
-              className="w-full flex items-center gap-3 px-3 py-2.5 text-xs font-bold hover:bg-gray-50 transition-all group"
+              className="w-full flex items-center gap-3 px-3 py-2.5 text-xs font-bold hover:bg-gray-50 dark:hover:bg-slate-800 transition-all group"
             >
               <div
                 className="w-4 h-4 rounded-md transition-transform group-hover:scale-110"
                 style={{ backgroundColor: config.bg }}
               />
-              <span className="text-gray-900 flex-1 text-left">{config.label}</span>
+              <span className="text-gray-900 dark:text-gray-100 flex-1 text-left">{config.label}</span>
               {currentStatus === status && (
                 <span className="text-green-500 text-sm">✓</span>
               )}
@@ -215,7 +217,7 @@ const InlinePriorityDropdown = ({ currentPriority, onChange }) => {
       {isOpen && createPortal(
         <div
           ref={dropdownRef}
-          className="bg-white rounded-lg shadow-2xl border border-gray-200 min-w-[140px] py-1"
+          className="bg-white dark:bg-slate-900 rounded-lg shadow-2xl border border-gray-200 dark:border-slate-700 min-w-[140px] py-1"
           style={{
             position: 'fixed',
             top: `${position.top}px`,
@@ -231,7 +233,7 @@ const InlinePriorityDropdown = ({ currentPriority, onChange }) => {
                 onChange(key);
                 setIsOpen(false);
               }}
-              className="w-full flex items-center gap-2 px-3 py-2 text-xs font-bold hover:bg-gray-50"
+              className="w-full flex items-center gap-2 px-3 py-2 text-xs font-bold hover:bg-gray-50 dark:hover:bg-slate-800"
             >
               <span>{config.icon}</span>
               <span style={{ color: config.color }}>{config.label}</span>
@@ -344,7 +346,7 @@ const InlineDatePickerSmall = ({ value, onChange }) => {
           e.stopPropagation();
           setIsOpen(!isOpen);
         }}
-        className={`flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium transition-all hover:bg-gray-100 ${isOverdue ? 'text-red-600 bg-red-50' : value ? 'text-gray-600' : 'text-gray-400'
+        className={`flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium transition-all hover:bg-gray-100 dark:hover:bg-slate-800 ${isOverdue ? 'text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20' : value ? 'text-gray-600 dark:text-gray-300' : 'text-gray-400 dark:text-gray-500'
           }`}
       >
         <Calendar size={11} />
@@ -354,7 +356,7 @@ const InlineDatePickerSmall = ({ value, onChange }) => {
       {isOpen && createPortal(
         <div
           ref={datePickerRef}
-          className="bg-white rounded-xl shadow-2xl border border-gray-200 p-4"
+          className="bg-white dark:bg-slate-900 rounded-xl shadow-2xl border border-gray-200 dark:border-slate-700 p-4"
           style={{
             position: 'fixed',
             top: `${position.top}px`,
@@ -368,16 +370,16 @@ const InlineDatePickerSmall = ({ value, onChange }) => {
           <div className="flex items-center justify-between mb-4">
             <button
               onClick={() => changeMonth(-1)}
-              className="p-1 hover:bg-gray-100 rounded transition-colors"
+              className="p-1 hover:bg-gray-100 dark:hover:bg-slate-800 rounded transition-colors text-gray-600 dark:text-gray-300"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
               </svg>
             </button>
-            <span className="text-sm font-bold text-gray-900 capitalize">{monthName}</span>
+            <span className="text-sm font-bold text-gray-900 dark:text-gray-100 capitalize">{monthName}</span>
             <button
               onClick={() => changeMonth(1)}
-              className="p-1 hover:bg-gray-100 rounded transition-colors"
+              className="p-1 hover:bg-gray-100 dark:hover:bg-slate-800 rounded transition-colors text-gray-600 dark:text-gray-300"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
@@ -426,13 +428,13 @@ const InlineDatePickerSmall = ({ value, onChange }) => {
           </div>
 
           {/* Alt butonlar */}
-          <div className="flex gap-2 mt-4 pt-3 border-t border-gray-200">
+          <div className="flex gap-2 mt-4 pt-3 border-t border-gray-200 dark:border-gray-700">
             <button
               onClick={() => {
                 onChange(new Date().toISOString());
                 setIsOpen(false);
               }}
-              className="flex-1 px-3 py-1.5 text-xs font-medium bg-blue-50 text-blue-600 hover:bg-blue-100 rounded transition-colors"
+              className="flex-1 px-3 py-1.5 text-xs font-medium bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/50 rounded transition-colors"
             >
               Bugün
             </button>
@@ -509,9 +511,9 @@ const CompactTaskCard = React.memo(({ task, onDragStart, onDragEnd, isDragging, 
         if (e.target.closest('button') || e.target.closest('[role="menu"]')) return;
         onTaskClick(task);
       }}
-      className={`bg-white rounded-lg p-3 border transition-all duration-200 cursor-pointer group ${isDragging
+      className={`bg-white dark:bg-slate-800 rounded-lg p-3 border transition-all duration-200 cursor-pointer group ${isDragging
         ? 'opacity-50 scale-95 shadow-2xl rotate-2'
-        : 'opacity-100 hover:shadow-xl hover:scale-[1.02] border-gray-200 hover:border-blue-400'
+        : 'opacity-100 hover:shadow-xl hover:scale-[1.02] border-gray-200 dark:border-slate-700 hover:border-blue-400 dark:hover:border-blue-500'
         }`}
       style={{
         transform: isDragging ? 'rotate(2deg)' : 'rotate(0deg)',
@@ -520,11 +522,11 @@ const CompactTaskCard = React.memo(({ task, onDragStart, onDragEnd, isDragging, 
     >
       {/* Task Title */}
       <div className="flex items-start justify-between gap-2 mb-2">
-        <h4 className="text-sm font-semibold text-gray-900 leading-tight flex-1 line-clamp-2">
+        <h4 className="text-sm font-semibold text-gray-900 dark:text-gray-100 leading-tight flex-1 line-clamp-2">
           {task.title}
         </h4>
         <button
-          className={`p-1 rounded hover:bg-gray-100 transition-opacity ${isHovered ? 'opacity-100' : 'opacity-0'
+          className={`p-1 rounded hover:bg-gray-100 dark:hover:bg-slate-700 transition-opacity ${isHovered ? 'opacity-100' : 'opacity-0'
             }`}
           onClick={(e) => {
             e.stopPropagation();
@@ -554,14 +556,14 @@ const CompactTaskCard = React.memo(({ task, onDragStart, onDragEnd, isDragging, 
       <div className="flex items-center gap-2 mb-3">
         {task.subtasks?.length > 0 && (
           <div
-            className="flex items-center gap-1 px-1.5 py-0.5 bg-gray-50 rounded border border-gray-100 text-gray-500 hover:border-[#6366f1] transition-colors cursor-pointer"
+            className="flex items-center gap-1 px-1.5 py-0.5 bg-gray-50 dark:bg-slate-700/50 rounded border border-gray-100 dark:border-slate-700 text-gray-500 dark:text-gray-400 hover:border-[#6366f1] transition-colors cursor-pointer"
             title="Alt Görevler"
             onClick={(e) => {
               e.stopPropagation();
               onTaskClick(task, 'subtasks');
             }}
           >
-            <GitMerge size={10} className="rotate-90 text-[#6366f1]" />
+            <GitMerge size={10} className="rotate-90 text-[#6366f1] dark:text-[#818cf8]" />
             <span className="text-[9px] font-bold">
               {task.subtasks.filter(st => st.completed).length}/{task.subtasks.length}
             </span>
@@ -569,7 +571,7 @@ const CompactTaskCard = React.memo(({ task, onDragStart, onDragEnd, isDragging, 
         )}
         {task.comments && (
           <div
-            className="flex items-center gap-1 px-1.5 py-0.5 bg-gray-50 rounded border border-gray-100 text-gray-500 hover:border-[#00c875] transition-colors cursor-pointer"
+            className="flex items-center gap-1 px-1.5 py-0.5 bg-gray-50 dark:bg-slate-700/50 rounded border border-gray-100 dark:border-slate-700 text-gray-500 dark:text-gray-400 hover:border-[#00c875] transition-colors cursor-pointer"
             title="Yorumlar"
             onClick={(e) => {
               e.stopPropagation();
@@ -606,7 +608,7 @@ const CompactTaskCard = React.memo(({ task, onDragStart, onDragEnd, isDragging, 
           {assignees.slice(0, 2).map((assignee, idx) => (
             <Avatar
               key={assignee.id || assignee._id}
-              className="w-6 h-6 border-2 border-white ring-1 ring-gray-200 hover:ring-blue-400 transition-all hover:z-10"
+              className="w-6 h-6 border-2 border-white dark:border-slate-700 ring-1 ring-gray-200 dark:ring-slate-600 hover:ring-blue-400 transition-all hover:z-10"
               style={{ zIndex: 2 - idx }}
             >
               <AvatarImage src={assignee.avatar} />
@@ -621,7 +623,7 @@ const CompactTaskCard = React.memo(({ task, onDragStart, onDragEnd, isDragging, 
             </div>
           )}
           {assignees.length === 0 && (
-            <div className="w-6 h-6 rounded-full border-2 border-dashed border-gray-300 flex items-center justify-center hover:border-blue-400 hover:bg-blue-50 transition-all">
+            <div className="w-6 h-6 rounded-full border-2 border-dashed border-gray-300 dark:border-gray-600 flex items-center justify-center hover:border-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/30 transition-all">
               <User size={12} className="text-gray-400" />
             </div>
           )}
@@ -632,7 +634,7 @@ const CompactTaskCard = React.memo(({ task, onDragStart, onDragEnd, isDragging, 
           <div
             ref={assigneeMenuRef}
             role="menu"
-            className="bg-white rounded-lg shadow-2xl border border-gray-200 min-w-[200px] py-2"
+            className="bg-white dark:bg-slate-900 rounded-lg shadow-2xl border border-gray-200 dark:border-slate-700 min-w-[200px] py-2"
             style={{
               position: 'fixed',
               top: `${assigneeMenuPosition.top}px`,
@@ -652,7 +654,7 @@ const CompactTaskCard = React.memo(({ task, onDragStart, onDragEnd, isDragging, 
                     e.stopPropagation();
                     toggleAssignee(user.id || user._id);
                   }}
-                  className="w-full flex items-center gap-2 px-3 py-2 text-xs hover:bg-gray-50 transition-colors"
+                  className="w-full flex items-center gap-2 px-3 py-2 text-xs hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors"
                 >
                   <Avatar className="w-6 h-6">
                     <AvatarImage src={user.avatar} />
@@ -660,7 +662,7 @@ const CompactTaskCard = React.memo(({ task, onDragStart, onDragEnd, isDragging, 
                       {user.fullName?.charAt(0)}
                     </AvatarFallback>
                   </Avatar>
-                  <span className="flex-1 text-left text-gray-900">{user.fullName}</span>
+                  <span className="flex-1 text-left text-gray-900 dark:text-gray-200">{user.fullName}</span>
                   {(task.assignees || []).includes(user.id || user._id) && (
                     <span className="text-blue-600 text-sm">✓</span>
                   )}
@@ -683,7 +685,7 @@ const CompactTaskCard = React.memo(({ task, onDragStart, onDragEnd, isDragging, 
 });
 
 const KanbanViewV2 = ({ boardId, searchQuery, filters }) => {
-  const { tasks, users } = useDataState();
+  const { tasks, users, loading } = useDataState();
   const { fetchTasks, fetchLabels, updateTaskStatus, updateTask } = useDataActions();
 
   const [draggedTask, setDraggedTask] = useState(null);
@@ -856,16 +858,36 @@ const KanbanViewV2 = ({ boardId, searchQuery, filters }) => {
     }
   };
 
+  if (loading) {
+    return (
+      <div className="h-full bg-gradient-to-br from-gray-50 to-gray-100 dark:from-slate-950 dark:to-slate-900 relative">
+        <KanbanSkeleton />
+      </div>
+    );
+  }
+
+  if (filteredTasks.length === 0 && (searchQuery || Object.values(filters || {}).some(f => f?.length > 0))) {
+    return (
+      <div className="h-full flex items-center justify-center bg-gray-50 dark:bg-slate-900">
+        <EmptyState
+          icon="search"
+          title="Sonuç Bulunamadı"
+          description="Arama kriterlerinize veya seçtiğiniz filtrelere uygun görev bulunamadı."
+        />
+      </div>
+    );
+  }
+
   return (
-    <div className="h-full bg-gradient-to-br from-gray-50 to-gray-100 relative overflow-visible">
+    <div className="h-full bg-gradient-to-br from-gray-50 to-gray-100 dark:from-slate-950 dark:to-slate-900 relative overflow-visible">
       {/* 🎯 VERSİYON */}
       <div className="absolute top-2 right-2 z-10 px-2 py-1 bg-emerald-600 text-white text-[10px] font-bold rounded shadow-lg animate-fade-in">
         v{pkg.version}
       </div>
 
       {/* Kanban Board */}
-      <div className="h-full overflow-x-auto overflow-y-visible">
-        <div className="flex gap-4 p-6 h-full min-w-max">
+      <div className="h-full overflow-x-auto overflow-y-hidden">
+        <div className="flex gap-6 p-8 h-full min-w-max pb-12">
           {columns.map(column => {
             const columnTasks = tasksByStatus[column.id] || [];
             const isDropTarget = dragOverColumn === column.id;
@@ -873,32 +895,29 @@ const KanbanViewV2 = ({ boardId, searchQuery, filters }) => {
             return (
               <div
                 key={column.id}
-                className={`flex flex-col w-72 rounded-xl transition-all duration-300 ${isDropTarget
-                  ? 'ring-4 ring-blue-400 ring-opacity-50 scale-105 shadow-2xl'
+                className={`flex flex-col w-[320px] rounded-2xl transition-all duration-300 ${isDropTarget
+                  ? 'ring-4 ring-blue-400 ring-opacity-50 scale-[1.03] shadow-2xl z-10'
                   : 'scale-100'
-                  } bg-transparent`}
-                style={{
-                  minHeight: '500px'
-                }}
+                  } bg-gray-100/30 dark:bg-slate-900/40 border border-gray-200/50 dark:border-slate-800/50 h-full overflow-hidden`}
                 onDragOver={(e) => handleDragOver(e, column.id)}
                 onDragLeave={handleDragLeave}
                 onDrop={(e) => handleDrop(e, column.id)}
               >
-                {/* Column Header - Monday.com style */}
+                {/* Column Header - Sticky & Monday.com style */}
                 <div
-                  className="mb-3 px-4 py-3 rounded-t-xl backdrop-blur-sm"
+                  className="sticky top-0 z-10 px-5 py-4 backdrop-blur-md border-b border-gray-100 dark:border-slate-800 shadow-sm"
                   style={{
-                    backgroundColor: `${column.color}15`,
-                    borderLeft: `4px solid ${column.color}`
+                    backgroundColor: `${column.color}10`,
+                    borderLeft: `5px solid ${column.color}`
                   }}
                 >
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                      <span className="text-sm font-bold text-gray-900">
+                      <span className="text-[13px] font-black text-gray-900 dark:text-gray-100 uppercase tracking-wider">
                         {column.title}
                       </span>
                       <span
-                        className="px-2.5 py-1 rounded-full text-xs font-bold text-white min-w-[28px] text-center"
+                        className="px-2 py-0.5 rounded-md text-[11px] font-black text-white min-w-[24px] text-center shadow-sm"
                         style={{ backgroundColor: column.color }}
                       >
                         {columnTasks.length}
@@ -906,25 +925,23 @@ const KanbanViewV2 = ({ boardId, searchQuery, filters }) => {
                     </div>
                     <button
                       onClick={() => handleAddTask(column.id)}
-                      className="p-1.5 hover:bg-white/60 rounded-lg transition-all duration-200 hover:scale-110 hover:rotate-90"
+                      className="p-1.5 hover:bg-white/80 dark:hover:bg-slate-700/80 rounded-lg transition-all duration-200 hover:scale-110 active:scale-95 group"
                     >
-                      <Plus size={16} className="text-gray-600" />
+                      <Plus size={18} className="text-gray-500 group-hover:text-blue-600 dark:text-gray-400 dark:group-hover:text-blue-400" />
                     </button>
                   </div>
                 </div>
 
-                {/* Tasks */}
+                {/* Tasks Area - Independent Scroll */}
                 <div
-                  className="flex-1 overflow-visible px-3 pb-3 space-y-2.5 rounded-b-xl"
+                  className="flex-1 overflow-y-auto overflow-x-hidden px-4 py-5 scrollbar-thin scrollbar-thumb-gray-200 dark:scrollbar-thumb-slate-800"
                   style={{
                     background: isDropTarget
-                      ? `linear-gradient(to bottom, transparent 0%, ${column.color}20 100%)`
-                      : `linear-gradient(to bottom, transparent 0%, ${column.lightBg} 100%)`,
-                    maxHeight: '600px',
-                    overflowY: 'scroll'
+                      ? `linear-gradient(to bottom, transparent 0%, ${column.color}08 100%)`
+                      : 'transparent'
                   }}
                 >
-                  <div className="space-y-3 p-1">
+                  <div className="space-y-4">
                     {columnTasks.map(task => (
                       <CompactTaskCard
                         key={task._id}
@@ -943,22 +960,22 @@ const KanbanViewV2 = ({ boardId, searchQuery, filters }) => {
 
                   {/* Empty State */}
                   {columnTasks.length === 0 && !isDropTarget && (
-                    <div className="text-center py-12 px-4">
-                      <div className="w-14 h-14 mx-auto mb-3 rounded-full bg-white/60 flex items-center justify-center">
-                        <Plus size={24} className="text-gray-300" />
+                    <div className="text-center py-20 px-4 opacity-50 bg-dashed border-2 border-dashed border-gray-200 dark:border-slate-800 rounded-xl mt-2">
+                      <div className="w-12 h-12 mx-auto mb-3 rounded-full bg-gray-100 dark:bg-slate-800 flex items-center justify-center">
+                        <Plus size={20} className="text-gray-300 dark:text-gray-600" />
                       </div>
-                      <p className="text-xs text-gray-400 font-medium">Buraya sürükle</p>
+                      <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">Görev Yok</p>
                     </div>
                   )}
 
                   {/* Drop Zone Indicator */}
                   {isDropTarget && (
                     <div
-                      className="border-4 border-dashed rounded-xl p-8 text-center animate-pulse"
-                      style={{ borderColor: column.color }}
+                      className="border-2 border-dashed rounded-xl p-10 text-center animate-pulse mt-4 bg-white/50 dark:bg-slate-800/50"
+                      style={{ borderColor: column.color, color: column.color }}
                     >
-                      <div className="text-sm font-bold" style={{ color: column.color }}>
-                        ↓ Buraya Bırak ↓
+                      <div className="text-xs font-black uppercase tracking-widest">
+                        Bırak
                       </div>
                     </div>
                   )}

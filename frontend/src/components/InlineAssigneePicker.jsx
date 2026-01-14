@@ -111,10 +111,15 @@ const InlineAssigneePicker = ({ assigneeIds, allUsers, onChange }) => {
                         <Plus size={10} className="text-gray-400" />
                     </div>
                 )}
+                {assignees.length > 0 && (
+                    <div className="w-5 h-5 rounded-full bg-white border border-dashed border-gray-300 flex items-center justify-center hover:border-[#6366f1] hover:bg-blue-50 z-10 ring-2 ring-white ml-[-2px] shadow-sm transform hover:scale-110 transition-all">
+                        <Plus size={10} className="text-gray-400 hover:text-[#6366f1]" />
+                    </div>
+                )}
             </button>
             {isOpen && ReactDOM.createPortal(pickerContent, document.body)}
         </>
     );
 };
 
-export default InlineAssigneePicker;
+export default React.memo(InlineAssigneePicker);

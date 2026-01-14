@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Star, MoreHorizontal, Filter, Search, Users as UsersIcon, Tag, Table, LayoutGrid, Calendar, BarChart3, Users, Trash2, MoreVertical, Settings } from 'lucide-react';
+import { Star, MoreHorizontal, Filter, Search, Users as UsersIcon, Tag, Table, LayoutGrid, Calendar, BarChart3, Users, Trash2, MoreVertical, Settings, Layers } from 'lucide-react';
 import { useData } from '../contexts/DataContext';
 import { useNavigate } from 'react-router-dom';
 import { Button } from './ui/button';
@@ -15,13 +15,16 @@ const BoardHeader = ({
   searchQuery,
   setSearchQuery,
   filters = { status: [], priority: [], assignee: [], labels: [] },
-  onFilterChange
+  onFilterChange,
+  groupBy,
+  onGroupByChange
 }) => {
   const { projects, users, toggleFavorite, labels, deleteProject } = useData();
   const navigate = useNavigate();
   const [showNewTaskModal, setShowNewTaskModal] = useState(false);
   const [showLabelManager, setShowLabelManager] = useState(false);
   const [showFilterMenu, setShowFilterMenu] = useState(false);
+  const [showGroupByMenu, setShowGroupByMenu] = useState(false);
   const [showSettingsMenu, setShowSettingsMenu] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
@@ -56,13 +59,16 @@ const BoardHeader = ({
       if (showFilterMenu && !event.target.closest('.relative')) {
         setShowFilterMenu(false);
       }
+      if (showGroupByMenu && !event.target.closest('.group-by-menu')) {
+        setShowGroupByMenu(false);
+      }
       if (showSettingsMenu && !event.target.closest('.settings-menu')) {
         setShowSettingsMenu(false);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [showFilterMenu, showSettingsMenu]);
+  }, [showFilterMenu, showSettingsMenu, showGroupByMenu]);
 
   const views = [
     { id: 'main', label: 'Ana Tablo', Icon: Table, shortLabel: 'Tablo' },
@@ -181,6 +187,69 @@ const BoardHeader = ({
               className="pl-7 pr-2 py-1 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded text-xs focus:outline-none focus:border-[#6366f1] transition-colors w-48 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500"
             />
           </div>
+
+          {/* Group By Dropdown */}
+          <div className="relative group-by-menu">
+            <Button
+              onClick={() => setShowGroupByMenu(!showGroupByMenu)}
+              variant="outline"
+              size="sm"
+              className={`gap-1 rounded px-2 py-1 border border-gray-300 dark:border-gray-700 hover:border-gray-400 dark:hover:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors text-xs h-6 ${groupBy ? 'bg-blue-50 border-blue-200 text-blue-700' : 'text-gray-700 dark:text-gray-300'}`}
+            >
+              <Layers size={13} />
+              <span>{groupBy ? 'Gruplandı' : 'Grupla'}</span>
+              {groupBy && (
+                <span className="ml-1 text-[10px] font-bold">
+                  : {groupBy === 'status' ? 'Durum' : groupBy === 'priority' ? 'Öncelik' : groupBy === 'labels' ? 'Etiket' : 'T-Shirt'}
+                </span>
+              )}
+            </Button>
+
+            {showGroupByMenu && (
+              <div className="absolute right-0 top-full mt-2 w-48 bg-white rounded-lg shadow-xl border border-gray-200 z-50 py-1">
+                <div className="px-3 py-2 text-xs font-semibold text-gray-500 border-b border-gray-100">
+                  Şuna Göre Grupla
+                </div>
+                <button
+                  onClick={() => { onGroupByChange(null); setShowGroupByMenu(false); }}
+                  className={`w-full text-left px-4 py-2 text-xs hover:bg-gray-50 flex items-center justify-between ${!groupBy ? 'text-blue-600 bg-blue-50' : 'text-gray-700'}`}
+                >
+                  <span>Gruplama Yok</span>
+                  {!groupBy && <span className="text-blue-600">✓</span>}
+                </button>
+                <div className="border-t border-gray-100 my-1"></div>
+                <button
+                  onClick={() => { onGroupByChange('status'); setShowGroupByMenu(false); }}
+                  className={`w-full text-left px-4 py-2 text-xs hover:bg-gray-50 flex items-center justify-between ${groupBy === 'status' ? 'text-blue-600 bg-blue-50' : 'text-gray-700'}`}
+                >
+                  <span>Durum</span>
+                  {groupBy === 'status' && <span className="text-blue-600">✓</span>}
+                </button>
+                <button
+                  onClick={() => { onGroupByChange('priority'); setShowGroupByMenu(false); }}
+                  className={`w-full text-left px-4 py-2 text-xs hover:bg-gray-50 flex items-center justify-between ${groupBy === 'priority' ? 'text-blue-600 bg-blue-50' : 'text-gray-700'}`}
+                >
+                  <span>Öncelik</span>
+                  {groupBy === 'priority' && <span className="text-blue-600">✓</span>}
+                </button>
+                <button
+                  onClick={() => { onGroupByChange('tShirtSize'); setShowGroupByMenu(false); }}
+                  className={`w-full text-left px-4 py-2 text-xs hover:bg-gray-50 flex items-center justify-between ${groupBy === 'tShirtSize' ? 'text-blue-600 bg-blue-50' : 'text-gray-700'}`}
+                >
+                  <span>T-Shirt Size</span>
+                  {groupBy === 'tShirtSize' && <span className="text-blue-600">✓</span>}
+                </button>
+                <button
+                  onClick={() => { onGroupByChange('labels'); setShowGroupByMenu(false); }}
+                  className={`w-full text-left px-4 py-2 text-xs hover:bg-gray-50 flex items-center justify-between ${groupBy === 'labels' ? 'text-blue-600 bg-blue-50' : 'text-gray-700'}`}
+                >
+                  <span>Etiket</span>
+                  {groupBy === 'labels' && <span className="text-blue-600">✓</span>}
+                </button>
+              </div>
+            )}
+          </div>
+
           <div className="relative">
             <Button
               onClick={() => setShowFilterMenu(!showFilterMenu)}

@@ -21,6 +21,7 @@ class PyObjectId(ObjectId):
 class UserBase(BaseModel):
     fullName: str
     email: EmailStr
+    username: Optional[str] = None
     departments: Optional[List[str]] = []
     role: str = "member"  # admin, manager, member, guest
     manager: Optional[str] = None

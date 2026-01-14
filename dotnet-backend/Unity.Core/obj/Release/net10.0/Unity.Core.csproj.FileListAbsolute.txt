@@ -1,0 +1,12 @@
+/Users/cloudsmac/Documents/GitHub/4Flow/dotnet-backend/Unity.Core/bin/Release/net10.0/Unity.Core.deps.json
+/Users/cloudsmac/Documents/GitHub/4Flow/dotnet-backend/Unity.Core/bin/Release/net10.0/Unity.Core.dll
+/Users/cloudsmac/Documents/GitHub/4Flow/dotnet-backend/Unity.Core/bin/Release/net10.0/Unity.Core.pdb
+/Users/cloudsmac/Documents/GitHub/4Flow/dotnet-backend/Unity.Core/obj/Release/net10.0/Unity.Core.GeneratedMSBuildEditorConfig.editorconfig
+/Users/cloudsmac/Documents/GitHub/4Flow/dotnet-backend/Unity.Core/obj/Release/net10.0/Unity.Core.AssemblyInfoInputs.cache
+/Users/cloudsmac/Documents/GitHub/4Flow/dotnet-backend/Unity.Core/obj/Release/net10.0/Unity.Core.AssemblyInfo.cs
+/Users/cloudsmac/Documents/GitHub/4Flow/dotnet-backend/Unity.Core/obj/Release/net10.0/Unity.Core.csproj.CoreCompileInputs.cache
+/Users/cloudsmac/Documents/GitHub/4Flow/dotnet-backend/Unity.Core/obj/Release/net10.0/Unity.Core.sourcelink.json
+/Users/cloudsmac/Documents/GitHub/4Flow/dotnet-backend/Unity.Core/obj/Release/net10.0/Unity.Core.dll
+/Users/cloudsmac/Documents/GitHub/4Flow/dotnet-backend/Unity.Core/obj/Release/net10.0/refint/Unity.Core.dll
+/Users/cloudsmac/Documents/GitHub/4Flow/dotnet-backend/Unity.Core/obj/Release/net10.0/Unity.Core.pdb
+/Users/cloudsmac/Documents/GitHub/4Flow/dotnet-backend/Unity.Core/obj/Release/net10.0/ref/Unity.Core.dll

@@ -87,24 +87,12 @@ export const DataProvider = ({ children }) => {
       if (projectId) {
         const response = await labelsAPI.getByProject(projectId);
         setLabels(prevLabels => {
-          // Filter out existing labels for this project and add new ones
           const otherLabels = prevLabels.filter(l => l.projectId !== projectId);
           return [...otherLabels, ...response.data];
         });
       } else {
-        // If no projectId, fetch for all projects (or whatever the logic was)
-        const response = await projectsAPI.getAll();
-        const allProjects = response.data;
-        const allLabels = [];
-        for (const project of allProjects) {
-          try {
-            const labelResponse = await labelsAPI.getByProject(project._id);
-            allLabels.push(...labelResponse.data);
-          } catch (e) {
-            console.error(`Error fetching labels for project ${project._id}:`, e);
-          }
-        }
-        setLabels(allLabels);
+        const response = await labelsAPI.getAll();
+        setLabels(response.data);
       }
     } catch (error) {
       console.error('Error fetching labels:', error);
@@ -120,6 +108,32 @@ export const DataProvider = ({ children }) => {
     } catch (error) {
       console.error('Label creation error:', error);
       toast.error('Etiket oluşturulamadı');
+      return { success: false, error };
+    }
+  }, []);
+
+  const updateLabel = useCallback(async (id, data) => {
+    try {
+      const response = await labelsAPI.update(id, data);
+      setLabels(prev => prev.map(l => l._id === id ? response.data : l));
+      toast.success('Etiket güncellendi');
+      return { success: true, data: response.data };
+    } catch (error) {
+      console.error('Label update error:', error);
+      toast.error('Etiket güncellenemedi');
+      return { success: false, error };
+    }
+  }, []);
+
+  const deleteLabel = useCallback(async (id) => {
+    try {
+      await labelsAPI.delete(id);
+      setLabels(prev => prev.filter(l => l._id !== id));
+      toast.success('Etiket silindi');
+      return { success: true };
+    } catch (error) {
+      console.error('Label deletion error:', error);
+      toast.error('Etiket silinemedi');
       return { success: false, error };
     }
   }, []);
@@ -313,8 +327,11 @@ export const DataProvider = ({ children }) => {
     users,
     departments,
     labels,
-    loading
-  }), [projects, tasks, users, departments, labels, loading]);
+    loading,
+    createLabel,
+    updateLabel,
+    deleteLabel
+  }), [projects, tasks, users, departments, labels, loading, createLabel, updateLabel, deleteLabel]);
 
   const actionsValue = React.useMemo(() => ({
     fetchProjects,
@@ -334,6 +351,8 @@ export const DataProvider = ({ children }) => {
     deleteTask,
     updateTaskStatus,
     createLabel,
+    updateLabel,
+    deleteLabel,
     refreshData: fetchAllData
   }), [
     fetchProjects,
@@ -353,6 +372,8 @@ export const DataProvider = ({ children }) => {
     deleteTask,
     updateTaskStatus,
     createLabel,
+    updateLabel,
+    deleteLabel,
     fetchAllData
   ]);
 

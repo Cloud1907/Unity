@@ -1,5 +1,5 @@
 import React from 'react';
-import { ChevronDown, Maximize2, GitMerge, MessageSquare, TrendingUp, Plus } from 'lucide-react';
+import { ChevronDown, Maximize2, GitMerge, MessageSquare, TrendingUp, Plus, Lock } from 'lucide-react';
 import InlineTextEdit from './InlineTextEdit';
 import InlineDropdown from './InlineDropdown';
 import InlineAssigneePicker from './InlineAssigneePicker';
@@ -13,13 +13,14 @@ const TaskRow = React.memo(({
     boardId,
     statuses,
     priorities,
-    expandedRows,
+    isExpanded,
     toggleRow,
     openTaskModal,
     updateTask,
-    updateTaskStatus
+    updateTaskStatus,
+    tShirtSizes
 }) => {
-    const isExpanded = expandedRows.has(task._id);
+    // const isExpanded = expandedRows.has(task._id); // Removed, passed as prop
     const hasSubtasks = task.subtasks && task.subtasks.length > 0;
 
     // Helpers embedded here (or can be props if needed, but safe here if pure)
@@ -53,17 +54,10 @@ const TaskRow = React.memo(({
         <React.Fragment>
             {/* Main Task Row */}
             <div
-                className="flex hover:bg-gray-50 dark:hover:bg-gray-800 transition-all duration-200 border-b border-gray-100 dark:border-gray-800 group cursor-pointer"
+                className="flex items-center h-10 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all duration-200 border-b border-gray-200 dark:border-gray-700 group cursor-pointer"
                 onClick={() => openTaskModal(task)}
             >
-                <div className="w-10 flex items-center justify-center py-3 border-r border-gray-100 dark:border-gray-800">
-                    <input
-                        type="checkbox"
-                        className="rounded w-3.5 h-3.5 cursor-pointer transition-transform hover:scale-110"
-                        onClick={(e) => e.stopPropagation()}
-                    />
-                </div>
-                <div className="w-8 flex items-center justify-center py-3 border-r border-gray-100 dark:border-gray-800">
+                <div className="w-8 flex items-center justify-center py-1 border-r border-gray-200 dark:border-gray-700 ml-0">
                     {hasSubtasks && (
                         <button
                             onClick={(e) => {
@@ -76,13 +70,18 @@ const TaskRow = React.memo(({
                         </button>
                     )}
                 </div>
-                <div className="w-72 px-3 py-3 border-r border-gray-100 dark:border-gray-800 group/title flex items-center justify-between gap-2 relative">
-                    <div className="flex-1 min-w-0 flex items-center gap-2">
-                        <div className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: getStatusColor(task.status) }}></div>
+                <div className="w-[28rem] px-3 py-0 border-r border-gray-200 dark:border-gray-700 group/title flex justify-between gap-2 relative h-full">
+                    <div className="flex-1 min-w-0 flex items-stretch gap-2 h-full">
+                        <div className="w-1.5 h-1.5 rounded-full shrink-0 self-center" style={{ backgroundColor: getStatusColor(task.status) }}></div>
+                        {task.isPrivate && (
+                            <div title="Özel Görev (Sadece siz ve atananlar görebilir)" className="self-center">
+                                <Lock size={12} className="text-gray-400 shrink-0" />
+                            </div>
+                        )}
                         <InlineTextEdit
                             value={task.title}
                             onSave={(newTitle) => updateTask(task._id, { title: newTitle })}
-                            className="font-medium text-gray-900"
+                            className="font-medium text-gray-900 dark:text-gray-100"
                         />
                     </div>
 
@@ -132,34 +131,41 @@ const TaskRow = React.memo(({
                         )}
                     </div>
                 </div>
-                <div className="w-40 px-3 py-3 border-r border-gray-100 dark:border-gray-800">
+                <div className="w-40 px-3 py-1 border-r border-gray-100 dark:border-gray-800 flex items-center h-full">
                     <InlineDropdown
                         value={task.status}
                         options={statuses}
                         onChange={(newStatus) => updateTaskStatus(task._id, newStatus)}
                     />
                 </div>
-                <div className="w-32 px-3 py-3 border-r border-gray-100 dark:border-gray-800">
+                <div className="w-32 px-3 py-1 border-r border-gray-100 dark:border-gray-800 flex items-center h-full">
                     <InlineDropdown
                         value={task.priority}
                         options={priorities}
                         onChange={(newPriority) => updateTask(task._id, { priority: newPriority })}
                     />
                 </div>
-                <div className="w-40 px-3 py-3 border-r border-gray-100 dark:border-gray-800">
+                <div className="w-48 px-3 py-1 border-r border-gray-100 dark:border-gray-800 flex items-center h-full">
+                    <InlineDropdown
+                        value={task.tShirtSize || null} // Handle undefined/null
+                        options={tShirtSizes}
+                        onChange={(newSize) => updateTask(task._id, { tShirtSize: newSize })}
+                    />
+                </div>
+                <div className="w-40 px-3 py-1 border-r border-gray-100 dark:border-gray-800 flex items-center h-full">
                     <InlineAssigneePicker
                         assigneeIds={task.assignees}
                         allUsers={users}
                         onChange={(newAssignees) => updateTask(task._id, { assignees: newAssignees })}
                     />
                 </div>
-                <div className="w-28 px-3 py-3 border-r border-gray-100 dark:border-gray-800">
+                <div className="w-28 px-3 py-1 border-r border-gray-100 dark:border-gray-800 flex items-center h-full">
                     <InlineDatePicker
                         value={task.dueDate}
                         onChange={(newDate) => updateTask(task._id, { dueDate: newDate })}
                     />
                 </div>
-                <div className="w-40 px-3 py-3 border-r border-gray-100 dark:border-gray-800">
+                <div className="w-40 px-3 py-1 border-r border-gray-100 dark:border-gray-800 flex items-center h-full">
                     <InlineLabelPicker
                         taskId={task._id}
                         currentLabels={task.labels || []}
@@ -167,15 +173,15 @@ const TaskRow = React.memo(({
                         onUpdate={(taskId, newLabels) => updateTask(taskId, { labels: newLabels })}
                     />
                 </div>
-                <div className="w-28 px-3 py-3 border-r border-gray-100 dark:border-gray-800 flex items-center">
-                    <div className="flex flex-col gap-1.5 w-full">
-                        <div className="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-2.5 overflow-hidden shadow-inner">
+                <div className="w-28 px-3 py-1 border-r border-gray-100 dark:border-gray-800 flex items-center h-full">
+                    <div className="flex items-center gap-2 w-full">
+                        <div className="flex-1 bg-slate-200 dark:bg-slate-700 rounded-full h-2 overflow-hidden shadow-inner">
                             <div
                                 className="h-full rounded-full transition-all duration-500 ease-out bg-gradient-to-r from-indigo-500 to-violet-500 shadow-[0_0_8px_rgba(99,102,241,0.5)]"
                                 style={{ width: `${progress}%` }}
                             />
                         </div>
-                        <div className="flex items-center justify-end">
+                        <div className="flex items-center">
                             <InlineTextEdit
                                 value={progress.toString()}
                                 onSave={(val) => {
@@ -185,19 +191,19 @@ const TaskRow = React.memo(({
                                     if (newProg < 0) newProg = 0;
                                     updateTask(task._id, { progress: newProg });
                                 }}
-                                className={`text-[10px] font-bold text-right w-8 ${progress === 100 ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-500 dark:text-slate-400'}`}
+                                className={`text-[10px] font-bold text-right w-6 ${progress === 100 ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-500 dark:text-slate-400'}`}
                             />
-                            <span className="text-[10px] text-slate-400 ml-0.5">%</span>
+                            <span className="text-[10px] text-slate-400 -ml-1">%</span>
                         </div>
                     </div>
                 </div>
-                <div className="w-20 px-3 py-3 flex items-center justify-center">
+                <div className="w-20 px-3 py-1 border-r border-gray-200 dark:border-gray-700 flex items-center justify-center">
                     <button
                         onClick={(e) => {
                             e.stopPropagation();
                             openTaskModal(task, 'files');
                         }}
-                        className="text-gray-400 hover:text-blue-500 transition-colors p-1 rounded hover:bg-blue-50"
+                        className="text-gray-400 hover:text-blue-500 transition-colors p-1 rounded hover:bg-blue-50 dark:hover:bg-blue-900/20"
                     >
                         {task.attachments?.length > 0 ? (
                             <div className="flex items-center gap-1">
@@ -209,15 +215,28 @@ const TaskRow = React.memo(({
                         )}
                     </button>
                 </div>
+                {/* Expand Button - Always Visible */}
+                <div className="w-10 px-2 py-1 flex items-center justify-center">
+                    <button
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            openTaskModal(task);
+                        }}
+                        className="p-1.5 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 rounded-md transition-all"
+                        title="Tam Görünüm Aç"
+                    >
+                        <Maximize2 size={14} />
+                    </button>
+                </div>
             </div>
 
             {/* Subtasks Accordion Row */}
             {isExpanded && hasSubtasks && (
-                <div className="bg-gray-50/50 shadow-inner">
+                <div className="bg-gray-50/50 dark:bg-gray-800/50 shadow-inner">
                     {task.subtasks.map((subtask, sIndex) => (
-                        <div key={sIndex} className="flex border-b border-gray-100/50 pl-12 h-10 items-center hover:bg-gray-100 transition-colors">
-                            <div className="w-8 border-r border-gray-100/50 h-full"></div> {/* Indent line */}
-                            <div className="w-72 px-3 flex items-center gap-2 border-r border-gray-100/50 h-full">
+                        <div key={sIndex} className="flex border-b border-gray-100/50 dark:border-gray-700/50 pl-12 h-10 items-center hover:bg-gray-100 dark:hover:bg-gray-700/50 transition-colors">
+                            <div className="w-8 border-r border-gray-100/50 dark:border-gray-700/50 h-full"></div> {/* Indent line */}
+                            <div className="w-[28rem] px-3 flex items-center gap-2 border-r border-gray-100/50 dark:border-gray-700/50 h-full">
                                 <input
                                     type="checkbox"
                                     checked={subtask.completed}
@@ -227,22 +246,22 @@ const TaskRow = React.memo(({
                                     }}
                                     className="rounded-full w-3 h-3 border-gray-400 text-green-500 focus:ring-green-500 cursor-pointer"
                                 />
-                                <span className={`text-xs ${subtask.completed ? 'text-gray-400 line-through' : 'text-gray-600'}`}>
+                                <span className={`text-xs ${subtask.completed ? 'text-gray-400 dark:text-gray-500 line-through' : 'text-gray-600 dark:text-gray-300'}`}>
                                     {subtask.title}
                                 </span>
                             </div>
-                            <div className="w-40 border-r border-gray-100/50 h-full"></div>
-                            <div className="w-32 border-r border-gray-100/50 h-full"></div>
-                            <div className="w-40 border-r border-gray-100/50 h-full pl-3 flex items-center">
+                            <div className="w-40 border-r border-gray-100/50 dark:border-gray-700/50 h-full"></div>
+                            <div className="w-32 border-r border-gray-100/50 dark:border-gray-700/50 h-full"></div>
+                            <div className="w-48 border-r border-gray-100/50 dark:border-gray-700/50 h-full pl-3 flex items-center">
                                 <InlineAssigneePicker
                                     assigneeIds={subtask.assignee ? [subtask.assignee] : []}
                                     allUsers={users}
                                     onChange={(newIds) => updateSubtaskAssignee(task, sIndex, newIds)}
                                 />
                             </div>
-                            <div className="w-28 border-r border-gray-100/50 h-full"></div>
-                            <div className="w-40 border-r border-gray-100/50 h-full"></div>
-                            <div className="w-28 border-r border-gray-100/50 h-full"></div>
+                            <div className="w-28 border-r border-gray-100/50 dark:border-gray-700/50 h-full"></div>
+                            <div className="w-40 border-r border-gray-100/50 dark:border-gray-700/50 h-full"></div>
+                            <div className="w-28 border-r border-gray-100/50 dark:border-gray-700/50 h-full"></div>
                             <div className="w-20 h-full"></div>
                         </div>
                     ))}

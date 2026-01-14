@@ -22,27 +22,13 @@ const AdminPanel = () => {
   const [selectedDept, setSelectedDept] = useState(null);
   const [deptDeleteConfirm, setDeptDeleteConfirm] = useState(null);
 
-  // Labels state
-  const [globalLabels, setGlobalLabels] = useState([]);
-  const [isLabelModalOpen, setIsLabelModalOpen] = useState(false);
-  const [selectedLabel, setSelectedLabel] = useState(null);
-  const [labelDeleteConfirm, setLabelDeleteConfirm] = useState(null);
+  // Labels state - Global labels removed as they are now project-specific
 
   useEffect(() => {
     fetchUsers();
     fetchDepartments();
-    fetchGlobalLabels();
   }, [fetchUsers, fetchDepartments]);
 
-  const fetchGlobalLabels = async () => {
-    try {
-      // filters: global_only=true
-      const response = await labelsAPI.getAll(true);
-      setGlobalLabels(response.data);
-    } catch (error) {
-      console.error('Labels fetching error:', error);
-    }
-  };
 
   const filteredUsers = users.filter(user => {
     const matchesSearch = user.fullName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -55,9 +41,6 @@ const AdminPanel = () => {
     dept.name?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const filteredLabels = globalLabels.filter(label =>
-    label.name?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
 
   const handleDelete = async (userId) => {
     try {
@@ -77,16 +60,6 @@ const AdminPanel = () => {
     }
   };
 
-  const handleDeleteLabel = async (labelId) => {
-    try {
-      await labelsAPI.delete(labelId);
-      toast.success('Etiket silindi');
-      fetchGlobalLabels();
-      setLabelDeleteConfirm(null);
-    } catch (error) {
-      toast.error('Etiket silinemedi');
-    }
-  };
 
   const getRoleBadge = (role) => {
     const badges = {
@@ -125,8 +98,7 @@ const AdminPanel = () => {
           <div className="flex bg-gray-200 dark:bg-gray-800 p-1 rounded-xl w-fit">
             {[
               { id: 'users', label: 'Kullanıcılar' },
-              { id: 'departments', label: 'Departmanlar' },
-              { id: 'labels', label: 'Etiketler' }
+              { id: 'departments', label: 'Departmanlar' }
             ].map(tab => (
               <button
                 key={tab.id}
@@ -344,154 +316,78 @@ const AdminPanel = () => {
               </p>
             </div>
           </>
-        ) : (
-          <>
-            {/* Labels Table */}
-            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
-              <table className="w-full">
-                <thead className="bg-gray-50 dark:bg-gray-900/50 border-b border-gray-200 dark:border-gray-700">
-                  <tr>
-                    <th className="text-left px-6 py-4 text-sm font-semibold text-gray-700 dark:text-gray-300">Etiket Adı</th>
-                    <th className="text-left px-6 py-4 text-sm font-semibold text-gray-700 dark:text-gray-300">Görünüm</th>
-                    <th className="text-left px-6 py-4 text-sm font-semibold text-gray-700 dark:text-gray-300">Tür</th>
-                    <th className="text-right px-6 py-4 text-sm font-semibold text-gray-700 dark:text-gray-300">İşlemler</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-                  {filteredLabels.map(label => (
-                    <tr key={label._id || label.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
-                      <td className="px-6 py-4 text-gray-900 dark:text-gray-100 font-medium">{label.name}</td>
-                      <td className="px-6 py-4">
-                        <span
-                          className="px-2 py-1 rounded text-xs font-medium"
-                          style={{ backgroundColor: label.color, color: '#fff' }}
-                        >
-                          {label.name}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 text-xs text-gray-500">
-                        {label.isGlobal ? (
-                          <span className="flex items-center gap-1 text-purple-600 dark:text-purple-400">
-                            <Shield size={12} /> Global
-                          </span>
-                        ) : 'Proje Bazlı'}
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="flex items-center justify-end gap-2">
-                          {/* Global labels management here */}
-                          <button
-                            onClick={() => {
-                              setSelectedLabel(label);
-                              setIsLabelModalOpen(true);
-                            }}
-                            className="p-2 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
-                            title="Düzenle"
-                          >
-                            <Edit2 size={16} />
-                          </button>
-                          <button
-                            onClick={() => setLabelDeleteConfirm(label)}
-                            className="p-2 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
-                            title="Sil"
-                          >
-                            <Trash2 size={16} />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-              {filteredLabels.length === 0 && (
-                <div className="text-center py-12">
-                  <p className="text-gray-500 dark:text-gray-400">Global etiket bulunamadı</p>
-                </div>
-              )}
-            </div>
-          </>
-        )}
+        ) : null}
       </div>
 
       {/* User Modals */}
-      {isAddModalOpen && (
-        <UserFormModal
-          isOpen={isAddModalOpen}
-          onClose={() => setIsAddModalOpen(false)}
-          onSuccess={fetchUsers}
-          projects={projects}
-        />
-      )}
+      {
+        isAddModalOpen && (
+          <UserFormModal
+            isOpen={isAddModalOpen}
+            onClose={() => setIsAddModalOpen(false)}
+            onSuccess={fetchUsers}
+            projects={projects}
+          />
+        )
+      }
 
-      {isEditModalOpen && selectedUser && (
-        <UserFormModal
-          isOpen={isEditModalOpen}
-          onClose={() => {
-            setIsEditModalOpen(false);
-            setSelectedUser(null);
-          }}
-          onSuccess={fetchUsers}
-          user={selectedUser}
-          projects={projects}
-        />
-      )}
+      {
+        isEditModalOpen && selectedUser && (
+          <UserFormModal
+            isOpen={isEditModalOpen}
+            onClose={() => {
+              setIsEditModalOpen(false);
+              setSelectedUser(null);
+            }}
+            onSuccess={fetchUsers}
+            user={selectedUser}
+            projects={projects}
+          />
+        )
+      }
 
       {/* Dept Modal */}
-      {isDeptModalOpen && (
-        <DepartmentFormModal
-          isOpen={isDeptModalOpen}
-          onClose={() => {
-            setIsDeptModalOpen(false);
-            setSelectedDept(null);
-          }}
-          onSuccess={fetchDepartments}
-          dept={selectedDept}
-        />
-      )}
+      {
+        isDeptModalOpen && (
+          <DepartmentFormModal
+            isOpen={isDeptModalOpen}
+            onClose={() => {
+              setIsDeptModalOpen(false);
+              setSelectedDept(null);
+            }}
+            onSuccess={fetchDepartments}
+            dept={selectedDept}
+          />
+        )
+      }
 
-      {/* Label Modal */}
-      {isLabelModalOpen && (
-        <LabelFormModal
-          isOpen={isLabelModalOpen}
-          onClose={() => {
-            setIsLabelModalOpen(false);
-            setSelectedLabel(null);
-          }}
-          onSuccess={fetchGlobalLabels}
-          label={selectedLabel}
-        />
-      )}
 
       {/* Delete Confirmation Dialogs */}
-      {deleteConfirm && (
-        <ConfirmModal
-          isOpen={!!deleteConfirm}
-          onClose={() => setDeleteConfirm(null)}
-          onConfirm={() => handleDelete(deleteConfirm._id || deleteConfirm.id)}
-          title="Kullanıcıyı Sil"
-          message={`${deleteConfirm.fullName} kullanıcısını silmek istediğinizden emin misiniz?`}
-        />
-      )}
+      {
+        deleteConfirm && (
+          <ConfirmModal
+            isOpen={!!deleteConfirm}
+            onClose={() => setDeleteConfirm(null)}
+            onConfirm={() => handleDelete(deleteConfirm._id || deleteConfirm.id)}
+            title="Kullanıcıyı Sil"
+            message={`${deleteConfirm.fullName} kullanıcısını silmek istediğinizden emin misiniz?`}
+          />
+        )
+      }
 
-      {deptDeleteConfirm && (
-        <ConfirmModal
-          isOpen={!!deptDeleteConfirm}
-          onClose={() => setDeptDeleteConfirm(null)}
-          onConfirm={() => handleDeleteDept(deptDeleteConfirm._id || deptDeleteConfirm.id)}
-          title="Departmanı Sil"
-          message={`${deptDeleteConfirm.name} departmanını silmek istediğinizden emin misiniz?`}
-        />
-      )}
+      {
+        deptDeleteConfirm && (
+          <ConfirmModal
+            isOpen={!!deptDeleteConfirm}
+            onClose={() => setDeptDeleteConfirm(null)}
+            onConfirm={() => handleDeleteDept(deptDeleteConfirm._id || deptDeleteConfirm.id)}
+            title="Departmanı Sil"
+            message={`${deptDeleteConfirm.name} departmanını silmek istediğinizden emin misiniz?`}
+          />
+        )
+      }
 
-      {labelDeleteConfirm && (
-        <ConfirmModal
-          isOpen={!!labelDeleteConfirm}
-          onClose={() => setLabelDeleteConfirm(null)}
-          onConfirm={() => handleDeleteLabel(labelDeleteConfirm._id || labelDeleteConfirm.id)}
-          title="Etiketi Sil"
-          message={`${labelDeleteConfirm.name} etiketini silmek istediğinizden emin misiniz?`}
-        />
-      )}
-    </div>
+    </div >
   );
 };
 
@@ -628,13 +524,6 @@ const DepartmentFormModal = ({ isOpen, onClose, onSuccess, dept = null }) => {
 // User Form Modal Component (UPDATED FOR MULTI-DEPARTMENT)
 const UserFormModal = ({ isOpen, onClose, onSuccess, user = null, projects = [] }) => {
   const { departments } = useData();
-  // Get user's current projects (which projects have this user as member)
-  const getUserProjects = () => {
-    if (!user) return [];
-    const userId = user._id || user.id;
-    return projects.filter(p => p.members?.includes(userId)).map(p => p._id);
-  };
-
   const getUserDepartments = () => {
     if (!user) return [];
     if (user.departments) return user.departments;
@@ -648,11 +537,9 @@ const UserFormModal = ({ isOpen, onClose, onSuccess, user = null, projects = [] 
     password: '',
     role: user?.role || 'member',
     avatar: user?.avatar || '',
-    departments: getUserDepartments(),
-    projectIds: getUserProjects()
+    departments: getUserDepartments()
   });
   const [loading, setLoading] = useState(false);
-  const [selectAllProjects, setSelectAllProjects] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -663,6 +550,7 @@ const UserFormModal = ({ isOpen, onClose, onSuccess, user = null, projects = [] 
       // We need to send departments as list.
 
       const payload = {
+        id: userId, // Required for backend validation
         ...formData,
         department: null, // Ensure legacy field is cleared or ignored
       };
@@ -677,30 +565,18 @@ const UserFormModal = ({ isOpen, onClose, onSuccess, user = null, projects = [] 
       if (user) {
         // Update existing user
         await usersAPI.update(userId, payload);
-
-        // Update user's projects
-        if (formData.projectIds && formData.projectIds.length >= 0) {
-          await usersAPI.updateProjects(userId, formData.projectIds);
-        }
-
         toast.success('Kullanıcı güncellendi');
       } else {
         // Create new user
         const response = await usersAPI.create(payload);
-
-        // Update new user's projects
-        if (formData.projectIds && formData.projectIds.length > 0) {
-          const newUserId = response.data._id || response.data.id;
-          await usersAPI.updateProjects(newUserId, formData.projectIds);
-        }
-
         toast.success('Kullanıcı oluşturuldu');
       }
       onSuccess();
       onClose();
     } catch (error) {
-      console.error('Error:', error);
-      toast.error(user ? 'Kullanıcı güncellenemedi' : 'Kullanıcı oluşturulamadı');
+      console.error('User action error:', error);
+      const errorMsg = error.response?.data?.message || error.response?.data || (user ? 'Kullanıcı güncellenemedi' : 'Kullanıcı oluşturulamadı');
+      toast.error(typeof errorMsg === 'string' ? errorMsg : (user ? 'Kullanıcı güncellenemedi' : 'Kullanıcı oluşturulamadı'));
     } finally {
       setLoading(false);
     }
@@ -801,76 +677,7 @@ const UserFormModal = ({ isOpen, onClose, onSuccess, user = null, projects = [] 
             </p>
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Avatar URL (opsiyonel)</label>
-            <input
-              type="url"
-              value={formData.avatar}
-              onChange={(e) => setFormData({ ...formData, avatar: e.target.value })}
-              className="w-full px-4 py-2 bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 dark:text-gray-100"
-              placeholder="https://..."
-            />
-          </div>
-
-          {/* Projects Selection */}
-          <div>
-            <div className="flex items-center justify-between mb-3">
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Projeler</label>
-              <button
-                type="button"
-                onClick={() => {
-                  if (selectAllProjects) {
-                    setFormData({ ...formData, projectIds: [] });
-                  } else {
-                    setFormData({ ...formData, projectIds: projects.map(p => p._id) });
-                  }
-                  setSelectAllProjects(!selectAllProjects);
-                }}
-                className="text-xs text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-medium"
-              >
-                {selectAllProjects ? 'Hiçbirini Seçme' : 'Tüm Projeleri Seç'}
-              </button>
-            </div>
-
-            {projects.length === 0 ? (
-              <p className="text-sm text-gray-500 italic py-2">Henüz proje yok</p>
-            ) : (
-              <div className="max-h-48 overflow-y-auto border border-gray-300 dark:border-gray-700 rounded-lg p-3 space-y-2">
-                {projects.map(project => (
-                  <label key={project._id} className="flex items-center gap-2 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-900/50 p-2 rounded">
-                    <input
-                      type="checkbox"
-                      checked={formData.projectIds.includes(project._id)}
-                      onChange={(e) => {
-                        if (e.target.checked) {
-                          setFormData({
-                            ...formData,
-                            projectIds: [...formData.projectIds, project._id]
-                          });
-                        } else {
-                          setFormData({
-                            ...formData,
-                            projectIds: formData.projectIds.filter(id => id !== project._id)
-                          });
-                        }
-                      }}
-                      className="rounded border-gray-300"
-                    />
-                    <div className="flex items-center gap-2 flex-1">
-                      <div
-                        className="w-3 h-3 rounded-full"
-                        style={{ backgroundColor: project.color || '#6366f1' }}
-                      />
-                      <span className="text-sm text-gray-700 dark:text-gray-300">{project.name}</span>
-                    </div>
-                  </label>
-                ))}
-              </div>
-            )}
-            <p className="text-xs text-gray-500 mt-2">
-              Seçilen: {formData.projectIds.length} / {projects.length}
-            </p>
-          </div>
+          {/* Avatar alanı kaldırıldı - Avatar sadece Ayarlar sayfasından değiştirilmeli */}
 
           <div className="flex gap-3 justify-end pt-4">
             <button

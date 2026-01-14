@@ -28,6 +28,20 @@ async def get_tasks(
     if assignee:
         query["assignees"] = assignee
     
+    if assignee:
+        query["assignees"] = assignee
+    
+    # Private Task Visibility Logic
+    # Users can see tasks if:
+    # 1. Task is NOT private
+    # 2. OR User is the creator (assignedBy)
+    # 3. OR User is an assignee
+    query["$or"] = [
+        {"isPrivate": {"$ne": True}}, # Public tasks
+        {"assignedBy": current_user["_id"]}, # Created by user
+        {"assignees": current_user["_id"]}   # Assigned to user
+    ]
+    
     tasks = await db.tasks.find(query).to_list(1000)
     return tasks
 

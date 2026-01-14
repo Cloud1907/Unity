@@ -42,8 +42,12 @@ const NewProjectModal = ({ isOpen, onClose }) => {
 
   // Filter departments based on role
   const availableDepartments = React.useMemo(() => {
-    if (user?.role === 'admin') return departments;
-    return departments.filter(d => d.name === user?.department);
+    // if (user?.role === 'admin') return departments; // Kullanıcı isteği: Admin de olsa sadece kendi departmanlarını görsün
+    const userDeptList = user?.departments || [];
+    if (user?.department) userDeptList.push(user.department);
+
+    // Departments are stored by name in user list based on tests
+    return departments.filter(d => userDeptList.includes(d.name) || userDeptList.includes(d._id));
   }, [departments, user]);
 
   // Auto-select department if single option
@@ -79,6 +83,10 @@ const NewProjectModal = ({ isOpen, onClose }) => {
     if (result.success) {
       // Close modal immediately
       onClose();
+    } else {
+      // Show error to user
+      alert('Proje oluşturulurken hata oluştu: ' + (result.error?.message || JSON.stringify(result.error)));
+      console.error("Project creation failed:", result.error);
     }
   };
 

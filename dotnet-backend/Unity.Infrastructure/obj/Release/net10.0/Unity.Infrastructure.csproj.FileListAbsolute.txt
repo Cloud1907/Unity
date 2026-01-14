@@ -1,0 +1,16 @@
+/Users/cloudsmac/Documents/GitHub/4Flow/dotnet-backend/Unity.Infrastructure/bin/Release/net10.0/Unity.Infrastructure.deps.json
+/Users/cloudsmac/Documents/GitHub/4Flow/dotnet-backend/Unity.Infrastructure/bin/Release/net10.0/Unity.Infrastructure.dll
+/Users/cloudsmac/Documents/GitHub/4Flow/dotnet-backend/Unity.Infrastructure/bin/Release/net10.0/Unity.Infrastructure.pdb
+/Users/cloudsmac/Documents/GitHub/4Flow/dotnet-backend/Unity.Infrastructure/bin/Release/net10.0/Unity.Core.dll
+/Users/cloudsmac/Documents/GitHub/4Flow/dotnet-backend/Unity.Infrastructure/bin/Release/net10.0/Unity.Core.pdb
+/Users/cloudsmac/Documents/GitHub/4Flow/dotnet-backend/Unity.Infrastructure/obj/Release/net10.0/Unity.Infrastructure.csproj.AssemblyReference.cache
+/Users/cloudsmac/Documents/GitHub/4Flow/dotnet-backend/Unity.Infrastructure/obj/Release/net10.0/Unity.Infrastructure.GeneratedMSBuildEditorConfig.editorconfig
+/Users/cloudsmac/Documents/GitHub/4Flow/dotnet-backend/Unity.Infrastructure/obj/Release/net10.0/Unity.Infrastructure.AssemblyInfoInputs.cache
+/Users/cloudsmac/Documents/GitHub/4Flow/dotnet-backend/Unity.Infrastructure/obj/Release/net10.0/Unity.Infrastructure.AssemblyInfo.cs
+/Users/cloudsmac/Documents/GitHub/4Flow/dotnet-backend/Unity.Infrastructure/obj/Release/net10.0/Unity.Infrastructure.csproj.CoreCompileInputs.cache
+/Users/cloudsmac/Documents/GitHub/4Flow/dotnet-backend/Unity.Infrastructure/obj/Release/net10.0/Unity.Infrastructure.sourcelink.json
+/Users/cloudsmac/Documents/GitHub/4Flow/dotnet-backend/Unity.Infrastructure/obj/Release/net10.0/Unity.In.E268D142.Up2Date
+/Users/cloudsmac/Documents/GitHub/4Flow/dotnet-backend/Unity.Infrastructure/obj/Release/net10.0/Unity.Infrastructure.dll
+/Users/cloudsmac/Documents/GitHub/4Flow/dotnet-backend/Unity.Infrastructure/obj/Release/net10.0/refint/Unity.Infrastructure.dll
+/Users/cloudsmac/Documents/GitHub/4Flow/dotnet-backend/Unity.Infrastructure/obj/Release/net10.0/Unity.Infrastructure.pdb
+/Users/cloudsmac/Documents/GitHub/4Flow/dotnet-backend/Unity.Infrastructure/obj/Release/net10.0/ref/Unity.Infrastructure.dll

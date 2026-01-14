@@ -1,0 +1,5 @@
+<Solution>
+  <Project Path="Unity.API/Unity.API.csproj" />
+  <Project Path="Unity.Core/Unity.Core.csproj" />
+  <Project Path="Unity.Infrastructure/Unity.Infrastructure.csproj" />
+</Solution>

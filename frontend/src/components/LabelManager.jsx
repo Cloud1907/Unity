@@ -1,62 +1,58 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, Edit2, Trash2, Tag, X } from 'lucide-react';
-import { labelsAPI } from '../services/api';
+import { useData } from '../contexts/DataContext';
 import { toast } from './ui/sonner';
 
 // Önceden tanımlı renkler (Monday.com tarzı)
 const PRESET_COLORS = [
-  '#0073EA', // Mavi
-  '#00C875', // Yeşil
-  '#FDAB3D', // Turuncu
-  '#E2445C', // Kırmızı
-  '#784BD1', // Mor
-  '#FF158A', // Pembe
-  '#FF642E', // Koyu Turuncu
-  '#7F5347', // Kahverengi
-  '#579BFC', // Açık Mavi
-  '#66CCFF', // Sky Blue
-  '#C4C4C4', // Gri
-  '#401694', // Koyu Mor
+  { name: 'Kırmızı', color: '#e2445c' },
+  { name: 'Yeşil', color: '#00c875' },
+  { name: 'Turuncu', color: '#fdab3d' },
+  { name: 'Mavi', color: '#579bfc' },
+  { name: 'Mor', color: '#a25ddc' },
+  { name: 'Lacivert', color: '#784bd1' },
+  { name: 'Pembe', color: '#ff642e' },
+  { name: 'Altın', color: '#ffb100' },
+  { name: 'Sarı', color: '#ffadad' },
+  { name: 'Açık Mavi', color: '#9cd3db' },
+  { name: 'Adaçayı', color: '#7fbb11' },
+  { name: 'Gri', color: '#808080' },
+  { name: 'Bordo', color: '#7b0f1d' },
+  { name: 'Teal', color: '#008080' },
+  { name: 'İndigo', color: '#4b0082' },
+  { name: 'Koyu Yeşil', color: '#1f511f' },
+  { name: 'Somon', color: '#ff8c69' },
+  { name: 'Lavanta', color: '#e6e6fa' },
+  { name: 'Zeytin', color: '#808000' },
+  { name: 'Mercan', color: '#ff7f50' }
 ];
 
 const LabelManager = ({ projectId, onClose }) => {
-  const [labels, setLabels] = useState([]);
+  const { labels: globalLabels, createLabel, updateLabel, deleteLabel } = useData();
   const [isAddMode, setIsAddMode] = useState(false);
   const [editingLabel, setEditingLabel] = useState(null);
   const [formData, setFormData] = useState({
     name: '',
-    color: PRESET_COLORS[0]
+    color: PRESET_COLORS[0].color
   });
+  const colorInputRef = React.useRef(null);
 
-  useEffect(() => {
-    fetchLabels();
-  }, [projectId]);
-
-  const fetchLabels = async () => {
-    try {
-      const response = await labelsAPI.getByProject(projectId);
-      setLabels(response.data || []);
-    } catch (error) {
-      console.error('Error fetching labels:', error);
-    }
-  };
+  // Filter labels for this project
+  const labels = globalLabels.filter(l => l.projectId === projectId || !l.projectId);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
-    try {
-      if (editingLabel) {
-        await labelsAPI.update(editingLabel.id, formData);
-        toast.success('Etiket güncellendi');
-      } else {
-        await labelsAPI.create({ ...formData, projectId });
-        toast.success('Etiket oluşturuldu');
+
+    if (editingLabel) {
+      const result = await updateLabel(editingLabel._id, formData);
+      if (result.success) {
+        resetForm();
       }
-      
-      fetchLabels();
-      resetForm();
-    } catch (error) {
-      toast.error('İşlem başarısız');
+    } else {
+      const result = await createLabel({ ...formData, projectId });
+      if (result.success) {
+        resetForm();
+      }
     }
   };
 
@@ -65,13 +61,7 @@ const LabelManager = ({ projectId, onClose }) => {
       return;
     }
 
-    try {
-      await labelsAPI.delete(labelId);
-      toast.success('Etiket silindi');
-      fetchLabels();
-    } catch (error) {
-      toast.error('Etiket silinemedi');
-    }
+    await deleteLabel(labelId);
   };
 
   const startEdit = (label) => {
@@ -88,13 +78,13 @@ const LabelManager = ({ projectId, onClose }) => {
     setEditingLabel(null);
     setFormData({
       name: '',
-      color: PRESET_COLORS[0]
+      color: PRESET_COLORS[0].color
     });
   };
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={onClose}>
-      <div 
+      <div
         className="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[80vh] overflow-hidden flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
@@ -123,7 +113,7 @@ const LabelManager = ({ projectId, onClose }) => {
               <h3 className="text-lg font-semibold text-gray-900 mb-4">
                 {editingLabel ? 'Etiketi Düzenle' : 'Yeni Etiket Oluştur'}
               </h3>
-              
+
               <div className="mb-4">
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Etiket Adı
@@ -142,20 +132,40 @@ const LabelManager = ({ projectId, onClose }) => {
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Renk Seçin
                 </label>
-                <div className="grid grid-cols-6 gap-2">
-                  {PRESET_COLORS.map(color => (
+                <div className="flex flex-wrap gap-2">
+                  {PRESET_COLORS.map(cp => (
                     <button
-                      key={color}
+                      key={cp.color}
                       type="button"
-                      onClick={() => setFormData({ ...formData, color })}
-                      className={`w-full aspect-square rounded-lg transition-all ${
-                        formData.color === color
-                          ? 'ring-4 ring-offset-2 ring-blue-500 scale-110'
-                          : 'hover:scale-110'
-                      }`}
-                      style={{ backgroundColor: color }}
+                      onClick={() => setFormData({ ...formData, color: cp.color })}
+                      className={`w-8 h-8 rounded-lg transition-all border-2 ${formData.color === cp.color
+                        ? 'border-blue-500 scale-110 shadow-md ring-2 ring-blue-100'
+                        : 'border-transparent hover:scale-105 hover:border-gray-200'
+                        }`}
+                      style={{ backgroundColor: cp.color }}
+                      title={cp.name}
                     />
                   ))}
+                  <div className="relative">
+                    <input
+                      ref={colorInputRef}
+                      type="color"
+                      value={formData.color}
+                      onChange={(e) => setFormData({ ...formData, color: e.target.value })}
+                      className="absolute opacity-0 w-0 h-0"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => colorInputRef.current?.click()}
+                      className={`w-8 h-8 rounded-lg border-2 flex items-center justify-center transition-all bg-white hover:bg-slate-50 ${!PRESET_COLORS.some(cp => cp.color === formData.color)
+                        ? 'border-blue-500 scale-110 shadow-md ring-2 ring-blue-100'
+                        : 'border-gray-200 border-dashed hover:border-gray-400 hover:scale-105'
+                        }`}
+                      title="Özel Renk Seç"
+                    >
+                      <Plus size={16} className="text-gray-500" />
+                    </button>
+                  </div>
                 </div>
               </div>
 
@@ -224,7 +234,7 @@ const LabelManager = ({ projectId, onClose }) => {
                       {label.name}
                     </span>
                   </div>
-                  
+
                   <div className="flex items-center gap-1">
                     <button
                       onClick={() => startEdit(label)}

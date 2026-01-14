@@ -12,12 +12,15 @@ class TaskBase(BaseModel):
     status: str = "todo"  # todo, working, stuck, review, done
     priority: str = "medium"  # low, medium, high, urgent
     labels: List[str] = []
+    tShirtSize: Optional[str] = None  # small, medium, large, x-large, xx-large
     startDate: Optional[datetime] = None
     dueDate: Optional[datetime] = None
     progress: int = 0  # 0-100
     subtasks: List[dict] = []  # List of subtask objects
     comments: List[dict] = []  # List of comments
+    comments: List[dict] = []  # List of comments
     attachments: List[dict] = []  # List of attachment objects {id, name, url, type, size, uploadedAt}
+    isPrivate: bool = False  # If True, only visible to creator and assignees
 
 class TaskCreate(TaskBase):
     pass
@@ -30,6 +33,7 @@ class TaskUpdate(BaseModel):
     status: Optional[str] = None
     priority: Optional[str] = None
     labels: Optional[List[str]] = None
+    tShirtSize: Optional[str] = None
     startDate: Optional[datetime] = None
     dueDate: Optional[datetime] = None
     progress: Optional[int] = None

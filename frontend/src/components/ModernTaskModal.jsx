@@ -14,6 +14,7 @@ import { Button } from './ui/button';
 import { Textarea } from './ui/textarea';
 import { Input } from './ui/input';
 import { toast } from './ui/sonner';
+import { auditAPI } from '../services/api';
 
 const statuses = [
   { id: 'todo', label: 'Yapılacak', color: '#cbd5e1' },      // Slate-300
@@ -49,6 +50,8 @@ const ModernTaskModal = ({ task, isOpen, onClose, initialSection = 'subtasks' })
   const [subtaskDropdownPos, setSubtaskDropdownPos] = useState({ top: 0, left: 0 }); // New state for portal position
   const [mainDropdownPos, setMainDropdownPos] = useState({ top: 0, left: 0 }); // New state for main portal position
   const [searchQuery, setSearchQuery] = useState('');
+  const [activityLogs, setActivityLogs] = useState([]);
+  const [loadingLogs, setLoadingLogs] = useState(false);
 
   const statusMenuRef = useRef(null);
   const assigneeMenuRef = useRef(null);
@@ -698,97 +701,31 @@ const ModernTaskModal = ({ task, isOpen, onClose, initialSection = 'subtasks' })
               </div>
             </div>
 
-            {/* Labels */}
+            {/* Progress - Manual Slider */}
             <div className="space-y-3">
-              <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Etiketler</label>
-              <div className="bg-white border border-slate-200 dark:border-slate-700 rounded-lg p-2 min-h-[42px] flex items-center">
-                <InlineLabelPicker
-                  taskId={taskData._id}
-                  projectId={taskData.projectId}
-                  currentLabels={taskData.labels || []}
-                  onUpdate={async (tid, newLabels) => {
-                    // Update local state immediately
-                    setTaskData(prev => ({ ...prev, labels: newLabels }));
-                    // Also trigger parent update if needed, but InlineLabelPicker usually calls updateTask
-                    // We might need to handle the API call here if InlineLabelPicker expects an onUpdate that does the API call
-                    // Let's check InlineLabelPicker props: onUpdate(taskId, newLabels)
-                    // It calls onUpdate. If we pass this, we update LOCAL state. 
-                    // AND we should probably call updateTask too? 
-                    // ModernTaskModal saves changes via "handleSave" generally, but inline controls might save immediately.
-                    // If InlineLabelPicker logic is "update on click", it expects `onUpdate` to persist it.
-                    // We should call `updateTask(tid, { tags: newLabels })`? Or `labels`.
-                    // DataContext `updateTask` takes data.
-                    await updateTask(tid, { labels: newLabels });
+              <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">İlerleme</label>
+              <div className="space-y-3">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-slate-600 dark:text-slate-400">Tamamlanma</span>
+                  <span className="font-bold text-indigo-600 dark:text-indigo-400">{taskData.progress || 0}%</span>
+                </div>
+                <div className="w-full bg-slate-200 dark:bg-slate-800 rounded-full h-3 overflow-hidden shadow-inner">
+                  <div
+                    className="h-3 rounded-full transition-all duration-500 bg-gradient-to-r from-indigo-500 to-purple-500"
+                    style={{ width: `${taskData.progress || 0}%` }}
+                  />
+                </div>
+                <input
+                  type="range"
+                  min="0"
+                  max="100"
+                  value={taskData.progress || 0}
+                  onChange={(e) => setTaskData({ ...taskData, progress: parseInt(e.target.value) })}
+                  className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-indigo-600 dark:bg-slate-700"
+                  style={{
+                    background: `linear-gradient(to right, rgb(99 102 241) 0%, rgb(99 102 241) ${taskData.progress || 0}%, rgb(226 232 240) ${taskData.progress || 0}%, rgb(226 232 240) 100%)`
                   }}
                 />
-              </div>
-            </div>
-
-            {/* Start Date */}
-            <div className="space-y-3">
-              <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Başlangıç Tarihi</label>
-              <div className="relative">
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant={"outline"}
-                      className={cn(
-                        "w-full justify-start text-left font-medium bg-white border-slate-200 dark:border-slate-700 hover:bg-slate-50",
-                        !taskData.startDate && "text-slate-400"
-                      )}
-                    >
-                      <Calendar size={16} className="mr-2 text-slate-400" />
-                      {taskData.startDate ? (
-                        format(new Date(taskData.startDate), "d MMMM yyyy", { locale: tr })
-                      ) : (
-                        <span>Tarih seçin</span>
-                      )}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0 z-[99999]" align="start" side="bottom">
-                    <CalendarComponent
-                      mode="single"
-                      selected={taskData.startDate ? new Date(taskData.startDate) : undefined}
-                      onSelect={(date) => setTaskData({ ...taskData, startDate: date ? date.toISOString() : null })}
-                      initialFocus
-                      locale={tr}
-                    />
-                  </PopoverContent>
-                </Popover>
-              </div>
-            </div>
-
-            {/* Due Date */}
-            <div className="space-y-3">
-              <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Son Tarih</label>
-              <div className="relative">
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant={"outline"}
-                      className={cn(
-                        "w-full justify-start text-left font-medium bg-white border-slate-200 dark:border-slate-700 hover:bg-slate-50",
-                        !taskData.dueDate && "text-slate-400"
-                      )}
-                    >
-                      <Calendar size={16} className="mr-2 text-slate-400" />
-                      {taskData.dueDate ? (
-                        format(new Date(taskData.dueDate), "d MMMM yyyy", { locale: tr })
-                      ) : (
-                        <span>Tarih seçin</span>
-                      )}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0 z-[99999]" align="start" side="bottom">
-                    <CalendarComponent
-                      mode="single"
-                      selected={taskData.dueDate ? new Date(taskData.dueDate) : undefined}
-                      onSelect={(date) => setTaskData({ ...taskData, dueDate: date ? date.toISOString() : null })}
-                      initialFocus
-                      locale={tr}
-                    />
-                  </PopoverContent>
-                </Popover>
               </div>
             </div>
 
@@ -885,31 +822,97 @@ const ModernTaskModal = ({ task, isOpen, onClose, initialSection = 'subtasks' })
               </div>
             </div>
 
-            {/* Progress - Manual Slider */}
+            {/* Labels */}
             <div className="space-y-3">
-              <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">İlerleme</label>
-              <div className="space-y-3">
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-slate-600 dark:text-slate-400">Tamamlanma</span>
-                  <span className="font-bold text-indigo-600 dark:text-indigo-400">{taskData.progress || 0}%</span>
-                </div>
-                <div className="w-full bg-slate-200 dark:bg-slate-800 rounded-full h-3 overflow-hidden shadow-inner">
-                  <div
-                    className="h-3 rounded-full transition-all duration-500 bg-gradient-to-r from-indigo-500 to-purple-500"
-                    style={{ width: `${taskData.progress || 0}%` }}
-                  />
-                </div>
-                <input
-                  type="range"
-                  min="0"
-                  max="100"
-                  value={taskData.progress || 0}
-                  onChange={(e) => setTaskData({ ...taskData, progress: parseInt(e.target.value) })}
-                  className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-indigo-600 dark:bg-slate-700"
-                  style={{
-                    background: `linear-gradient(to right, rgb(99 102 241) 0%, rgb(99 102 241) ${taskData.progress || 0}%, rgb(226 232 240) ${taskData.progress || 0}%, rgb(226 232 240) 100%)`
+              <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Etiketler</label>
+              <div className="bg-white border border-slate-200 dark:border-slate-700 rounded-lg p-2 min-h-[42px] flex items-center">
+                <InlineLabelPicker
+                  taskId={taskData._id}
+                  projectId={taskData.projectId}
+                  currentLabels={taskData.labels || []}
+                  onUpdate={async (tid, newLabels) => {
+                    // Update local state immediately
+                    setTaskData(prev => ({ ...prev, labels: newLabels }));
+                    // Also trigger parent update if needed, but InlineLabelPicker usually calls updateTask
+                    // We might need to handle the API call here if InlineLabelPicker expects an onUpdate that does the API call
+                    // Let's check InlineLabelPicker props: onUpdate(taskId, newLabels)
+                    // It calls onUpdate. If we pass this, we update LOCAL state. 
+                    // AND we should probably call updateTask too? 
+                    // ModernTaskModal saves changes via "handleSave" generally, but inline controls might save immediately.
+                    // If InlineLabelPicker logic is "update on click", it expects `onUpdate` to persist it.
+                    // We should call `updateTask(tid, { tags: newLabels })`? Or `labels`.
+                    // DataContext `updateTask` takes data.
+                    await updateTask(tid, { labels: newLabels });
                   }}
                 />
+              </div>
+            </div>
+
+            {/* Start Date */}
+            <div className="space-y-3">
+              <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Başlangıç Tarihi</label>
+              <div className="relative">
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant={"outline"}
+                      className={cn(
+                        "w-full justify-start text-left font-medium bg-white border-slate-200 dark:border-slate-700 hover:bg-slate-50",
+                        !taskData.startDate && "text-slate-400"
+                      )}
+                    >
+                      <Calendar size={16} className="mr-2 text-slate-400" />
+                      {taskData.startDate ? (
+                        format(new Date(taskData.startDate), "d MMMM yyyy", { locale: tr })
+                      ) : (
+                        <span>Tarih seçin</span>
+                      )}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0 z-[99999]" align="start" side="bottom">
+                    <CalendarComponent
+                      mode="single"
+                      selected={taskData.startDate ? new Date(taskData.startDate) : undefined}
+                      onSelect={(date) => setTaskData({ ...taskData, startDate: date ? date.toISOString() : null })}
+                      initialFocus
+                      locale={tr}
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
+            </div>
+
+            {/* Due Date */}
+            <div className="space-y-3">
+              <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Son Tarih</label>
+              <div className="relative">
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant={"outline"}
+                      className={cn(
+                        "w-full justify-start text-left font-medium bg-white border-slate-200 dark:border-slate-700 hover:bg-slate-50",
+                        !taskData.dueDate && "text-slate-400"
+                      )}
+                    >
+                      <Calendar size={16} className="mr-2 text-slate-400" />
+                      {taskData.dueDate ? (
+                        format(new Date(taskData.dueDate), "d MMMM yyyy", { locale: tr })
+                      ) : (
+                        <span>Tarih seçin</span>
+                      )}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0 z-[99999]" align="start" side="bottom">
+                    <CalendarComponent
+                      mode="single"
+                      selected={taskData.dueDate ? new Date(taskData.dueDate) : undefined}
+                      onSelect={(date) => setTaskData({ ...taskData, dueDate: date ? date.toISOString() : null })}
+                      initialFocus
+                      locale={tr}
+                    />
+                  </PopoverContent>
+                </Popover>
               </div>
             </div>
 

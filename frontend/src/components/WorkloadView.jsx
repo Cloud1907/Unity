@@ -43,12 +43,12 @@ const WorkloadView = ({ boardId }) => {
   };
 
   return (
-    <div className="flex-1 overflow-auto bg-white p-6">
+    <div className="flex-1 overflow-auto bg-white dark:bg-[#0f172a] p-6">
       <div className="max-w-6xl mx-auto">
         {/* Header */}
         <div className="mb-6">
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">Ekip İş Yükü</h2>
-          <p className="text-gray-600">Ekip üyelerinin görev dağılımı ve iş yükü durumu</p>
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-2">Ekip İş Yükü</h2>
+          <p className="text-gray-600 dark:text-gray-400">Ekip üyelerinin görev dağılımı ve iş yükü durumu</p>
         </div>
 
         {/* Workload Cards */}
@@ -61,7 +61,7 @@ const WorkloadView = ({ boardId }) => {
             const completedTasks = userTasks.filter(t => t.status === 'done');
 
             return (
-              <div key={user._id} className="bg-white border border-gray-200 rounded-lg p-6 hover:shadow-lg transition-shadow">
+              <div key={user._id} className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-6 hover:shadow-lg transition-shadow">
                 {/* User Info */}
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center gap-4">
@@ -72,8 +72,8 @@ const WorkloadView = ({ boardId }) => {
                       </AvatarFallback>
                     </Avatar>
                     <div>
-                      <h3 className="font-semibold text-gray-900">{user.fullName}</h3>
-                      <p className="text-sm text-gray-500">{user.email}</p>
+                      <h3 className="font-semibold text-gray-900 dark:text-gray-100">{user.fullName}</h3>
+                      <p className="text-sm text-gray-500 dark:text-gray-400">{user.email}</p>
                     </div>
                   </div>
                   <div className="text-right">
@@ -87,14 +87,14 @@ const WorkloadView = ({ boardId }) => {
                 {/* Workload Bar */}
                 <div className="mb-4">
                   <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm font-medium text-gray-700">
+                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
                       {activeTasks.length} Aktif Görev
                     </span>
                     <span className="text-sm text-gray-500">
                       {completedTasks.length} Tamamlandı
                     </span>
                   </div>
-                  <div className="w-full bg-gray-100 rounded-full h-3">
+                  <div className="w-full bg-gray-100 dark:bg-gray-700 rounded-full h-3">
                     <div
                       className="h-3 rounded-full transition-all duration-500"
                       style={{
@@ -113,16 +113,16 @@ const WorkloadView = ({ boardId }) => {
                     </div>
                     <div className="space-y-2 max-h-40 overflow-y-auto">
                       {userTasks.map(task => (
-                        <div key={task._id} className="flex items-center justify-between p-2 hover:bg-gray-50 rounded transition-colors">
+                        <div key={task._id} className="flex items-center justify-between p-2 hover:bg-gray-50 dark:hover:bg-gray-700 rounded transition-colors">
                           <div className="flex items-center gap-3 flex-1">
                             <div
                               className="w-2 h-2 rounded-full flex-shrink-0"
                               style={{ backgroundColor: getStatusColor(task.status) }}
                             />
-                            <span className="text-sm text-gray-700 truncate">{task.title}</span>
+                            <span className="text-sm text-gray-700 dark:text-gray-300 truncate">{task.title}</span>
                           </div>
                           <div className="flex items-center gap-2">
-                            <div className="w-16 bg-gray-100 rounded-full h-1.5">
+                            <div className="w-16 bg-gray-100 dark:bg-gray-700 rounded-full h-1.5">
                               <div
                                 className="h-1.5 rounded-full"
                                 style={{

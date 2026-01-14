@@ -24,8 +24,25 @@ backend/venv/
 .vscode/
 .idea/
 
+
 # Build
 build/
 dist/
 .vercel
 .env*.local
+
+# Bundles & Updates
+*.zip
+*.rar
+*.tar.gz
+update-bundle/
+native-bundle/
+dotnet-bundle/
+updates/
+test_wheels/
+
+# Database & Backups
+*.db
+*.db.bak
+*.log
+backend_backup/

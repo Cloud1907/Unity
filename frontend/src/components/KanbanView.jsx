@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, X, Calendar, User, Flag, MessageSquare, Paperclip, MoreHorizontal, Save } from 'lucide-react';
 import { useData } from '../contexts/DataContext';
+import { useTheme } from '../contexts/ThemeContext';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
 import { Button } from './ui/button';
 import { Textarea } from './ui/textarea';
@@ -29,6 +30,7 @@ const KanbanView = ({ boardId }) => {
   const [selectedTask, setSelectedTask] = useState(null);
   const [isPanelOpen, setIsPanelOpen] = useState(false);
   const [draggedTask, setDraggedTask] = useState(null);
+  const { isDark } = useTheme();
 
   useEffect(() => {
     if (boardId) {
@@ -97,22 +99,21 @@ const KanbanView = ({ boardId }) => {
   };
 
   return (
-    <div className="h-full bg-[#f6f7fb] relative">
+    <div className="h-full bg-[#f6f7fb] dark:bg-[#0f172a] relative">
       {/* Kanban Board */}
       <div className="h-full overflow-x-auto">
         <div className="flex gap-4 p-6 h-full min-w-max">
           {columns.map(column => {
             const columnTasks = getTasksByStatus(column.id);
-            
+
             return (
               <div
                 key={column.id}
-                className={`flex flex-col w-80 rounded-xl transition-all duration-300 ${
-                  draggedTask && draggedTask.status !== column.id
-                    ? 'ring-2 ring-[#6366f1] ring-opacity-50 bg-blue-50'
-                    : ''
-                }`}
-                style={{ backgroundColor: column.lightBg }}
+                className={`flex flex-col w-80 rounded-xl transition-all duration-300 ${draggedTask && draggedTask.status !== column.id
+                  ? 'ring-2 ring-[#6366f1] ring-opacity-50 bg-blue-50 dark:bg-blue-900/20'
+                  : ''
+                  }`}
+                style={{ backgroundColor: isDark ? 'rgba(15, 23, 42, 0.6)' : column.lightBg }}
                 onDragOver={handleDragOver}
                 onDrop={(e) => handleDrop(e, column.id)}
               >
@@ -120,14 +121,14 @@ const KanbanView = ({ boardId }) => {
                 <div className="mb-3 px-3 py-3 rounded-t-xl" style={{ backgroundColor: `${column.color}15` }}>
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <div 
-                        className="w-2 h-8 rounded-full transition-all duration-200" 
+                      <div
+                        className="w-2 h-8 rounded-full transition-all duration-200"
                         style={{ backgroundColor: column.color }}
                       />
-                      <span className="text-sm font-bold text-gray-900">
+                      <span className="text-sm font-bold text-gray-900 dark:text-gray-100">
                         {column.title}
                       </span>
-                      <span 
+                      <span
                         className="px-2 py-0.5 rounded-full text-xs font-bold text-white"
                         style={{ backgroundColor: column.color }}
                       >
@@ -145,20 +146,19 @@ const KanbanView = ({ boardId }) => {
                   {columnTasks.map(task => {
                     const assignees = getAssignees(task.assignedTo);
                     const priority = getPriorityConfig(task.priority);
-                    
+
                     return (
                       <div
                         key={task._id}
                         draggable
                         onDragStart={(e) => handleDragStart(e, task)}
                         onDragEnd={handleDragEnd}
-                        className={`bg-white rounded-xl p-4 shadow-sm hover:shadow-2xl transition-all duration-200 hover:scale-[1.03] border border-gray-200 hover:border-[#6366f1] group cursor-grab active:cursor-grabbing ${
-                          draggedTask?._id === task._id ? 'opacity-50 scale-95' : ''
-                        }`}
+                        className={`bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm hover:shadow-2xl transition-all duration-200 hover:scale-[1.03] border border-gray-200 dark:border-gray-700 hover:border-[#6366f1] group cursor-grab active:cursor-grabbing ${draggedTask?._id === task._id ? 'opacity-50 scale-95' : ''
+                          }`}
                         style={{
                           transition: 'all 0.2s ease-in-out',
-                          boxShadow: draggedTask?._id === task._id 
-                            ? '0 8px 16px rgba(99, 102, 241, 0.2)' 
+                          boxShadow: draggedTask?._id === task._id
+                            ? '0 8px 16px rgba(99, 102, 241, 0.2)'
                             : undefined
                         }}
                       >
@@ -167,8 +167,8 @@ const KanbanView = ({ boardId }) => {
                           <div className="flex-1">
                             {/* Priority Badge - Monday.com style */}
                             {task.priority && (
-                              <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold mb-2 transition-all hover:scale-105" 
-                                style={{ 
+                              <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold mb-2 transition-all hover:scale-105"
+                                style={{
                                   backgroundColor: `${priority.dot}15`,
                                   color: priority.dot,
                                   border: `1px solid ${priority.dot}30`
@@ -187,9 +187,9 @@ const KanbanView = ({ boardId }) => {
                         </div>
 
                         {/* Task Title - Click to open modal - Monday.com style */}
-                        <h4 
+                        <h4
                           onClick={() => openTaskPanel(task)}
-                          className="text-sm font-bold text-gray-900 mb-3 line-clamp-2 leading-snug cursor-pointer hover:text-[#6366f1] transition-all hover:translate-x-1"
+                          className="text-sm font-bold text-gray-900 dark:text-gray-100 mb-3 line-clamp-2 leading-snug cursor-pointer hover:text-[#6366f1] transition-all hover:translate-x-1"
                         >
                           {task.title}
                         </h4>
@@ -198,8 +198,8 @@ const KanbanView = ({ boardId }) => {
                         {task.labels && task.labels.length > 0 && (
                           <div className="flex flex-wrap gap-1.5 mb-2">
                             {task.labels.slice(0, 2).map((label, idx) => (
-                              <span 
-                                key={idx} 
+                              <span
+                                key={idx}
                                 className="px-2.5 py-1 bg-gradient-to-r from-blue-500 to-purple-500 text-white text-[10px] rounded-md font-bold shadow-sm hover:shadow-md transition-all hover:scale-105"
                               >
                                 {label}
@@ -215,23 +215,23 @@ const KanbanView = ({ boardId }) => {
 
                         {/* Description Preview - Monday.com style */}
                         {task.description && (
-                          <p className="text-xs text-gray-600 mb-3 line-clamp-2 leading-relaxed font-normal bg-gray-50 px-2 py-1.5 rounded-md">
+                          <p className="text-xs text-gray-600 dark:text-gray-300 mb-3 line-clamp-2 leading-relaxed font-normal bg-gray-50 dark:bg-gray-700/50 px-2 py-1.5 rounded-md">
                             {task.description}
                           </p>
                         )}
 
                         {/* Bottom Section */}
-                        <div className="pt-2 border-t border-gray-100">
+                        <div className="pt-2 border-t border-gray-100 dark:border-gray-700">
                           {/* Meta Icons - Monday.com style */}
-                          <div className="flex items-center gap-3 mb-2 text-gray-500">
+                          <div className="flex items-center gap-3 mb-2 text-gray-500 dark:text-gray-400">
                             {/* Subtasks */}
                             {task.subtasks && task.subtasks.length > 0 && (
                               <div className="flex items-center gap-1.5 text-xs font-semibold px-2 py-1 rounded-md hover:bg-gray-100 transition-colors cursor-pointer">
                                 <input type="checkbox" className="w-3.5 h-3.5 rounded" disabled />
-                                <span className="text-gray-700">{task.subtasks.filter(st => st.completed).length}/{task.subtasks.length}</span>
+                                <span className="text-gray-700 dark:text-gray-300">{task.subtasks.filter(st => st.completed).length}/{task.subtasks.length}</span>
                               </div>
                             )}
-                            
+
                             {/* Comments */}
                             {(task.comments?.length > 0 || Math.random() > 0.5) && (
                               <div className="flex items-center gap-1.5 text-xs font-semibold px-2 py-1 rounded-md hover:bg-blue-50 hover:text-[#6366f1] transition-all cursor-pointer hover:scale-105">
@@ -239,7 +239,7 @@ const KanbanView = ({ boardId }) => {
                                 <span>{task.comments?.length || Math.floor(Math.random() * 5)}</span>
                               </div>
                             )}
-                            
+
                             {/* Attachments */}
                             {Math.random() > 0.7 && (
                               <div className="flex items-center gap-1.5 text-xs font-semibold px-2 py-1 rounded-md hover:bg-purple-50 hover:text-purple-600 transition-all cursor-pointer hover:scale-105">
@@ -247,14 +247,13 @@ const KanbanView = ({ boardId }) => {
                                 <span>{Math.floor(Math.random() * 3) + 1}</span>
                               </div>
                             )}
-                            
+
                             {/* Due Date with warning - Monday.com style */}
                             {task.dueDate && (
-                              <div className={`flex items-center gap-1.5 text-xs ml-auto px-2 py-1 rounded-md transition-all hover:scale-105 ${
-                                new Date(task.dueDate) < new Date(Date.now() + 3 * 24 * 60 * 60 * 1000)
-                                  ? 'text-red-600 font-bold bg-red-50 border border-red-200'
-                                  : 'text-gray-600 font-semibold hover:bg-gray-100'
-                              }`}>
+                              <div className={`flex items-center gap-1.5 text-xs ml-auto px-2 py-1 rounded-md transition-all hover:scale-105 ${new Date(task.dueDate) < new Date(Date.now() + 3 * 24 * 60 * 60 * 1000)
+                                ? 'text-red-600 font-bold bg-red-50 border border-red-200'
+                                : 'text-gray-600 dark:text-gray-300 font-semibold hover:bg-gray-100 dark:hover:bg-gray-700'
+                                }`}>
                                 <Calendar size={13} />
                                 <span>
                                   {new Date(task.dueDate).toLocaleDateString('tr-TR', { month: 'short', day: 'numeric' })}
@@ -267,9 +266,9 @@ const KanbanView = ({ boardId }) => {
                           <div className="flex items-center justify-between">
                             <div className="flex items-center -space-x-2">
                               {assignees.slice(0, 3).map((assignee, idx) => (
-                                <Avatar 
-                                  key={assignee._id} 
-                                  className="w-7 h-7 border-2 border-white ring-2 ring-gray-100 hover:ring-[#6366f1] transition-all hover:z-10 hover:scale-110 cursor-pointer"
+                                <Avatar
+                                  key={assignee._id}
+                                  className="w-7 h-7 border-2 border-white dark:border-gray-800 ring-2 ring-gray-100 dark:ring-gray-700 hover:ring-[#6366f1] transition-all hover:z-10 hover:scale-110 cursor-pointer"
                                   style={{ zIndex: 3 - idx }}
                                 >
                                   <AvatarImage src={assignee.avatar} />
@@ -291,13 +290,13 @@ const KanbanView = ({ boardId }) => {
                                 </button>
                               )}
                             </div>
-                            
+
                             {/* Status badge mini - Monday.com style */}
                             <div className="relative group/status">
                               <button
                                 onClick={(e) => e.stopPropagation()}
                                 className="px-3 py-1.5 rounded-lg text-xs font-bold border-0 cursor-pointer transition-all hover:scale-110 hover:shadow-lg"
-                                style={{ 
+                                style={{
                                   backgroundColor: STATUS_COLORS[task.status]?.bg || '#C4C4C4',
                                   color: STATUS_COLORS[task.status]?.text || '#FFFFFF',
                                   boxShadow: `0 2px 8px ${STATUS_COLORS[task.status]?.bg}40`
@@ -311,16 +310,16 @@ const KanbanView = ({ boardId }) => {
 
                         {/* Progress Bar - Monday.com style */}
                         {task.progress > 0 && (
-                          <div className="mt-3 pt-3 border-t border-gray-100">
+                          <div className="mt-3 pt-3 border-t border-gray-100 dark:border-gray-700">
                             <div className="flex items-center justify-between mb-2">
-                              <span className="text-xs text-gray-600 font-semibold">İlerleme</span>
-                              <span className="text-xs font-bold" style={{ 
-                                color: task.progress === 100 ? '#00C875' : '#579BFC' 
+                              <span className="text-xs text-gray-600 dark:text-gray-400 font-semibold">İlerleme</span>
+                              <span className="text-xs font-bold" style={{
+                                color: task.progress === 100 ? '#00C875' : '#579BFC'
                               }}>
                                 {task.progress}%
                               </span>
                             </div>
-                            <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
+                            <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 overflow-hidden">
                               <div
                                 className="h-2 rounded-full transition-all duration-500 ease-out"
                                 style={{
@@ -339,7 +338,7 @@ const KanbanView = ({ boardId }) => {
                   {/* Empty State - Monday.com style */}
                   {columnTasks.length === 0 && (
                     <div className="text-center py-12 px-4">
-                      <div className="w-16 h-16 mx-auto mb-3 rounded-full bg-gray-100 flex items-center justify-center">
+                      <div className="w-16 h-16 mx-auto mb-3 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
                         <Plus size={24} className="text-gray-400" />
                       </div>
                       <p className="text-sm text-gray-400 font-medium">Buraya görev sürükleyin</p>
@@ -401,14 +400,14 @@ const TaskDetailPanel = ({ task, users, onClose, onUpdate, onStatusChange }) => 
   return (
     <>
       {/* Overlay */}
-      <div 
+      <div
         className="fixed inset-0 bg-black bg-opacity-50 z-40"
         onClick={onClose}
       />
 
       {/* Modal - Center Positioned (OLD STYLE) */}
       <div className="fixed inset-0 flex items-center justify-center z-50 p-4" onClick={onClose}>
-        <div 
+        <div
           className="bg-white rounded-2xl w-full max-w-3xl max-h-[90vh] overflow-hidden shadow-2xl"
           onClick={(e) => e.stopPropagation()}
         >
@@ -444,7 +443,7 @@ const TaskDetailPanel = ({ task, users, onClose, onUpdate, onStatusChange }) => 
                   autoFocus
                 />
               ) : (
-                <h3 
+                <h3
                   className="text-2xl font-bold text-gray-900 cursor-pointer hover:text-[#6366f1] transition-colors"
                   onClick={() => setIsEditing(true)}
                 >
@@ -461,11 +460,10 @@ const TaskDetailPanel = ({ task, users, onClose, onUpdate, onStatusChange }) => 
                   <button
                     key={status}
                     onClick={() => handleStatusChange(status)}
-                    className={`px-4 py-2.5 rounded-xl text-sm font-bold transition-all ${
-                      editedTask.status === status 
-                        ? 'shadow-lg scale-105' 
-                        : 'hover:scale-105 opacity-70 hover:opacity-100'
-                    }`}
+                    className={`px-4 py-2.5 rounded-xl text-sm font-bold transition-all ${editedTask.status === status
+                      ? 'shadow-lg scale-105'
+                      : 'hover:scale-105 opacity-70 hover:opacity-100'
+                      }`}
                     style={{
                       backgroundColor: config.bg,
                       color: config.text
@@ -557,7 +555,7 @@ const TaskDetailPanel = ({ task, users, onClose, onUpdate, onStatusChange }) => 
                 <MessageSquare size={16} />
                 Yorumlar
               </label>
-              
+
               {/* Add Comment */}
               <div className="flex gap-3 mb-4">
                 <Avatar className="w-8 h-8">

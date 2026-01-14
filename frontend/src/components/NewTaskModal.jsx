@@ -16,7 +16,10 @@ const NewTaskModal = ({ isOpen, onClose, projectId, defaultStatus = 'todo' }) =>
     status: defaultStatus,
     assignees: [],
     labels: [],
-    dueDate: ''
+    assignees: [],
+    labels: [],
+    dueDate: '',
+    isPrivate: false
   });
 
   // Reset form when modal closes
@@ -29,7 +32,9 @@ const NewTaskModal = ({ isOpen, onClose, projectId, defaultStatus = 'todo' }) =>
         status: defaultStatus,
         assignees: [],
         labels: [],
-        dueDate: ''
+        labels: [],
+        dueDate: '',
+        isPrivate: false
       });
     }
   }, [isOpen, defaultStatus]);
@@ -72,8 +77,8 @@ const NewTaskModal = ({ isOpen, onClose, projectId, defaultStatus = 'todo' }) =>
   if (!isOpen) return null;
 
   return (
-    <div 
-      className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4" 
+    <div
+      className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4"
       style={{ zIndex: 9999 }}
       onClick={onClose}
     >
@@ -162,6 +167,21 @@ const NewTaskModal = ({ isOpen, onClose, projectId, defaultStatus = 'todo' }) =>
               onChange={handleChange}
               className="mt-1"
             />
+          </div>
+
+          <div className="flex items-center gap-2 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-100 dark:border-gray-700">
+            <input
+              type="checkbox"
+              id="isPrivate"
+              name="isPrivate"
+              checked={formData.isPrivate}
+              onChange={(e) => setFormData({ ...formData, isPrivate: e.target.checked })}
+              className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+            />
+            <div className="flex-1">
+              <Label htmlFor="isPrivate" className="font-medium cursor-pointer mb-0">Özel Görev (Private)</Label>
+              <p className="text-xs text-gray-500">Sadece siz ve atanan kişiler görebilir.</p>
+            </div>
           </div>
 
           {/* Actions */}

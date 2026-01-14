@@ -48,7 +48,7 @@ const InlineDatePicker = ({ value, onChange }) => {
     const pickerContent = (
         <div
             ref={datePickerRef}
-            className="fixed z-[9999] bg-white rounded-lg shadow-2xl border border-gray-200 p-2 animate-in fade-in slide-in-from-top-2 duration-200"
+            className="fixed z-[9999] bg-white dark:bg-gray-900 rounded-lg shadow-2xl border border-gray-200 dark:border-gray-700 p-2 animate-in fade-in slide-in-from-top-2 duration-200"
             style={{
                 top: position.top,
                 left: position.left

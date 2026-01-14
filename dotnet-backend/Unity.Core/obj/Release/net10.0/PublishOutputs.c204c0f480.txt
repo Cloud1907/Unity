@@ -1,0 +1,3 @@
+/Users/cloudsmac/Documents/GitHub/4Flow/dist/backend/Unity.Core.dll
+/Users/cloudsmac/Documents/GitHub/4Flow/dist/backend/Unity.Core.deps.json
+/Users/cloudsmac/Documents/GitHub/4Flow/dist/backend/Unity.Core.pdb

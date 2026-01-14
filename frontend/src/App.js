@@ -1,145 +1,22 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect } from 'react';
 import './App.css';
-import { BrowserRouter, Routes, Route, Navigate, useParams } from 'react-router-dom';
-import { AuthProvider, useAuth } from './contexts/AuthContext';
-import { DataProvider, useData } from './contexts/DataContext';
+import { BrowserRouter } from 'react-router-dom';
+import { AuthProvider } from './contexts/AuthContext';
+import { DataProvider } from './contexts/DataContext';
 import { ThemeProvider } from './contexts/ThemeContext';
-import Sidebar from './components/Sidebar';
-import BoardHeader from './components/BoardHeader';
-import MainTable from './components/MainTable';
-import KanbanView from './components/KanbanViewV2';
-import CalendarView from './components/CalendarView';
-import GanttView from './components/GanttView';
-import WorkloadView from './components/WorkloadView';
-import Login from './pages/Login';
-import Register from './pages/Register';
-import Settings from './pages/Settings';
-import AdminPanel from './pages/AdminPanel';
-import ProfileSettings from './pages/ProfileSettings';
-import DashboardPage from './pages/Dashboard';
-import TeamPage from './pages/TeamPage';
-import ProjectsPage from './pages/ProjectsPage';
-import TestResults from './pages/TestResults';
+import AnimatedRoutes from './components/AnimatedRoutes';
 import { Toaster } from './components/ui/sonner';
-
-// Protected Route Component
-const ProtectedRoute = ({ children }) => {
-  const { isAuthenticated, loading } = useAuth();
-
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#6366f1] mx-auto"></div>
-          <p className="mt-4 text-gray-600">Yükleniyor...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (!isAuthenticated) {
-    return <Navigate to="/login" replace />;
-  }
-
-  return children;
-};
-
-const Dashboard = () => {
-  const { boardId } = useParams();
-  const { projects } = useData();
-  const [currentBoard, setCurrentBoard] = useState(boardId);
-  const [currentView, setCurrentView] = useState('main');
-
-  // Search and Filter State - Lifted Up
-  const [searchQuery, setSearchQuery] = useState('');
-  const [filters, setFilters] = useState({
-    status: [],
-    priority: [],
-    assignee: [],
-    labels: []
-  });
-
-  // Sync state with URL params
-  React.useEffect(() => {
-    if (boardId) {
-      setCurrentBoard(boardId);
-    } else if (projects.length > 0 && !currentBoard) {
-      setCurrentBoard(projects[0]._id);
-    }
-  }, [boardId, projects, currentBoard]);
-
-  const handleBoardChange = (newBoardId) => {
-    setCurrentBoard(newBoardId);
-  };
-
-  const handleViewChange = (view) => {
-    setCurrentView(view);
-  };
-
-  const handleNewBoard = () => {
-    console.log('Creating new board...');
-    // Mock new board creation
-  };
-
-  const renderView = () => {
-    const viewProps = {
-      boardId: currentBoard,
-      searchQuery,
-      filters
-    };
-
-    switch (currentView) {
-      case 'kanban':
-        return <KanbanView {...viewProps} />;
-      case 'calendar':
-        return <CalendarView boardId={currentBoard} />;
-      case 'gantt':
-        return <GanttView boardId={currentBoard} />;
-      case 'workload':
-        return <WorkloadView boardId={currentBoard} />;
-      default:
-        return <MainTable {...viewProps} />;
-    }
-  };
-
-  return (
-    <div className="flex h-screen bg-background overflow-hidden">
-      <Sidebar
-        currentBoard={currentBoard}
-        onBoardChange={handleBoardChange}
-        onNewBoard={handleNewBoard}
-      />
-      <div className="flex-1 flex flex-col overflow-hidden">
-        <BoardHeader
-          boardId={currentBoard}
-          currentView={currentView}
-          onViewChange={handleViewChange}
-          searchQuery={searchQuery}
-          setSearchQuery={setSearchQuery}
-          filters={filters}
-          onFilterChange={setFilters}
-        />
-        <div className="flex-1 overflow-hidden animate-in fade-in duration-200">
-          {renderView()}
-        </div>
-      </div>
-      <Toaster />
-    </div>
-  );
-};
 
 function App() {
   // 🛡️ Emergent Preview Body Lock Fix
-  // Preview ortamında body'nin pointer-events: none olmasını engeller
   useEffect(() => {
     const isPreviewEnv = window.location.hostname.includes('emergent') ||
       window.location.hostname.includes('preview');
 
-    if (!isPreviewEnv) return; // Sadece preview ortamında çalışsın
+    if (!isPreviewEnv) return;
 
     console.log('🛡️ Emergent Preview body lock protection enabled');
 
-    // İlk render'da body kilidini kaldır
     const unlockBody = () => {
       if (document.body) {
         document.body.style.pointerEvents = 'auto';
@@ -148,10 +25,8 @@ function App() {
       }
     };
 
-    // Hemen uygula
     unlockBody();
 
-    // MutationObserver ile body attribute değişikliklerini izle
     const observer = new MutationObserver((mutations) => {
       mutations.forEach((mutation) => {
         if (mutation.type === 'attributes' && mutation.target === document.body) {
@@ -166,16 +41,13 @@ function App() {
       });
     });
 
-    // Body'deki attribute ve style değişikliklerini izle
     observer.observe(document.body, {
       attributes: true,
       attributeFilter: ['style', 'data-scroll-locked', 'class']
     });
 
-    // Periyodik kontrol (ekstra güvence)
     const intervalId = setInterval(unlockBody, 1000);
 
-    // Cleanup
     return () => {
       observer.disconnect();
       clearInterval(intervalId);
@@ -189,112 +61,8 @@ function App() {
         <ThemeProvider>
           <AuthProvider>
             <DataProvider>
-              <Routes>
-                <Route path="/login" element={<Login />} />
-                <Route path="/register" element={<Register />} />
-                <Route
-                  path="/"
-                  element={
-                    <ProtectedRoute>
-                      <Navigate to="/dashboard" replace />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/board/:boardId"
-                  element={
-                    <ProtectedRoute>
-                      <Dashboard />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/settings"
-                  element={
-                    <ProtectedRoute>
-                      <Settings />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/admin"
-                  element={
-                    <ProtectedRoute>
-                      <div className="flex h-screen overflow-hidden">
-                        <Sidebar onBoardChange={() => { }} />
-                        <div className="flex-1 flex flex-col overflow-hidden">
-                          <AdminPanel />
-                        </div>
-                      </div>
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/profile"
-                  element={
-                    <ProtectedRoute>
-                      <div className="flex h-screen overflow-hidden">
-                        <Sidebar onBoardChange={() => { }} />
-                        <div className="flex-1 flex flex-col overflow-hidden">
-                          <ProfileSettings />
-                        </div>
-                      </div>
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/dashboard"
-                  element={
-                    <ProtectedRoute>
-                      <div className="flex h-screen overflow-hidden">
-                        <Sidebar onBoardChange={() => { }} />
-                        <div className="flex-1 flex flex-col overflow-hidden">
-                          <DashboardPage />
-                        </div>
-                      </div>
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/team"
-                  element={
-                    <ProtectedRoute>
-                      <div className="flex h-screen overflow-hidden">
-                        <Sidebar onBoardChange={() => { }} />
-                        <div className="flex-1 flex flex-col overflow-hidden">
-                          <TeamPage />
-                        </div>
-                      </div>
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/projects"
-                  element={
-                    <ProtectedRoute>
-                      <div className="flex h-screen overflow-hidden">
-                        <Sidebar onBoardChange={() => { }} />
-                        <div className="flex-1 flex flex-col overflow-hidden">
-                          <ProjectsPage />
-                        </div>
-                      </div>
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/tests"
-                  element={
-                    <ProtectedRoute>
-                      <div className="flex h-screen overflow-hidden">
-                        <Sidebar onBoardChange={() => { }} />
-                        <div className="flex-1 flex flex-col overflow-hidden">
-                          <TestResults />
-                        </div>
-                      </div>
-                    </ProtectedRoute>
-                  }
-                />
-              </Routes>
+              <AnimatedRoutes />
+              <Toaster />
             </DataProvider>
           </AuthProvider>
         </ThemeProvider>

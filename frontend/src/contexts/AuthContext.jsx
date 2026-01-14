@@ -23,9 +23,30 @@ export const AuthProvider = ({ children }) => {
 
   const checkAuth = async () => {
     const token = localStorage.getItem('token');
+    // Check for stale Test User data and clear it
+    const storedUser = localStorage.getItem('user');
+    if (storedUser) {
+      try {
+        const u = JSON.parse(storedUser);
+        if (u.fullName === 'Test User' || u.username === 'test' || u.email === 'test@example.com') {
+          console.log('Force clearing stale Test User data');
+          localStorage.removeItem('token');
+          localStorage.removeItem('user');
+          setUser(null);
+          return;
+        }
+      } catch (e) {
+        console.error('Error checking stored user:', e);
+      }
+    }
+
     if (token) {
       try {
         const response = await authAPI.getMe();
+        // Backend check: if backend returns Test User (which we deleted, but just in case)
+        if (response.data.fullName === 'Test User') {
+          throw new Error('Invalid Test User returned from backend');
+        }
         setUser(response.data);
       } catch (error) {
         console.error('Auth check failed:', error);
@@ -40,17 +61,17 @@ export const AuthProvider = ({ children }) => {
     try {
       const response = await authAPI.login({ email, password });
       const { access_token, user: userData } = response.data;
-      
+
       localStorage.setItem('token', access_token);
       localStorage.setItem('user', JSON.stringify(userData));
       setUser(userData);
-      
+
       return { success: true };
     } catch (error) {
       console.error('Login failed:', error);
-      return { 
-        success: false, 
-        error: error.response?.data?.detail || 'Giriş başarısız' 
+      return {
+        success: false,
+        error: error.response?.data?.detail || 'Giriş başarısız'
       };
     }
   };
@@ -59,17 +80,17 @@ export const AuthProvider = ({ children }) => {
     try {
       const response = await authAPI.register(data);
       const { access_token, user: userData } = response.data;
-      
+
       localStorage.setItem('token', access_token);
       localStorage.setItem('user', JSON.stringify(userData));
       setUser(userData);
-      
+
       return { success: true };
     } catch (error) {
       console.error('Registration failed:', error);
-      return { 
-        success: false, 
-        error: error.response?.data?.detail || 'Kayıt başarısız' 
+      return {
+        success: false,
+        error: error.response?.data?.detail || 'Kayıt başarısız'
       };
     }
   };

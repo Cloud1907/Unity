@@ -1,7 +1,25 @@
 import axios from 'axios';
 
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
-const API_URL = `${BACKEND_URL}/api`;
+// API Base URL Configuration
+// 1. Check process.env
+// 2. If localhost or empty, use relative path (allows IIS/Nginx proxying)
+// 3. Otherwise use provided URL
+
+const getBaseUrl = () => {
+  const envUrl = process.env.REACT_APP_BACKEND_URL;
+
+  // Eger development modundaysak ve env varsa onu kullan
+  if (process.env.NODE_ENV === 'development') {
+    return envUrl || 'http://localhost:8000';
+  }
+
+  // Production'da (IIS/Nginx arkasinda) relative path kullan
+  // Boylece istekler direk /api/... seklinde gider ve proxy yakalar
+  return '';
+};
+
+const BASE_URL = getBaseUrl();
+const API_URL = `${BASE_URL}/api`;
 
 // Create axios instance
 const api = axios.create({
@@ -11,23 +29,70 @@ const api = axios.create({
   },
 });
 
-// Add token to requests
+// Add auth token and user ID to all requests
 api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('token');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
+
+    // For dev/testing: Add user ID header
+    const userJson = localStorage.getItem('user');
+    if (userJson) {
+      try {
+        const user = JSON.parse(userJson);
+        const userId = user?.id || user?._id; // Check both id and _id
+        if (userId) {
+          console.log(`[API DEBUG] Sending X-Test-User-Id: ${userId} (${user.fullName || user.email})`);
+          config.headers['X-Test-User-Id'] = userId;
+        }
+      } catch (e) {
+        console.error('Failed to parse user from localStorage:', e);
+      }
+    }
+
     return config;
   },
-  (error) => {
-    return Promise.reject(error);
-  }
+  (error) => Promise.reject(error)
 );
 
-// Handle 401 errors
+// Helper to recursively map id to _id
+const mapIdToUnderscoreId = (data) => {
+  if (!data) return data;
+
+  if (Array.isArray(data)) {
+    return data.map(item => mapIdToUnderscoreId(item));
+  }
+
+  if (typeof data === 'object') {
+    const newData = { ...data };
+    if (newData.id && !newData._id) {
+      newData._id = newData.id;
+    }
+
+    // Process nested objects
+    Object.keys(newData).forEach(key => {
+      if (typeof newData[key] === 'object' && newData[key] !== null) {
+        newData[key] = mapIdToUnderscoreId(newData[key]);
+      }
+    });
+
+    return newData;
+  }
+
+  return data;
+};
+
+// Handle 401 errors and data mapping
 api.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    // Automatically map id to _id for frontend compatibility
+    if (response.data) {
+      response.data = mapIdToUnderscoreId(response.data);
+    }
+    return response;
+  },
   (error) => {
     if (error.response?.status === 401) {
       localStorage.removeItem('token');
@@ -82,12 +147,13 @@ export const tasksAPI = {
   getAll: (params) => api.get('/tasks', { params }),
   getById: (id) => api.get(`/tasks/${id}`),
   create: (data) => api.post('/tasks', data),
-  update: (id, data) => api.put(`/tasks/${id}`, data),
+  update: (id, data) => api.patch(`/tasks/${id}`, data),  // Use PATCH for partial updates
   delete: (id) => api.delete(`/tasks/${id}`),
   updateStatus: (id, status) => api.put(`/tasks/${id}/status`, null, { params: { status } }),
   updateProgress: (id, progress) => api.put(`/tasks/${id}/progress`, null, { params: { progress } }),
   assign: (id, userId) => api.post(`/tasks/${id}/assign`, null, { params: { user_id: userId } }),
 };
+
 
 // Subtasks API
 export const subtasksAPI = {
@@ -134,6 +200,12 @@ export const notificationsAPI = {
 // Activity API
 export const activityAPI = {
   getAll: (params) => api.get('/activity', { params }),
+};
+
+// Audit API (Task/Project History)
+export const auditAPI = {
+  getTaskLogs: (taskId) => api.get(`/audit/task/${taskId}`),
+  getProjectLogs: (projectId) => api.get(`/audit/project/${projectId}`),
 };
 
 // Analytics API

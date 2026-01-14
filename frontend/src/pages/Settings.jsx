@@ -9,9 +9,10 @@ import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Textarea } from '../components/ui/textarea';
 import { toast } from '../components/ui/sonner';
+import { authAPI } from '../services/api';
 
 const Settings = () => {
-  const { user } = useAuth();
+  const { user, updateUser } = useAuth();
   const { users } = useData();
   const { theme, setThemeMode } = useTheme();
   const [activeTab, setActiveTab] = useState('profile');
@@ -56,22 +57,55 @@ const Settings = () => {
     });
   };
 
-  const handleAvatarUpload = (e) => {
+  const handleAvatarUpload = async (e) => {
     const file = e.target.files[0];
     if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setAvatarPreview(reader.result);
+      try {
+        const formData = new FormData();
+        formData.append('file', file);
+
+        const response = await fetch('http://localhost:8000/api/files/upload', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('token')}`
+          },
+          body: formData
+        });
+
+        if (!response.ok) throw new Error('Upload failed');
+
+        const data = await response.json();
+        const avatarUrl = `http://localhost:8000${data.url}`;
+
+        setAvatarPreview(avatarUrl);
         toast.success('Avatar yüklendi!');
-      };
-      reader.readAsDataURL(file);
+      } catch (error) {
+        console.error('Avatar upload error:', error);
+        toast.error('Avatar yüklenemedi');
+      }
     }
   };
 
-  const handleSaveProfile = () => {
-    // Profil güncelleme API çağrısı burada yapılacak
-    toast.success('Profil güncellendi!');
-    setIsEditing(false);
+  const handleSaveProfile = async () => {
+    try {
+      const updateData = {
+        fullName: formData.fullName,
+        avatar: avatarPreview || null
+      };
+      const response = await authAPI.updateProfile(updateData);
+      // Update React context state (this updates Sidebar immediately)
+      if (response.data) {
+        updateUser(response.data);
+      } else {
+        // Fallback: merge with current user
+        updateUser({ ...user, ...updateData });
+      }
+      toast.success('Profil güncellendi!');
+      setIsEditing(false);
+    } catch (error) {
+      console.error('Profile update error:', error);
+      toast.error('Profil güncellenemedi');
+    }
   };
 
   const handleChangePassword = () => {
@@ -118,8 +152,8 @@ const Settings = () => {
                     key={tab.id}
                     onClick={() => setActiveTab(tab.id)}
                     className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all ${activeTab === tab.id
-                        ? 'bg-[#6366f1] text-white shadow-md'
-                        : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800'
+                      ? 'bg-[#6366f1] text-white shadow-md'
+                      : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800'
                       }`}
                   >
                     <Icon size={18} />
@@ -424,8 +458,8 @@ const Settings = () => {
                               toast.success(`${themeOption.label} tema seçildi`);
                             }}
                             className={`p-4 border-2 rounded-lg transition-colors hover:border-blue-400 ${theme === themeOption.id
-                                ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
-                                : 'border-gray-200 dark:border-gray-700'
+                              ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
+                              : 'border-gray-200 dark:border-gray-700'
                               }`}
                           >
                             <div className="text-center">

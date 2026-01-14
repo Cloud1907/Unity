@@ -65,12 +65,12 @@ const GanttView = ({ boardId }) => {
 
   return (
     <>
-      <div className="flex-1 overflow-auto bg-white">
+      <div className="flex-1 overflow-auto bg-white dark:bg-[#0f172a]">
         <div className="min-w-max">
           {/* Timeline Header */}
-          <div className="sticky top-0 bg-gray-50 border-b border-gray-200 z-10">
+          <div className="sticky top-0 bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 z-10">
             <div className="flex">
-              <div className="w-64 px-4 py-3 font-semibold text-sm text-gray-700 border-r border-gray-200">
+              <div className="w-64 px-4 py-3 font-semibold text-sm text-gray-700 dark:text-gray-200 border-r border-gray-200 dark:border-gray-700">
                 Görev Adı
               </div>
               <div className="flex">
@@ -79,10 +79,10 @@ const GanttView = ({ boardId }) => {
                   return (
                     <div
                       key={index}
-                      className={`w-12 px-1 py-3 text-center border-r border-gray-200 ${isWeekend ? 'bg-gray-100' : ''
+                      className={`w-12 px-1 py-3 text-center border-r border-gray-200 dark:border-gray-700 ${isWeekend ? 'bg-gray-100 dark:bg-gray-900' : ''
                         }`}
                     >
-                      <div className="text-xs font-medium text-gray-600">
+                      <div className="text-xs font-medium text-gray-600 dark:text-gray-400">
                         {date.getDate()}
                       </div>
                       <div className="text-xs text-gray-400">
@@ -103,9 +103,9 @@ const GanttView = ({ boardId }) => {
               const duration = getTaskDuration(startProp, task.dueDate);
 
               return (
-                <div key={task._id} className="flex hover:bg-gray-50 transition-colors border-b border-gray-100">
-                  <div className="w-64 px-4 py-4 border-r border-gray-100">
-                    <div className="font-medium text-sm text-gray-900">{task.title}</div>
+                <div key={task._id} className="flex hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors border-b border-gray-100 dark:border-gray-700">
+                  <div className="w-64 px-4 py-4 border-r border-gray-100 dark:border-gray-700">
+                    <div className="font-medium text-sm text-gray-900 dark:text-gray-100">{task.title}</div>
                   </div>
                   <div className="flex-1 relative h-16">
                     {/* Background grid */}
@@ -115,7 +115,7 @@ const GanttView = ({ boardId }) => {
                         return (
                           <div
                             key={index}
-                            className={`w-12 border-r border-gray-100 ${isWeekend ? 'bg-gray-50' : ''
+                            className={`w-12 border-r border-gray-100 dark:border-gray-700 ${isWeekend ? 'bg-gray-50 dark:bg-gray-800/50' : ''
                               }`}
                           />
                         );

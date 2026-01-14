@@ -85,6 +85,30 @@ async def create_project(
     project_dict["_id"] = str(ObjectId())
     project_dict["createdBy"] = current_user["_id"]
     
+    # Department Logic
+    user_depts = current_user.get("departments", [])
+    if current_user.get("department"): # Legacy support
+        if current_user["department"] not in user_depts:
+            user_depts.append(current_user["department"])
+            
+    # If project department is specified, verify user has access to it
+    if project_dict.get("department"):
+        if project_dict["department"] not in user_depts and current_user["role"] != "admin":
+             # Optional: Allow creating for other depts? Usually strict.
+             # Let's verify membership.
+             pass # Assuming user can only create for their depts
+             if project_dict["department"] not in user_depts:
+                 raise HTTPException(status_code=400, detail="You can only create projects in your assigned departments")
+    else:
+        # If no department specified
+        if len(user_depts) == 1:
+            # Auto-assign if only 1 dept
+            project_dict["department"] = user_depts[0]
+        elif len(user_depts) > 1:
+            # Require selection if multiple
+            raise HTTPException(status_code=400, detail="Please select a department for this project")
+        # If 0 depts, leave as None (Global/Personal)
+
     # Add owner to members if not already
     if project_dict["owner"] not in project_dict["members"]:
         project_dict["members"].append(project_dict["owner"])

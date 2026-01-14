@@ -1,7 +1,7 @@
 from fastapi import APIRouter, HTTPException, status, Depends
 from pydantic import BaseModel, EmailStr
 from typing import Optional
-from datetime import timedelta
+from datetime import timedelta, datetime
 from models.user import UserCreate, User, UserInDB, UserResponse
 from utils.auth import verify_password, get_password_hash, create_access_token, ACCESS_TOKEN_EXPIRE_MINUTES
 from utils.dependencies import db, get_current_active_user
@@ -11,7 +11,7 @@ import random
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 
 class LoginRequest(BaseModel):
-    email: EmailStr
+    email: str # Can be email or username
     password: str
 
 class LoginResponse(BaseModel):
@@ -43,6 +43,10 @@ async def register(user_data: RegisterRequest):
     user_dict["password"] = get_password_hash(user_data.password)
     user_dict["_id"] = str(ObjectId())
     
+    # Generate username if not provided
+    if not user_dict.get("username"):
+        user_dict["username"] = user_dict["email"].split('@')[0]
+    
     # Generate random color if not provided
     if not user_dict.get("color"):
         user_dict["color"] = generate_random_color()
@@ -72,13 +76,21 @@ async def register(user_data: RegisterRequest):
 
 @router.post("/login", response_model=LoginResponse)
 async def login(login_data: LoginRequest):
-    """Login user"""
-    # Find user by email
-    user = await db.users.find_one({"email": login_data.email})
+    """Login user via Email OR Username"""
+    # Find user by email or username
+    identifier = login_data.email # Frontend sends it in 'email' field for compatibility, but it can be username
+    
+    user = await db.users.find_one({
+        "$or": [
+            {"email": identifier},
+            {"username": identifier}
+        ]
+    })
+    
     if not user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Incorrect email or password",
+            detail="Hatalı kullanıcı adı/email veya şifre",
             headers={"WWW-Authenticate": "Bearer"},
         )
     
@@ -86,7 +98,7 @@ async def login(login_data: LoginRequest):
     if not verify_password(login_data.password, user["password"]):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Incorrect email or password",
+            detail="Hatalı kullanıcı adı/email veya şifre",
             headers={"WWW-Authenticate": "Bearer"},
         )
     
