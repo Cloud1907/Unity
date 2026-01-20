@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect, useLayoutEffect } from 'react';
 import ReactDOM from 'react-dom';
 import { ChevronDown } from 'lucide-react';
 
-const InlineDropdown = ({ value, options, onChange, colorKey = 'color', labelKey = 'label' }) => {
+const InlineDropdown = ({ value, options, onChange, colorKey = 'color', labelKey = 'label', softBadge = false }) => {
     const [isOpen, setIsOpen] = useState(false);
     const dropdownRef = useRef(null);
     const buttonRef = useRef(null);
@@ -38,6 +38,24 @@ const InlineDropdown = ({ value, options, onChange, colorKey = 'color', labelKey
     const currentOption = options.find(opt => opt.id === value);
     const isPlaceholder = !currentOption;
 
+    // Soft Badge Color Mapping (Design System)
+    const getSoftBadgeColors = (option) => {
+        const colorMap = {
+            // Priority colors
+            low: { bg: 'bg-gray-50', text: 'text-gray-600', border: 'border-gray-200' },
+            medium: { bg: 'bg-blue-50', text: 'text-blue-700', border: 'border-blue-200' },
+            high: { bg: 'bg-orange-50', text: 'text-orange-700', border: 'border-orange-200' },
+            urgent: { bg: 'bg-red-50', text: 'text-red-700', border: 'border-red-200' },
+            // T-Shirt sizes (soft versions)
+            small: { bg: 'bg-green-50', text: 'text-green-700', border: 'border-green-200' },
+            medium_tshirt: { bg: 'bg-gray-50', text: 'text-gray-700', border: 'border-gray-200' },
+            large: { bg: 'bg-purple-50', text: 'text-purple-700', border: 'border-purple-200' },
+            xlarge: { bg: 'bg-orange-50', text: 'text-orange-700', border: 'border-orange-200' },
+            xxlarge: { bg: 'bg-pink-50', text: 'text-pink-700', border: 'border-pink-200' },
+        };
+        return colorMap[option.id] || { bg: 'bg-gray-50', text: 'text-gray-600', border: 'border-gray-200' };
+    };
+
     const dropdownContent = (
         <div
             ref={dropdownRef}
@@ -70,6 +88,28 @@ const InlineDropdown = ({ value, options, onChange, colorKey = 'color', labelKey
         </div>
     );
 
+    // Soft Badge rendering (for Priority & T-Shirt columns)
+    if (softBadge && currentOption) {
+        const colors = getSoftBadgeColors(currentOption);
+        return (
+            <>
+                <button
+                    ref={buttonRef}
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        setIsOpen(!isOpen);
+                    }}
+                    className={`group inline-flex items-center gap-2 px-3 py-1.5 rounded-md text-xs font-medium transition-all ${colors.bg} ${colors.text} border ${colors.border} hover:shadow-sm`}
+                >
+                    <span className="truncate whitespace-nowrap flex-1 text-left">{currentOption[labelKey]}</span>
+                    <ChevronDown size={12} className="opacity-50 group-hover:opacity-100 transition-opacity" />
+                </button>
+                {isOpen && ReactDOM.createPortal(dropdownContent, document.body)}
+            </>
+        );
+    }
+
+    // Original solid badge (for Status column)
     return (
         <>
             <button

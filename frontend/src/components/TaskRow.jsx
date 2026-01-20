@@ -88,9 +88,9 @@ const TaskRow = React.memo(({
 
     return (
         <React.Fragment>
-            {/* Main Task Row */}
+            {/* Main Task Row - Soft UI: 56px min-height, softer borders */}
             <div
-                className="grid items-stretch min-h-[2.5rem] hover:bg-gray-50 dark:hover:bg-gray-800 transition-all duration-200 border-b border-gray-200 dark:border-gray-700 group cursor-pointer w-full"
+                className="grid items-stretch min-h-[56px] hover:bg-gray-50 dark:hover:bg-gray-800 transition-all duration-200 border-b border-gray-100 dark:border-gray-700 group cursor-pointer w-full"
                 onClick={() => openTaskModal(task)}
                 style={{ gridTemplateColumns: gridTemplate }}
             >
@@ -121,7 +121,7 @@ const TaskRow = React.memo(({
                         <InlineTextEdit
                             value={task.title}
                             onSave={(newTitle) => updateTask(task._id, { title: newTitle })}
-                            className="font-medium text-gray-900 dark:text-gray-100 flex-1"
+                            className="font-medium text-gray-900 dark:text-gray-100 flex-1 text-sm"
                         />
                     </div>
 
@@ -175,7 +175,7 @@ const TaskRow = React.memo(({
                 </div>
 
                 {/* 3. Status */}
-                <div className="px-3 py-1 border-r border-gray-100 dark:border-gray-800 flex items-center h-full">
+                <div className="px-4 py-3 border-r border-gray-100 dark:border-gray-800 flex items-center h-full">
                     <InlineDropdown
                         value={task.status}
                         options={statuses}
@@ -184,25 +184,27 @@ const TaskRow = React.memo(({
                 </div>
 
                 {/* 4. Priority */}
-                <div className="px-3 py-1 border-r border-gray-100 dark:border-gray-800 flex items-center h-full">
+                <div className="px-4 py-3 border-r border-gray-100 dark:border-gray-800 flex items-center h-full">
                     <InlineDropdown
                         value={task.priority}
                         options={priorities}
                         onChange={(newPriority) => updateTask(task._id, { priority: newPriority })}
+                        softBadge={true}
                     />
                 </div>
 
                 {/* 5. T-Shirt Size */}
-                <div className="px-3 py-1 border-r border-gray-100 dark:border-gray-800 flex items-center h-full">
+                <div className="px-4 py-3 border-r border-gray-100 dark:border-gray-800 flex items-center h-full">
                     <InlineDropdown
                         value={task.tShirtSize || null}
                         options={tShirtSizes}
                         onChange={(newSize) => updateTask(task._id, { tShirtSize: newSize })}
+                        softBadge={true}
                     />
                 </div>
 
                 {/* 6. Assignees */}
-                <div className="px-3 py-1 border-r border-gray-100 dark:border-gray-800 flex items-center h-full">
+                <div className="px-4 py-3 border-r border-gray-100 dark:border-gray-800 flex items-center h-full">
                     <InlineAssigneePicker
                         assigneeIds={task.assignees}
                         allUsers={users}
@@ -211,7 +213,7 @@ const TaskRow = React.memo(({
                 </div>
 
                 {/* 7. Due Date */}
-                <div className="px-3 py-1 border-r border-gray-100 dark:border-gray-800 flex items-center h-full">
+                <div className="px-4 py-3 border-r border-gray-100 dark:border-gray-800 flex items-center h-full">
                     <InlineDatePicker
                         value={task.dueDate}
                         onChange={(newDate) => updateTask(task._id, { dueDate: newDate })}
@@ -219,7 +221,7 @@ const TaskRow = React.memo(({
                 </div>
 
                 {/* 8. Labels */}
-                <div className="px-3 py-1 border-r border-gray-100 dark:border-gray-800 flex items-center h-full">
+                <div className="px-4 py-3 border-r border-gray-100 dark:border-gray-800 flex items-center h-full">
                     <InlineLabelPicker
                         taskId={task._id}
                         currentLabels={task.labels || []}
@@ -229,11 +231,11 @@ const TaskRow = React.memo(({
                 </div>
 
                 {/* 9. Progress */}
-                <div className="px-3 py-1 border-r border-gray-100 dark:border-gray-800 flex items-center h-full">
+                <div className="px-4 py-3 border-r border-gray-100 dark:border-gray-800 flex items-center h-full">
                     <div className="flex items-center gap-2 w-full">
-                        <div className="flex-1 bg-slate-200 dark:bg-slate-700 rounded-full h-2 overflow-hidden shadow-inner">
+                        <div className="flex-1 bg-gray-200 dark:bg-slate-700 rounded-full h-2 overflow-hidden">
                             <div
-                                className="h-full rounded-full transition-all duration-500 ease-out bg-gradient-to-r from-indigo-500 to-violet-500 shadow-[0_0_8px_rgba(99,102,241,0.5)]"
+                                className="h-full rounded-full transition-all duration-500 ease-out bg-blue-500"
                                 style={{ width: `${progress}%` }}
                             />
                         </div>

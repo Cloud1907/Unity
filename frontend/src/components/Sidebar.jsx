@@ -284,7 +284,7 @@ const Sidebar = ({ currentBoard, onBoardChange, onNewBoard }) => {
                             key={board._id}
                             to={`/board/${board._id}`}
                             className={`group w-full flex items-center gap-3 px-3 py-2 rounded-xl transition-all text-[13px] ${currentBoard === board._id
-                              ? 'bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 font-semibold shadow-sm'
+                              ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 font-semibold border-r-2 border-blue-600'
                               : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 font-medium'
                               }`}
                           >
