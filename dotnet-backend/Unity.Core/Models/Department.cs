@@ -6,7 +6,7 @@ namespace Unity.Core.Models
     public class Department
     {
         [Key]
-        public string Id { get; set; } = Guid.NewGuid().ToString();
+        public int Id { get; set; }
 
         [Required]
         public string Name { get; set; }
@@ -16,5 +16,7 @@ namespace Unity.Core.Models
         public string? HeadOfDepartment { get; set; } // Could be a User Id optionally
 
         public string? Color { get; set; } // Hex color code
+        
+        public bool IsMaster { get; set; } = false; // Master workspaces created by Admin
     }
 }

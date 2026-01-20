@@ -37,8 +37,11 @@ const LabelManager = ({ projectId, onClose }) => {
   });
   const colorInputRef = React.useRef(null);
 
+  // Ensure projectId is a number for consistent comparison/submission
+  const SafeProjectId = Number(projectId);
+
   // Filter labels for this project
-  const labels = globalLabels.filter(l => l.projectId === projectId || !l.projectId);
+  const labels = globalLabels.filter(l => l.projectId === SafeProjectId || !l.projectId);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -49,7 +52,7 @@ const LabelManager = ({ projectId, onClose }) => {
         resetForm();
       }
     } else {
-      const result = await createLabel({ ...formData, projectId });
+      const result = await createLabel({ ...formData, projectId: SafeProjectId });
       if (result.success) {
         resetForm();
       }
@@ -57,10 +60,6 @@ const LabelManager = ({ projectId, onClose }) => {
   };
 
   const handleDelete = async (labelId) => {
-    if (!window.confirm('Bu etiketi silmek istediğinizden emin misiniz? Tüm görevlerden kaldırılacaktır.')) {
-      return;
-    }
-
     await deleteLabel(labelId);
   };
 
@@ -222,7 +221,7 @@ const LabelManager = ({ projectId, onClose }) => {
             ) : (
               labels.map(label => (
                 <div
-                  key={label.id}
+                  key={label._id || label.id}
                   className="flex items-center justify-between p-3 bg-white border border-gray-200 rounded-lg hover:shadow-md transition-shadow"
                 >
                   <div className="flex items-center gap-3">
@@ -244,7 +243,7 @@ const LabelManager = ({ projectId, onClose }) => {
                       <Edit2 size={16} />
                     </button>
                     <button
-                      onClick={() => handleDelete(label.id)}
+                      onClick={() => handleDelete(label._id || label.id)}
                       className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                       title="Sil"
                     >

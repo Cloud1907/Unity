@@ -8,13 +8,12 @@ import axios from 'axios';
 const getBaseUrl = () => {
   const envUrl = process.env.REACT_APP_BACKEND_URL;
 
-  // Eger development modundaysak ve env varsa onu kullan
   if (process.env.NODE_ENV === 'development') {
-    return envUrl || 'http://localhost:8000';
+    return envUrl || 'http://localhost:8080';
   }
 
-  // Production'da (IIS/Nginx arkasinda) relative path kullan
-  // Boylece istekler direk /api/... seklinde gider ve proxy yakalar
+  // Production: Single Port (Frontend embedded in Backend)
+  // Use relative path - no cross-origin needed
   return '';
 };
 
@@ -84,6 +83,21 @@ const mapIdToUnderscoreId = (data) => {
   return data;
 };
 
+let isRefreshing = false;
+let failedQueue = [];
+
+const processQueue = (error, token = null) => {
+  failedQueue.forEach(prom => {
+    if (error) {
+      prom.reject(error);
+    } else {
+      prom.resolve(token);
+    }
+  });
+
+  failedQueue = [];
+};
+
 // Handle 401 errors and data mapping
 api.interceptors.response.use(
   (response) => {
@@ -93,12 +107,56 @@ api.interceptors.response.use(
     }
     return response;
   },
-  (error) => {
-    if (error.response?.status === 401) {
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
-      window.location.href = '/login';
+  async (error) => {
+    const originalRequest = error.config;
+
+    if (error.response?.status === 401 && !originalRequest._retry) {
+      if (isRefreshing) {
+        return new Promise(function (resolve, reject) {
+          failedQueue.push({ resolve, reject });
+        }).then(token => {
+          originalRequest.headers['Authorization'] = 'Bearer ' + token;
+          return api(originalRequest);
+        }).catch(err => {
+          return Promise.reject(err);
+        });
+      }
+
+      originalRequest._retry = true;
+      isRefreshing = true;
+
+      const refreshToken = localStorage.getItem('refreshToken');
+
+      if (refreshToken) {
+        try {
+          // We use axios directly to avoid interceptors loop
+          const response = await axios.post(`${API_URL}/auth/refresh`, { refresh_token: refreshToken });
+
+          if (response.status === 200) {
+            const { access_token } = response.data;
+            localStorage.setItem('token', access_token);
+            api.defaults.headers.common['Authorization'] = 'Bearer ' + access_token;
+            processQueue(null, access_token);
+            originalRequest.headers['Authorization'] = 'Bearer ' + access_token;
+            return api(originalRequest);
+          }
+        } catch (err) {
+          processQueue(err, null);
+          localStorage.removeItem('token');
+          localStorage.removeItem('refreshToken');
+          localStorage.removeItem('user');
+          window.location.href = '/login';
+        } finally {
+          isRefreshing = false;
+        }
+      } else {
+        localStorage.removeItem('token');
+        localStorage.removeItem('refreshToken');
+        localStorage.removeItem('user');
+        window.location.href = '/login';
+      }
     }
+
     return Promise.reject(error);
   }
 );
@@ -110,6 +168,7 @@ export const authAPI = {
   getMe: () => api.get('/auth/me'),
   updateProfile: (data) => api.put('/auth/profile', data),
   changePassword: (data) => api.post('/auth/change-password', data),
+  refresh: (data) => api.post('/auth/refresh', data),
 };
 
 // Users API
@@ -128,6 +187,8 @@ export const departmentsAPI = {
   create: (data) => api.post('/departments', data),
   update: (id, data) => api.put(`/departments/${id}`, data),
   delete: (id) => api.delete(`/departments/${id}`),
+  addMember: (id, userId) => api.post(`/departments/${id}/members`, JSON.stringify(userId), { headers: { 'Content-Type': 'application/json' } }),
+  removeMember: (id, userId) => api.delete(`/departments/${id}/members/${userId}`),
 };
 
 // Projects API
@@ -147,7 +208,7 @@ export const tasksAPI = {
   getAll: (params) => api.get('/tasks', { params }),
   getById: (id) => api.get(`/tasks/${id}`),
   create: (data) => api.post('/tasks', data),
-  update: (id, data) => api.patch(`/tasks/${id}`, data),  // Use PATCH for partial updates
+  update: (id, data) => api.patch(`/tasks/${id}`, data),
   delete: (id) => api.delete(`/tasks/${id}`),
   updateStatus: (id, status) => api.put(`/tasks/${id}/status`, null, { params: { status } }),
   updateProgress: (id, progress) => api.put(`/tasks/${id}/progress`, null, { params: { progress } }),
@@ -192,9 +253,6 @@ export const timelogsAPI = {
 // Notifications API
 export const notificationsAPI = {
   getAll: () => api.get('/notifications'),
-  markAsRead: (id) => api.put(`/notifications/${id}/read`),
-  markAllAsRead: () => api.put('/notifications/read-all'),
-  delete: (id) => api.delete(`/notifications/${id}`),
 };
 
 // Activity API

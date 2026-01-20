@@ -106,7 +106,14 @@ const TeamPage = () => {
                   {/* User Header */}
                   <div className="flex items-start gap-3 mb-4">
                     <Avatar className="w-12 h-12">
-                      <AvatarImage src={user.avatar} alt={user.fullName} />
+                      <AvatarImage
+                        src={
+                          user.avatar?.startsWith('http')
+                            ? user.avatar
+                            : `http://localhost:8080${user.avatar || ''}`
+                        }
+                        alt={user.fullName}
+                      />
                       <AvatarFallback style={{ backgroundColor: user.color }}>
                         {user.fullName?.charAt(0)}
                       </AvatarFallback>

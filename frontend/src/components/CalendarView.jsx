@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useData } from '../contexts/DataContext';
-import TaskModal from './TaskModal';
+import ModernTaskModal from './ModernTaskModal';
 import pkg from '../../package.json';
 
 const statuses = [
@@ -25,7 +25,7 @@ const CalendarView = ({ boardId }) => {
     }
   }, [boardId]);
 
-  const boardTasks = tasks.filter(t => t.projectId === boardId);
+  const boardTasks = tasks.filter(t => t.projectId === Number(boardId));
 
   const getStatusColor = (statusId) => {
     return statuses.find(s => s.id === statusId)?.color || '#c4c4c4';
@@ -171,7 +171,7 @@ const CalendarView = ({ boardId }) => {
 
       {/* Task Modal */}
       {isModalOpen && selectedTask && (
-        <TaskModal
+        <ModernTaskModal
           task={selectedTask}
           isOpen={isModalOpen}
           onClose={() => setIsModalOpen(false)}

@@ -1,10 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { Plus, MoreHorizontal, User, Calendar, GitMerge, MessageSquare } from 'lucide-react';
+import { Plus, MoreHorizontal, User, Calendar, GitMerge, MessageSquare, Trash2 } from 'lucide-react';
 import { useDataState, useDataActions } from '../contexts/DataContext';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
 import ModernTaskModal from './ModernTaskModal';
+import NewTaskModal from './NewTaskModal';
 import InlineLabelPicker from './InlineLabelPicker';
+import InlineTextEdit from './InlineTextEdit';
+import ConfirmModal from './ui/ConfirmModal';
 import confetti from 'canvas-confetti';
 import pkg from '../../package.json';
 import { KanbanSkeleton } from './skeletons/KanbanSkeleton';
@@ -156,7 +159,7 @@ const InlineStatusDropdown = ({ currentStatus, onStatusChange, taskId }) => {
   );
 };
 
-// Priority badges (Updated to match new distinct palette)
+// Priority badges
 const PRIORITY_CONFIG = {
   urgent: { color: '#cc0000', label: 'Acil', icon: '⇈' },
   high: { color: '#ff9900', label: 'Yüksek', icon: '↑' },
@@ -262,7 +265,6 @@ const InlineDatePickerSmall = ({ value, onChange }) => {
         top: rect.bottom + window.scrollY + 4,
         left: rect.left + window.scrollX
       });
-      // Seçili tarih varsa o ayı göster
       if (value) {
         setCurrentMonth(new Date(value));
       }
@@ -290,14 +292,13 @@ const InlineDatePickerSmall = ({ value, onChange }) => {
 
   const isOverdue = value && new Date(value) < new Date();
 
-  // Takvim hesaplamaları
   const getDaysInMonth = (date) => {
     const year = date.getFullYear();
     const month = date.getMonth();
     const firstDay = new Date(year, month, 1);
     const lastDay = new Date(year, month + 1, 0);
     const daysInMonth = lastDay.getDate();
-    const startingDayOfWeek = firstDay.getDay(); // 0 = Pazar
+    const startingDayOfWeek = firstDay.getDay();
 
     return { daysInMonth, startingDayOfWeek };
   };
@@ -336,7 +337,7 @@ const InlineDatePickerSmall = ({ value, onChange }) => {
     );
   };
 
-  const dayNames = ['P', 'S', 'Ç', 'P', 'C', 'C', 'P']; // Pzt, Sal, Çar, Per, Cum, Cmt, Paz
+  const dayNames = ['P', 'S', 'Ç', 'P', 'C', 'C', 'P'];
 
   return (
     <>
@@ -366,7 +367,6 @@ const InlineDatePickerSmall = ({ value, onChange }) => {
           }}
           onClick={(e) => e.stopPropagation()}
         >
-          {/* Ay başlığı ve navigasyon */}
           <div className="flex items-center justify-between mb-4">
             <button
               onClick={() => changeMonth(-1)}
@@ -387,7 +387,6 @@ const InlineDatePickerSmall = ({ value, onChange }) => {
             </button>
           </div>
 
-          {/* Gün başlıkları */}
           <div className="grid grid-cols-7 gap-1 mb-2">
             {dayNames.map((day, idx) => (
               <div key={idx} className="text-center text-xs font-semibold text-gray-500 py-1">
@@ -396,14 +395,11 @@ const InlineDatePickerSmall = ({ value, onChange }) => {
             ))}
           </div>
 
-          {/* Takvim günleri */}
           <div className="grid grid-cols-7 gap-1">
-            {/* Boş hücreler (ayın başlangıcı için) */}
             {Array.from({ length: startingDayOfWeek === 0 ? 6 : startingDayOfWeek - 1 }).map((_, idx) => (
               <div key={`empty-${idx}`} />
             ))}
 
-            {/* Günler */}
             {Array.from({ length: daysInMonth }).map((_, idx) => {
               const day = idx + 1;
               const selected = isSelectedDate(day);
@@ -427,7 +423,6 @@ const InlineDatePickerSmall = ({ value, onChange }) => {
             })}
           </div>
 
-          {/* Alt butonlar */}
           <div className="flex gap-2 mt-4 pt-3 border-t border-gray-200 dark:border-gray-700">
             <button
               onClick={() => {
@@ -458,13 +453,33 @@ const InlineDatePickerSmall = ({ value, onChange }) => {
 };
 
 // Kompakt Task Card - Monday.com stili - MEMOIZED
-const CompactTaskCard = React.memo(({ task, onDragStart, onDragEnd, isDragging, users, projectId, onStatusChange, onTaskClick, onUpdate }) => {
+const CompactTaskCard = React.memo(({
+  task,
+  onDragStart,
+  onDragEnd,
+  isDragging,
+  users,
+  projectId,
+  onStatusChange,
+  onTaskClick,
+  onUpdate,
+  onDelete,
+  activeMenuTaskId, // Prop to know if this card's menu should be open
+  onToggleMenu, // Handler to toggle this card's menu
+  autoFocus // NEW: Prop to auto-focus the title
+}) => {
   const assignees = users.filter(u => task.assignees?.includes(u.id || u._id));
   const [isHovered, setIsHovered] = useState(false);
   const [showAssigneeMenu, setShowAssigneeMenu] = useState(false);
   const [assigneeMenuPosition, setAssigneeMenuPosition] = useState({ top: 0, left: 0 });
+  // Removed local showMenu state, using props instead
+
   const assigneeButtonRef = useRef(null);
   const assigneeMenuRef = useRef(null);
+  const menuRef = useRef(null);
+
+  // Is THIS card's menu open?
+  const showMenu = activeMenuTaskId === task._id;
 
   // Position assignee menu
   useEffect(() => {
@@ -477,19 +492,26 @@ const CompactTaskCard = React.memo(({ task, onDragStart, onDragEnd, isDragging, 
     }
   }, [showAssigneeMenu]);
 
-  // Close assignee menu on outside click
+  // Close menus on outside click - Only for ASSIGNEE menu locally.
+  // Main menu is handled by parent, but we can also have a loose click handler if needed,
+  // usually lifting state means parent handles "close on outside", OR efficient local handling.
+  // Ideally, if I click outside, 'onToggleMenu(null)' should be called.
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (assigneeMenuRef.current && !assigneeMenuRef.current.contains(event.target) &&
         assigneeButtonRef.current && !assigneeButtonRef.current.contains(event.target)) {
         setShowAssigneeMenu(false);
       }
+      // If menu is open and click is outside menu AND not on trigger
+      if (showMenu && menuRef.current && !menuRef.current.contains(event.target) && !event.target.closest('.card-menu-trigger')) {
+        onToggleMenu(null); // Close menu
+      }
     };
-    if (showAssigneeMenu) {
+    if (showAssigneeMenu || showMenu) {
       document.addEventListener('mousedown', handleClickOutside);
     }
     return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [showAssigneeMenu]);
+  }, [showAssigneeMenu, showMenu, onToggleMenu]);
 
   const toggleAssignee = (userId) => {
     const currentAssignees = task.assignees || [];
@@ -513,28 +535,54 @@ const CompactTaskCard = React.memo(({ task, onDragStart, onDragEnd, isDragging, 
       }}
       className={`bg-white dark:bg-slate-800 rounded-lg p-3 border transition-all duration-200 cursor-pointer group ${isDragging
         ? 'opacity-50 scale-95 shadow-2xl rotate-2'
-        : 'opacity-100 hover:shadow-xl hover:scale-[1.02] border-gray-200 dark:border-slate-700 hover:border-blue-400 dark:hover:border-blue-500'
-        }`}
+        : 'opacity-100 hover:shadow-xl dark:hover:shadow-[0_8px_30px_rgba(0,0,0,0.4)] hover:scale-[1.02] border-gray-200 dark:border-slate-700 hover:border-blue-400 dark:hover:border-blue-500 shadow-md'
+        } ${autoFocus ? 'animate-in fade-in slide-in-from-top-2 duration-300' : ''}`}
       style={{
         transform: isDragging ? 'rotate(2deg)' : 'rotate(0deg)',
         transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)'
       }}
     >
       {/* Task Title */}
-      <div className="flex items-start justify-between gap-2 mb-2">
-        <h4 className="text-sm font-semibold text-gray-900 dark:text-gray-100 leading-tight flex-1 line-clamp-2">
-          {task.title}
-        </h4>
+      <div className="flex items-start justify-between gap-2 mb-2 relative">
+        <div className="flex-1 min-w-0">
+          <InlineTextEdit
+            value={task.title}
+            onSave={(newTitle) => onUpdate(task._id, { title: newTitle })}
+            startEditing={autoFocus}
+            className="text-sm font-semibold text-gray-900 dark:text-gray-100 leading-tight !p-0 hover:!bg-transparent"
+            inputClassName="w-full bg-white dark:bg-slate-800 border border-indigo-500 rounded px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500 resize-none overflow-hidden leading-normal min-h-[28px]"
+          />
+        </div>
         <button
-          className={`p-1 rounded hover:bg-gray-100 dark:hover:bg-slate-700 transition-opacity ${isHovered ? 'opacity-100' : 'opacity-0'
+          className={`p-1 rounded hover:bg-gray-100 dark:hover:bg-slate-700 transition-opacity card-menu-trigger ${isHovered || showMenu ? 'opacity-100' : 'opacity-0'
             }`}
           onClick={(e) => {
             e.stopPropagation();
-            onTaskClick(task);
+            // Toggle logic: if already open, close (null). If closed, open (this task id)
+            onToggleMenu(showMenu ? null : task._id);
           }}
         >
           <MoreHorizontal size={14} className="text-gray-400" />
         </button>
+
+        {showMenu && (
+          <div
+            ref={menuRef}
+            className="absolute right-0 top-full mt-1 w-32 bg-white dark:bg-slate-800 rounded-lg shadow-xl border border-gray-200 dark:border-slate-700 z-50 py-1"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              onClick={() => {
+                onToggleMenu(null); // Close menu
+                onDelete(task._id);
+              }}
+              className="w-full text-left px-3 py-2 text-xs text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center gap-2"
+            >
+              <Trash2 size={12} />
+              Görevi Sil
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Priority & Date Row */}
@@ -686,7 +734,7 @@ const CompactTaskCard = React.memo(({ task, onDragStart, onDragEnd, isDragging, 
 
 const KanbanViewV2 = ({ boardId, searchQuery, filters }) => {
   const { tasks, users, loading } = useDataState();
-  const { fetchTasks, fetchLabels, updateTaskStatus, updateTask } = useDataActions();
+  const { fetchTasks, fetchLabels, updateTaskStatus, updateTask, deleteTask } = useDataActions();
 
   const [draggedTask, setDraggedTask] = useState(null);
   const [dragOverColumn, setDragOverColumn] = useState(null);
@@ -694,10 +742,24 @@ const KanbanViewV2 = ({ boardId, searchQuery, filters }) => {
   const [isDetailOpen, setIsDetailOpen] = useState(false);
   const [modalInitialSection, setModalInitialSection] = useState('subtasks');
 
+  // New Task Modal State
+  const [isNewTaskModalOpen, setIsNewTaskModalOpen] = useState(false);
+  const [newTaskStatus, setNewTaskStatus] = useState('todo'); // Default status
+
+  // Confirm Modal State
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [taskToDelete, setTaskToDelete] = useState(null);
+
+  // Active Menu State (LIFTED)
+  const [activeMenuTaskId, setActiveMenuTaskId] = useState(null);
+
+  // Track newly created task for auto-focus
+  const [justCreatedTaskId, setJustCreatedTaskId] = useState(null);
+
   useEffect(() => {
     if (boardId) {
       // Optimize: Only fetch if we don't have tasks for this board
-      const hasTasks = tasks.some(task => task.projectId === boardId);
+      const hasTasks = tasks.some(task => task.projectId === Number(boardId));
       if (!hasTasks) {
         fetchTasks(boardId);
       }
@@ -707,7 +769,7 @@ const KanbanViewV2 = ({ boardId, searchQuery, filters }) => {
   }, [boardId, fetchTasks, fetchLabels]);
 
   const filteredTasks = React.useMemo(() => {
-    let filtered = tasks.filter(task => task.projectId === boardId);
+    let filtered = tasks.filter(task => task.projectId === Number(boardId));
 
     // Apply Search
     if (searchQuery) {
@@ -812,6 +874,18 @@ const KanbanViewV2 = ({ boardId, searchQuery, filters }) => {
     await updateTask(taskId, data);
   }, [updateTask]);
 
+  const handleDeleteRequest = (taskId) => {
+    setTaskToDelete(taskId);
+    setIsDeleteModalOpen(true);
+  };
+
+  const confirmDelete = async () => {
+    if (taskToDelete) {
+      await deleteTask(taskToDelete);
+      setTaskToDelete(null);
+    }
+  };
+
   const handleTaskClick = (task, section = 'subtasks') => {
     setSelectedTask(task);
     setModalInitialSection(section);
@@ -824,7 +898,7 @@ const KanbanViewV2 = ({ boardId, searchQuery, filters }) => {
   };
 
   const handleAddTask = async (columnId) => {
-    // Quick add - create task with minimal data
+    // Instant add - create task directly without modal
     const newTask = {
       title: 'Yeni Görev',
       projectId: boardId,
@@ -833,12 +907,21 @@ const KanbanViewV2 = ({ boardId, searchQuery, filters }) => {
       assignees: [],
       progress: 0,
       labels: [],
-      subtasks: []
+      subtasks: [],
+      startDate: new Date().toISOString()
     };
 
-    // Call backend API to create task
     try {
-      const API_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8001';
+      // Use same base URL logic as api.js
+      const getBaseUrl = () => {
+        const envUrl = process.env.REACT_APP_BACKEND_URL;
+        if (process.env.NODE_ENV === 'development') {
+          return envUrl || 'http://localhost:8080';
+        }
+        return ''; // Production: relative path
+      };
+
+      const API_URL = getBaseUrl();
       const token = localStorage.getItem('token');
 
       const response = await fetch(`${API_URL}/api/tasks`, {
@@ -851,7 +934,13 @@ const KanbanViewV2 = ({ boardId, searchQuery, filters }) => {
       });
 
       if (response.ok) {
+        const createdTask = await response.json();
         await fetchTasks(boardId);
+        // Set the new task ID to trigger auto-focus
+        setJustCreatedTaskId(createdTask._id || createdTask.id);
+
+        // Clear the focus target after a delay to prevent re-focusing on re-renders
+        setTimeout(() => setJustCreatedTaskId(null), 2000);
       }
     } catch (error) {
       console.error('Failed to create task:', error);
@@ -879,7 +968,10 @@ const KanbanViewV2 = ({ boardId, searchQuery, filters }) => {
   }
 
   return (
-    <div className="h-full bg-gradient-to-br from-gray-50 to-gray-100 dark:from-slate-950 dark:to-slate-900 relative overflow-visible">
+    <div
+      className="h-full bg-gradient-to-br from-gray-50 to-gray-100 dark:from-slate-950 dark:to-slate-900 relative overflow-visible"
+      onClick={() => setActiveMenuTaskId(null)} // Click anywhere closes menus
+    >
       {/* 🎯 VERSİYON */}
       <div className="absolute top-2 right-2 z-10 px-2 py-1 bg-emerald-600 text-white text-[10px] font-bold rounded shadow-lg animate-fade-in">
         v{pkg.version}
@@ -954,6 +1046,10 @@ const KanbanViewV2 = ({ boardId, searchQuery, filters }) => {
                         onStatusChange={handleStatusChange}
                         onTaskClick={handleTaskClick}
                         onUpdate={handleUpdateTask}
+                        onDelete={handleDeleteRequest}
+                        activeMenuTaskId={activeMenuTaskId}
+                        onToggleMenu={setActiveMenuTaskId}
+                        autoFocus={task._id === justCreatedTaskId}
                       />
                     ))}
                   </div>
@@ -962,9 +1058,9 @@ const KanbanViewV2 = ({ boardId, searchQuery, filters }) => {
                   {columnTasks.length === 0 && !isDropTarget && (
                     <div className="text-center py-20 px-4 opacity-50 bg-dashed border-2 border-dashed border-gray-200 dark:border-slate-800 rounded-xl mt-2">
                       <div className="w-12 h-12 mx-auto mb-3 rounded-full bg-gray-100 dark:bg-slate-800 flex items-center justify-center">
-                        <Plus size={20} className="text-gray-300 dark:text-gray-600" />
+                        <Plus size={24} className="text-gray-300 dark:text-gray-600" strokeWidth={1.5} />
                       </div>
-                      <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">Görev Yok</p>
+                      <p className="text-[11px] text-gray-400 font-medium uppercase tracking-wide">Görev Ekle</p>
                     </div>
                   )}
 
@@ -995,6 +1091,26 @@ const KanbanViewV2 = ({ boardId, searchQuery, filters }) => {
           initialSection={modalInitialSection}
         />
       )}
+
+      {/* New Task Modal */}
+      <NewTaskModal
+        isOpen={isNewTaskModalOpen}
+        onClose={() => setIsNewTaskModalOpen(false)}
+        projectId={boardId}
+        initialStatus={newTaskStatus}
+      />
+
+      {/* Confirm Delete Modal */}
+      <ConfirmModal
+        isOpen={isDeleteModalOpen}
+        onClose={() => setIsDeleteModalOpen(false)}
+        onConfirm={confirmDelete}
+        title="Görevi Sil"
+        message="Bu görevi silmek istediğinizden emin misiniz? Bu işlem geri alınamaz."
+        confirmText="Evet, Sil"
+        cancelText="İptal"
+        type="danger"
+      />
     </div>
   );
 };

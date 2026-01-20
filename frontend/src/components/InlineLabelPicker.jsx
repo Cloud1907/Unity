@@ -41,9 +41,12 @@ const InlineLabelPicker = ({ taskId, currentLabels = [], projectId, onUpdate }) 
 
   // Get labels for this project from context
   const availableLabels = React.useMemo(() => {
+    // Cast projectId to number for strict comparison
+    const pid = Number(projectId);
+
     // 1. Get relevant labels - Prioritize project labels and exclude global if project has its own
     let projectLabels = labels.filter(label =>
-      label.projectId === projectId || label.isGlobal
+      label.projectId === pid || label.isGlobal
     );
 
     // Filter to current project labels ONLY if user wants strict isolation
@@ -131,7 +134,7 @@ const InlineLabelPicker = ({ taskId, currentLabels = [], projectId, onUpdate }) 
     const result = await createLabel({
       name: searchQuery,
       color: selectedColor,
-      projectId: projectId
+      projectId: Number(projectId)
     });
 
     if (result.success) {
@@ -271,7 +274,7 @@ const InlineLabelPicker = ({ taskId, currentLabels = [], projectId, onUpdate }) 
 
   return (
     <>
-      <div className="flex flex-wrap gap-1.5 items-center min-h-[28px]">
+      <div className="flex flex-wrap gap-1.5 items-center content-center h-full w-full">
         {selectedLabels.length === 0 ? (
           <button
             ref={buttonRef}

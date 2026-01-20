@@ -64,9 +64,7 @@ const AdminPanel = () => {
   const getRoleBadge = (role) => {
     const badges = {
       admin: { bg: 'bg-red-100', text: 'text-red-700', label: 'Admin', icon: <Shield size={12} /> },
-      manager: { bg: 'bg-purple-100', text: 'text-purple-700', label: 'Yönetici', icon: <Shield size={12} /> },
-      member: { bg: 'bg-blue-100', text: 'text-blue-700', label: 'Üye', icon: <UserIcon size={12} /> },
-      viewer: { bg: 'bg-gray-100', text: 'text-gray-700', label: 'Görüntüleyici', icon: <UserIcon size={12} /> }
+      member: { bg: 'bg-blue-100', text: 'text-blue-700', label: 'Üye', icon: <UserIcon size={12} /> }
     };
     const badge = badges[role] || badges.member;
     return (
@@ -79,9 +77,17 @@ const AdminPanel = () => {
 
   const getUserDepartments = (user) => {
     if (user.departments && user.departments.length > 0) {
-      return user.departments.join(', ');
+      // Map IDs/Names to readable names
+      return user.departments.map(deptIdOrName => {
+        // Flexible match for string vs number
+        const dept = departments.find(d => (d._id || d.id) == deptIdOrName || d.name === deptIdOrName);
+        return dept ? dept.name : null;
+      })
+        .filter(name => name !== null) // Filter out orphans (deleted depts)
+        .join(', ');
     }
-    return user.department || '-';
+    const singleDept = departments.find(d => d._id === user.department || d.id === user.department);
+    return singleDept?.name || user.department || '-';
   };
 
   return (
@@ -98,7 +104,7 @@ const AdminPanel = () => {
           <div className="flex bg-gray-200 dark:bg-gray-800 p-1 rounded-xl w-fit">
             {[
               { id: 'users', label: 'Kullanıcılar' },
-              { id: 'departments', label: 'Departmanlar' }
+              { id: 'departments', label: 'Çalışma Alanları' }
             ].map(tab => (
               <button
                 key={tab.id}
@@ -122,7 +128,7 @@ const AdminPanel = () => {
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
               <input
                 type="text"
-                placeholder={`${activeTab === 'users' ? "Kullanıcı" : activeTab === 'departments' ? "Departman" : "Etiket"} ara...`}
+                placeholder={`${activeTab === 'users' ? "Kullanıcı" : activeTab === 'departments' ? "Çalışma Alanı" : "Etiket"} ara...`}
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 dark:text-gray-100"
@@ -138,10 +144,8 @@ const AdminPanel = () => {
                   className="px-4 py-2 bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 dark:text-gray-100"
                 >
                   <option value="all">Tüm Roller</option>
-                  <option value="admin">Admin</option>
-                  <option value="manager">Yönetici</option>
-                  <option value="member">Üye</option>
-                  <option value="viewer">Görüntüleyici</option>
+                  <option value="admin">Yönetici (Admin)</option>
+                  <option value="member">Üye (Member)</option>
                 </select>
               )}
 
@@ -154,7 +158,7 @@ const AdminPanel = () => {
                 className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium whitespace-nowrap"
               >
                 <Plus size={18} />
-                {activeTab === 'users' ? 'Yeni Kullanıcı' : activeTab === 'departments' ? 'Yeni Departman' : 'Yeni Etiket'}
+                {activeTab === 'users' ? 'Yeni Kullanıcı' : activeTab === 'departments' ? 'Yeni Çalışma Alanı' : 'Yeni Etiket'}
               </button>
             </div>
           </div>
@@ -170,7 +174,7 @@ const AdminPanel = () => {
                     <th className="text-left px-6 py-4 text-sm font-semibold text-gray-700 dark:text-gray-300">Kullanıcı</th>
                     <th className="text-left px-6 py-4 text-sm font-semibold text-gray-700 dark:text-gray-300">Email</th>
                     <th className="text-left px-6 py-4 text-sm font-semibold text-gray-700 dark:text-gray-300">Rol</th>
-                    <th className="text-left px-6 py-4 text-sm font-semibold text-gray-700 dark:text-gray-300">Departmanlar</th>
+                    <th className="text-left px-6 py-4 text-sm font-semibold text-gray-700 dark:text-gray-300">Çalışma Alanları</th>
                     <th className="text-right px-6 py-4 text-sm font-semibold text-gray-700 dark:text-gray-300">İşlemler</th>
                   </tr>
                 </thead>
@@ -180,7 +184,13 @@ const AdminPanel = () => {
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
                           <Avatar className="w-10 h-10">
-                            <AvatarImage src={user.avatar} />
+                            <AvatarImage
+                              src={
+                                user.avatar?.startsWith('http')
+                                  ? user.avatar
+                                  : `http://localhost:8080${user.avatar || ''}`
+                              }
+                            />
                             <AvatarFallback className="bg-gradient-to-br from-blue-400 to-purple-500 text-white dark:text-gray-100 font-bold">
                               {user.fullName?.charAt(0) || 'U'}
                             </AvatarFallback>
@@ -250,7 +260,7 @@ const AdminPanel = () => {
               <table className="w-full">
                 <thead className="bg-gray-50 dark:bg-gray-900/50 border-b border-gray-200 dark:border-gray-700">
                   <tr>
-                    <th className="text-left px-6 py-4 text-sm font-semibold text-gray-700 dark:text-gray-300">Departman Adı</th>
+                    <th className="text-left px-6 py-4 text-sm font-semibold text-gray-700 dark:text-gray-300">Çalışma Alanı Adı</th>
                     <th className="text-left px-6 py-4 text-sm font-semibold text-gray-700 dark:text-gray-300">Yönetici</th>
                     <th className="text-left px-6 py-4 text-sm font-semibold text-gray-700 dark:text-gray-300">Açıklama</th>
                     <th className="text-left px-6 py-4 text-sm font-semibold text-gray-700 dark:text-gray-300">Kullanıcı Sayısı</th>
@@ -304,7 +314,7 @@ const AdminPanel = () => {
 
               {filteredDepts.length === 0 && (
                 <div className="text-center py-12">
-                  <p className="text-gray-500 dark:text-gray-400">Departman bulunamadı</p>
+                  <p className="text-gray-500 dark:text-gray-400">Çalışma alanı bulunamadı</p>
                 </div>
               )}
             </div>
@@ -312,7 +322,7 @@ const AdminPanel = () => {
             {/* Dept Stats */}
             <div className="mt-6 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-900/30 rounded-xl">
               <p className="text-sm text-blue-800 dark:text-blue-300">
-                <strong>İpucu:</strong> Departmanlar, kullanıcıların gruplandırılmasını sağlar. Bir kullanıcı birden fazla departmanda bulunabilir.
+                <strong>İpucu:</strong> Çalışma Alanları, kullanıcıların gruplandırılmasını sağlar. Bir kullanıcı birden fazla çalışma alanında bulunabilir.
               </p>
             </div>
           </>
@@ -381,8 +391,8 @@ const AdminPanel = () => {
             isOpen={!!deptDeleteConfirm}
             onClose={() => setDeptDeleteConfirm(null)}
             onConfirm={() => handleDeleteDept(deptDeleteConfirm._id || deptDeleteConfirm.id)}
-            title="Departmanı Sil"
-            message={`${deptDeleteConfirm.name} departmanını silmek istediğinizden emin misiniz?`}
+            title="Çalışma Alanını Sil"
+            message={`${deptDeleteConfirm.name} çalışma alanını silmek istediğinizden emin misiniz?`}
           />
         )
       }
@@ -414,7 +424,8 @@ const DepartmentFormModal = ({ isOpen, onClose, onSuccess, dept = null }) => {
     name: dept?.name || '',
     description: dept?.description || '',
     headOfDepartment: dept?.headOfDepartment || '',
-    color: dept?.color || '#6366f1'
+    color: dept?.color || '#6366f1',
+    isMaster: dept?.isMaster || false
   });
   const [loading, setLoading] = useState(false);
 
@@ -445,12 +456,12 @@ const DepartmentFormModal = ({ isOpen, onClose, onSuccess, dept = null }) => {
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={onClose}>
       <div className="bg-white dark:bg-gray-800 rounded-xl p-6 max-w-lg w-full" onClick={(e) => e.stopPropagation()}>
         <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">
-          {dept ? 'Departmanı Düzenle' : 'Yeni Departman Ekle'}
+          {dept ? 'Çalışma Alanını Düzenle' : 'Yeni Çalışma Alanı Ekle'}
         </h2>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Departman Adı</label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Çalışma Alanı Adı</label>
             <input
               type="text"
               value={formData.name}
@@ -462,7 +473,7 @@ const DepartmentFormModal = ({ isOpen, onClose, onSuccess, dept = null }) => {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Departman Yöneticisi</label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Çalışma Alanı Yöneticisi</label>
             <input
               type="text"
               value={formData.headOfDepartment}
@@ -479,8 +490,21 @@ const DepartmentFormModal = ({ isOpen, onClose, onSuccess, dept = null }) => {
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
               className="w-full px-4 py-2 bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 dark:text-gray-100"
               rows={3}
-              placeholder="Departman hakkında kısa bilgi..."
+              placeholder="Çalışma alanı hakkında kısa bilgi..."
             />
+          </div>
+
+          <div className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              id="isMaster"
+              checked={formData.isMaster}
+              onChange={(e) => setFormData({ ...formData, isMaster: e.target.checked })}
+              className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+            />
+            <label htmlFor="isMaster" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+              Master Çalışma Alanı (Admin yetkisiyle açılan ana grup)
+            </label>
           </div>
 
           <div>
@@ -645,35 +669,75 @@ const UserFormModal = ({ isOpen, onClose, onSuccess, user = null, projects = [] 
               onChange={(e) => setFormData({ ...formData, role: e.target.value })}
               className="w-full px-4 py-2 bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 dark:text-gray-100"
             >
-              <option value="admin">Admin</option>
-              <option value="manager">Yönetici</option>
-              <option value="member">Üye</option>
-              <option value="viewer">Görüntüleyici</option>
+              <option value="admin">Yönetici (Admin)</option>
+              <option value="member">Üye (Member)</option>
             </select>
           </div>
 
           {/* Departments Multi-Select */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Departmanlar (Çoklu Seçim)</label>
-            <div className="max-h-32 overflow-y-auto border border-gray-300 dark:border-gray-700 rounded-lg p-3 space-y-2">
-              {departments.map(dept => (
-                <label key={dept._id} className="flex items-center gap-2 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-900/50 p-1 rounded">
-                  <input
-                    type="checkbox"
-                    checked={formData.departments.includes(dept.name)}
-                    onChange={() => toggleDepartment(dept.name)}
-                    className="rounded border-gray-300"
-                  />
-                  <div
-                    className="w-3 h-3 rounded-full"
-                    style={{ backgroundColor: dept.color || '#6366f1' }}
-                  />
-                  <span className="text-sm text-gray-700 dark:text-gray-300">{dept.name}</span>
-                </label>
-              ))}
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Çalışma Alanları (Çoklu Seçim)</label>
+            <div className="max-h-60 overflow-y-auto border border-gray-300 dark:border-gray-700 rounded-lg p-3 space-y-4">
+
+              {/* Master Workspaces Group */}
+              <div>
+                <h4 className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-2 flex items-center gap-1">
+                  <Shield size={10} /> Master Çalışma Alanları
+                </h4>
+                <div className="space-y-1">
+                  {departments.filter(d => d.isMaster).map(dept => {
+                    const deptId = dept._id || dept.id;
+                    const isChecked = formData.departments.includes(deptId) || formData.departments.includes(dept.name);
+                    return (
+                      <label key={deptId} className="flex items-center gap-2 cursor-pointer hover:bg-blue-50 dark:hover:bg-blue-900/20 p-2 rounded border border-blue-100 dark:border-blue-900/50">
+                        <input
+                          type="checkbox"
+                          checked={isChecked}
+                          onChange={() => toggleDepartment(deptId)}
+                          className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                        />
+                        <div className="w-2 h-2 rounded-full" style={{ backgroundColor: dept.color || '#6366f1' }} />
+                        <span className="text-sm font-medium text-gray-800 dark:text-gray-200">{dept.name}</span>
+                      </label>
+                    );
+                  })}
+                  {departments.filter(d => d.isMaster).length === 0 && <p className="text-xs text-gray-400 italic px-2">Master alan yok</p>}
+                </div>
+              </div>
+
+              <div className="border-t border-gray-100 dark:border-gray-700"></div>
+
+              {/* Dynamic Workspaces Group */}
+              <div>
+                <h4 className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">Diğer Çalışma Alanları</h4>
+                <div className="space-y-1">
+                  {departments.filter(d => !d.isMaster).map(dept => {
+                    const deptId = dept._id || dept.id;
+                    const isChecked = formData.departments.includes(deptId) || formData.departments.includes(dept.name);
+                    return (
+                      <label key={deptId} className="flex items-center gap-2 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-900/50 p-2 rounded">
+                        <input
+                          type="checkbox"
+                          checked={isChecked}
+                          onChange={() => toggleDepartment(deptId)}
+                          className="rounded border-gray-300"
+                        />
+                        <div className="w-2 h-2 rounded-full opacity-70" style={{ backgroundColor: dept.color || '#6366f1' }} />
+                        <span className="text-sm text-gray-600 dark:text-gray-400">{dept.name}</span>
+                      </label>
+                    );
+                  })}
+                </div>
+              </div>
+
             </div>
-            <p className="text-xs text-gray-500 mt-1">
-              Seçilen: {formData.departments.join(', ') || 'Hiçbiri'}
+            <p className="text-xs text-gray-500 mt-2">
+              Seçilen: {
+                formData.departments.map(d => {
+                  const dp = departments.find(x => (x._id || x.id) === d || x.name === d);
+                  return dp ? dp.name : d;
+                }).join(', ') || 'Hiçbiri'
+              }
             </p>
           </div>
 

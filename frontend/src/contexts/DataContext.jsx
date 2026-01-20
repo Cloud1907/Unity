@@ -32,7 +32,7 @@ export const useDataActions = () => {
 };
 
 export const DataProvider = ({ children }) => {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user, updateUser } = useAuth();
   const [projects, setProjects] = useState([]);
   const [tasks, setTasks] = useState([]);
   const [users, setUsers] = useState([]);
@@ -56,8 +56,16 @@ export const DataProvider = ({ children }) => {
 
       setTasks(prevTasks => {
         if (!projectId) return response.data;
-        const otherTasks = prevTasks.filter(t => t.projectId !== projectId);
-        return [...otherTasks, ...response.data];
+
+        // Create a map of existing tasks by ID
+        const taskMap = new Map(prevTasks.map(t => [t._id || t.id, t]));
+
+        // Update or add new tasks from response
+        response.data.forEach(newTask => {
+          taskMap.set(newTask._id || newTask.id, newTask);
+        });
+
+        return Array.from(taskMap.values());
       });
     } catch (error) {
       console.error('Error fetching tasks:', error);
@@ -107,7 +115,8 @@ export const DataProvider = ({ children }) => {
       return { success: true, data: response.data };
     } catch (error) {
       console.error('Label creation error:', error);
-      toast.error('Etiket oluşturulamadı');
+      const errorMessage = error.response?.data?.detail || error.response?.data?.message || error.response?.data?.title || error.message;
+      toast.error(errorMessage || 'Etiket oluşturulamadı');
       return { success: false, error };
     }
   }, []);
@@ -189,14 +198,16 @@ export const DataProvider = ({ children }) => {
     console.log('Attempting to delete project:', id);
     try {
       await projectsAPI.delete(id);
-      setProjects(prev => prev.filter(p => p._id !== id));
+      setProjects(prev => prev.filter(p => p._id != id && p.id != id));
       toast.success('Proje silindi!');
       return { success: true };
     } catch (error) {
       console.error('Delete project error:', error);
-      const errorMessage = error.response?.data?.detail || error.message;
-      window.alert('HATA: Proje silinemedi!\n\nDetay: ' + errorMessage);
-      // toast.error('Proje silinemedi: ' + errorMessage);
+      console.log('Error Response:', error.response);
+      console.log('Error Data:', error.response?.data);
+
+      const errorMessage = error.response?.data?.detail || error.response?.data?.message || error.response?.data?.title || error.message;
+      toast.error('HATA: ' + errorMessage); // Prefix to verify code update
       return { success: false, error };
     }
   }, []);
@@ -204,7 +215,7 @@ export const DataProvider = ({ children }) => {
   const toggleFavorite = useCallback(async (id) => {
     try {
       const response = await projectsAPI.toggleFavorite(id);
-      setProjects(prev => prev.map(p => p._id === id ? response.data : p));
+      setProjects(prev => prev.map(p => (p._id == id || p.id == id) ? response.data : p));
       return { success: true, data: response.data };
     } catch (error) {
       toast.error('Favori durumu değiştirilemedi');
@@ -217,22 +228,40 @@ export const DataProvider = ({ children }) => {
     try {
       const response = await departmentsAPI.create(data);
       setDepartments(prev => [...prev, response.data]);
-      toast.success('Departman oluşturuldu!');
+
+      // Auto-update user's workspace list locally for immediate access
+      if (user) {
+        const newDeptId = response.data.id || response.data._id;
+        const currentDepts = user.departments || (user.department ? [user.department] : []);
+
+        // Ensure we don't duplicate
+        const alreadyExists = currentDepts.some(d => d === newDeptId || d === response.data.name);
+        if (!alreadyExists) {
+          const updatedUser = {
+            ...user,
+            departments: [...currentDepts, newDeptId]
+          };
+          // Also update local storage via AuthContext
+          updateUser(updatedUser);
+        }
+      }
+
+      toast.success('Çalışma alanı oluşturuldu!');
       return { success: true, data: response.data };
     } catch (error) {
-      toast.error('Departman oluşturulamadı');
+      toast.error('Çalışma alanı oluşturulamadı');
       return { success: false, error };
     }
-  }, []);
+  }, [user, updateUser]);
 
   const updateDepartment = useCallback(async (id, data) => {
     try {
       const response = await departmentsAPI.update(id, data);
       setDepartments(prev => prev.map(d => (d._id === id || d.id === id) ? response.data : d));
-      toast.success('Departman güncellendi!');
+      toast.success('Çalışma alanı güncellendi!');
       return { success: true, data: response.data };
     } catch (error) {
-      toast.error('Departman güncellenemedi');
+      toast.error('Çalışma alanı güncellenemedi');
       return { success: false, error };
     }
   }, []);
@@ -241,10 +270,10 @@ export const DataProvider = ({ children }) => {
     try {
       await departmentsAPI.delete(id);
       setDepartments(prev => prev.filter(d => (d._id !== id && d.id !== id)));
-      toast.success('Departman silindi!');
+      toast.success('Çalışma alanı silindi!');
       return { success: true };
     } catch (error) {
-      toast.error('Departman silinemedi');
+      toast.error('Çalışma alanı silinemedi');
       return { success: false, error };
     }
   }, []);

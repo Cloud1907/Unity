@@ -8,14 +8,14 @@ namespace Unity.Core.Models
     public class Label
     {
         [Key]
-        public string Id { get; set; } = Guid.NewGuid().ToString();
+        public int Id { get; set; }
 
         [Required]
         public string Name { get; set; }
 
         public string Color { get; set; } = "#cccccc";
 
-        public string ProjectId { get; set; }
+        public int ProjectId { get; set; }
 
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     }

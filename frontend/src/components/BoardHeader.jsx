@@ -4,6 +4,7 @@ import { useData } from '../contexts/DataContext';
 import { useNavigate } from 'react-router-dom';
 import { Button } from './ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
+import NotificationPopover from './NotificationPopover';
 import NewTaskModal from './NewTaskModal';
 import LabelManager from './LabelManager';
 import pkg from '../../package.json';
@@ -27,10 +28,10 @@ const BoardHeader = ({
   const [showGroupByMenu, setShowGroupByMenu] = useState(false);
   const [showSettingsMenu, setShowSettingsMenu] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showNotifications, setShowNotifications] = useState(false);
 
-  const board = projects.find(b => b._id === boardId);
+  const board = projects.find(b => b._id === Number(boardId));
   const boardMembers = users.filter(u => board?.members?.includes(u._id));
-  const projectLabels = labels?.filter(l => l.projectId === boardId) || [];
 
   const handleToggleFavorite = async () => {
     if (board) {
@@ -53,25 +54,48 @@ const BoardHeader = ({
     }
   };
 
+  // Unique Labels Logic
+  const uniqueProjectLabels = React.useMemo(() => {
+    const pl = labels?.filter(l => l.projectId === Number(boardId)) || [];
+    const unique = new Map();
+    pl.forEach(l => {
+      if (!unique.has(l.name)) {
+        unique.set(l.name, l);
+      }
+    });
+    return Array.from(unique.values());
+  }, [labels, boardId]);
+
+  const filterMenuRef = React.useRef(null);
+  const filterButtonRef = React.useRef(null);
+
   // Close menus when clicking outside
   useEffect(() => {
     const handleClickOutside = (event) => {
-      if (showFilterMenu && !event.target.closest('.relative')) {
+      // Filter Menu Logic
+      if (showFilterMenu &&
+        filterMenuRef.current &&
+        !filterMenuRef.current.contains(event.target) &&
+        !filterButtonRef.current.contains(event.target)) {
         setShowFilterMenu(false);
       }
+
       if (showGroupByMenu && !event.target.closest('.group-by-menu')) {
         setShowGroupByMenu(false);
       }
       if (showSettingsMenu && !event.target.closest('.settings-menu')) {
         setShowSettingsMenu(false);
       }
+      if (showNotifications && !event.target.closest('.notification-wrapper')) {
+        setShowNotifications(false);
+      }
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [showFilterMenu, showSettingsMenu, showGroupByMenu]);
+  }, [showFilterMenu, showSettingsMenu, showGroupByMenu, showNotifications]);
 
   const views = [
-    { id: 'main', label: 'Ana Tablo', Icon: Table, shortLabel: 'Tablo' },
+    { id: 'main', label: 'Liste', Icon: Table, shortLabel: 'Liste' },
     { id: 'kanban', label: 'Kanban', Icon: LayoutGrid, shortLabel: 'Kanban' },
     { id: 'calendar', label: 'Takvim', Icon: Calendar, shortLabel: 'Takvim' },
     { id: 'gantt', label: 'Gantt', Icon: BarChart3, shortLabel: 'Gantt' },
@@ -81,13 +105,13 @@ const BoardHeader = ({
   if (!board) return null;
 
   return (
-    <div className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 shadow-sm">
+    <div className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 shadow-sm relative">
       {/* Board Info */}
       <div className="px-6 py-3 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg flex items-center justify-center text-lg" style={{ backgroundColor: board.color + '20' }}>
-              {board.icon}
+            <div className="w-8 h-8 rounded-lg flex items-center justify-center text-lg shadow-sm" style={{ backgroundColor: board.color + '20' }}>
+              {(board.icon && board.icon !== '??') ? board.icon : '📁'}
             </div>
             <div>
               <div className="flex items-center gap-2">
@@ -127,6 +151,24 @@ const BoardHeader = ({
         </div>
 
         <div className="flex items-center gap-2">
+          {/* Notification Bell */}
+          <div className="relative notification-wrapper">
+            <button
+              onClick={() => setShowNotifications(!showNotifications)}
+              className={`p-2 rounded-full transition-all ${showNotifications ? 'bg-indigo-50 text-indigo-600' : 'text-slate-400 hover:bg-slate-100 hover:text-indigo-500'}`}
+            >
+              <div className="relative">
+                <Settings size={20} className="hidden" /> {/* Dummy to keep import valid if needed, or just remove */}
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-bell"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" /><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" /></svg>
+                {/* Badge (Optional - need to fetch unread count to show) */}
+                {/* <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white"></span> */}
+              </div>
+            </button>
+            <NotificationPopover isOpen={showNotifications} onClose={() => setShowNotifications(false)} />
+          </div>
+
+          <div className="h-6 w-px bg-gray-300 mx-2"></div>
+
           {/* Members */}
           <div className="flex items-center gap-2">
             <div className="flex items-center -space-x-2">
@@ -252,6 +294,7 @@ const BoardHeader = ({
 
           <div className="relative">
             <Button
+              ref={filterButtonRef}
               onClick={() => setShowFilterMenu(!showFilterMenu)}
               variant="outline"
               size="sm"
@@ -268,7 +311,7 @@ const BoardHeader = ({
 
             {/* Filter Dropdown */}
             {showFilterMenu && (
-              <div className="absolute right-0 top-full mt-2 w-72 bg-white rounded-lg shadow-xl border border-gray-200 z-50">
+              <div ref={filterMenuRef} className="absolute right-0 top-full mt-2 w-72 bg-white rounded-lg shadow-xl border border-gray-200 z-50">
                 <div className="p-4">
                   <div className="flex items-center justify-between mb-4">
                     <h3 className="font-semibold text-sm">Filtreler</h3>
@@ -343,11 +386,11 @@ const BoardHeader = ({
                   </div>
 
                   {/* Labels Filter */}
-                  {projectLabels.length > 0 && (
+                  {uniqueProjectLabels.length > 0 && (
                     <div className="mb-4">
                       <label className="text-xs font-semibold text-gray-700 mb-2 block">Etiketler</label>
-                      <div className="space-y-2">
-                        {projectLabels.map(label => (
+                      <div className="space-y-2 max-h-40 overflow-y-auto">
+                        {uniqueProjectLabels.map(label => (
                           <label key={label.id} className="flex items-center gap-2 cursor-pointer">
                             <input
                               type="checkbox"

@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { toast } from './ui/sonner';
 import { X } from 'lucide-react';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
@@ -19,7 +20,8 @@ const NewProjectModal = ({ isOpen, onClose }) => {
     priority: 'medium',
     status: 'planning',
     department: '',
-    isPrivate: false
+    isPrivate: false,
+    activeTab: 'common'
   });
 
   // Reset form when modal closes
@@ -46,8 +48,11 @@ const NewProjectModal = ({ isOpen, onClose }) => {
     const userDeptList = user?.departments || [];
     if (user?.department) userDeptList.push(user.department);
 
-    // Departments are stored by name in user list based on tests
-    return departments.filter(d => userDeptList.includes(d.name) || userDeptList.includes(d._id));
+    // Flexible comparison for IDs (string vs number) and Names
+    return departments.filter(d => {
+      const dId = d._id || d.id;
+      return userDeptList.some(ud => ud == dId || ud === d.name);
+    });
   }, [departments, user]);
 
   // Auto-select department if single option
@@ -70,13 +75,24 @@ const NewProjectModal = ({ isOpen, onClose }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    if (!formData.department && availableDepartments.length > 1) {
+      toast.warning('Lütfen bir çalışma alanı seçiniz.');
+      return;
+    }
+
     setLoading(true);
 
-    const result = await createProject({
+    const payload = {
       ...formData,
+      departmentId: parseInt(formData.department, 10), // Map department -> departmentId
       owner: user._id,
       members: [user._id]
-    });
+    };
+    // Remove original department key to avoid confusion
+    delete payload.department;
+
+    const result = await createProject(payload);
 
     setLoading(false);
 
@@ -85,7 +101,9 @@ const NewProjectModal = ({ isOpen, onClose }) => {
       onClose();
     } else {
       // Show error to user
-      alert('Proje oluşturulurken hata oluştu: ' + (result.error?.message || JSON.stringify(result.error)));
+      // alert('Proje oluşturulurken hata oluştu: ' + (result.error?.message || JSON.stringify(result.error)));
+      // Using existing toast from DataContext (implicit) or just console log since createProject handles toast error?
+      // createProject in DataContext ALREADY calls toast.error/success. So we don't need alert here.
       console.error("Project creation failed:", result.error);
     }
   };
@@ -96,7 +114,6 @@ const NewProjectModal = ({ isOpen, onClose }) => {
     <div
       className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4"
       style={{ zIndex: 9999 }}
-      onClick={onClose}
     >
       <div
         className="bg-white rounded-lg shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-auto"
@@ -140,18 +157,57 @@ const NewProjectModal = ({ isOpen, onClose }) => {
 
           <div>
             <Label>İkon Seç</Label>
-            <div className="grid grid-cols-10 gap-2 mt-2">
-              {icons.map(icon => (
-                <button
-                  key={icon}
-                  type="button"
-                  onClick={() => setFormData({ ...formData, icon })}
-                  className={`text-2xl p-3 rounded-lg border-2 transition-all hover:scale-110 ${formData.icon === icon ? 'border-[#6366f1] bg-blue-50' : 'border-gray-200'
-                    }`}
-                >
-                  {icon}
-                </button>
-              ))}
+            <div className="mt-2 border border-gray-200 rounded-xl overflow-hidden">
+              {/* Emoji Tabs */}
+              <div className="flex overflow-x-auto bg-gray-50 border-b border-gray-200 scrollbar-hide">
+                {[
+                  { id: 'common', label: 'Popüler', icon: '🌟' },
+                  { id: 'work', label: 'İş & Ofis', icon: '💼' },
+                  { id: 'tech', label: 'Teknoloji', icon: '💻' },
+                  { id: 'design', label: 'Tasarım', icon: '🎨' },
+                  { id: 'status', label: 'Durum', icon: '📊' },
+                ].map(tab => (
+                  <button
+                    key={tab.id}
+                    type="button"
+                    onClick={() => setFormData(prev => ({ ...prev, activeTab: tab.id }))}
+                    className={`flex-1 min-w-[80px] px-3 py-2 text-xs font-medium transition-colors whitespace-nowrap flex items-center justify-center gap-1
+                        ${(formData.activeTab || 'common') === tab.id
+                        ? 'bg-white text-blue-600 border-b-2 border-blue-600'
+                        : 'text-gray-500 hover:bg-gray-100 hover:text-gray-700'
+                      }`}
+                  >
+                    <span>{tab.icon}</span>
+                    <span>{tab.label}</span>
+                  </button>
+                ))}
+              </div>
+
+              {/* Emoji Grid */}
+              <div className="p-3 bg-white h-40 overflow-y-auto custom-scrollbar">
+                <div className="grid grid-cols-8 gap-2">
+                  {(() => {
+                    const emojiCategories = {
+                      common: ['📁', '📂', '🚀', '⭐', '🔥', '⚡', '🎯', '✅', '📅', '🕒', '🔔', '📌', '📎', '🔒', '🔑', '💎'],
+                      work: ['💼', '📊', '📈', '📉', '📋', '📝', '📇', '📠', '🏢', '🏗️', '🔨', '📏', '📐', '✂️', '🖊️', '🤝'],
+                      tech: ['💻', '🖥️', '⌨️', '🖱️', '📱', '🔋', '🔌', '💾', '💿', '📀', '🎥', '🎬', '📷', '📡', '🔭', '🔬'],
+                      design: ['🎨', '🖌️', '🖍️', '🎭', '🎪', '🎢', '🎡', '🎰', '🎲', '🎳', '🎮', '👾', '🎹', '🎸', '🎺', '🎻'],
+                      status: ['🔴', '🟠', '🟡', '🟢', '🔵', '🟣', '⚫', '⚪', '🟥', '🟧', '🟨', '🟩', '🟦', '🟪', '⬛', '⬜']
+                    };
+                    return (emojiCategories[formData.activeTab || 'common'] || []).map(icon => (
+                      <button
+                        key={icon}
+                        type="button"
+                        onClick={() => setFormData({ ...formData, icon })}
+                        className={`text-xl w-8 h-8 flex items-center justify-center rounded-lg transition-all hover:scale-125 hover:bg-gray-100 ${formData.icon === icon ? 'bg-blue-100 shadow-sm ring-2 ring-blue-500 scale-110' : ''
+                          }`}
+                      >
+                        {icon}
+                      </button>
+                    ));
+                  })()}
+                </div>
+              </div>
             </div>
           </div>
 
@@ -175,7 +231,7 @@ const NewProjectModal = ({ isOpen, onClose }) => {
 
           <div className="space-y-4">
             <div>
-              <Label htmlFor="department">Departman Seçin</Label>
+              <Label htmlFor="department">Çalışma Alanı Seçin</Label>
               <select
                 id="department"
                 name="department"
@@ -183,12 +239,12 @@ const NewProjectModal = ({ isOpen, onClose }) => {
                 onChange={handleChange}
                 className="mt-1 w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#6366f1]"
               >
-                <option value="">Departman Seçilmedi</option>
+                <option value="">Çalışma Alanı Seçilmedi</option>
                 {availableDepartments.map(dept => (
-                  <option key={dept._id} value={dept.name}>{dept.name}</option>
+                  <option key={dept._id || dept.id} value={dept._id || dept.id}>{dept.name}</option>
                 ))}
               </select>
-              <p className="mt-1 text-xs text-gray-500 italic">Departman seçilirse projeniz o departmandaki herkes tarafından görülebilir.</p>
+              <p className="mt-1 text-xs text-gray-500 italic">Çalışma alanı seçilirse projeniz o alandaki herkes tarafından görülebilir.</p>
             </div>
 
             <div className="flex items-center gap-3 p-4 bg-blue-50 rounded-xl border border-blue-100">
@@ -202,7 +258,7 @@ const NewProjectModal = ({ isOpen, onClose }) => {
               />
               <div className="flex-1">
                 <Label htmlFor="isPrivate" className="font-semibold text-blue-900 mb-0 cursor-pointer">Özel Proje (Private)</Label>
-                <p className="text-sm text-blue-700">Bu seçeneği işaretlerseniz, departman seçili olsa bile proje sadece sahibi ve eklenen üyeler tarafından görülebilir.</p>
+                <p className="text-sm text-blue-700">Bu seçeneği işaretlerseniz, çalışma alanı seçili olsa bile proje sadece sahibi ve eklenen üyeler tarafından görülebilir.</p>
               </div>
             </div>
           </div>

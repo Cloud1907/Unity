@@ -11,6 +11,7 @@ import NewTaskModal from './NewTaskModal';
 import InlineLabelPicker from './InlineLabelPicker';
 import MobileBoardView from './MobileBoardView';
 import TaskRow from './TaskRow';
+import ConfirmModal from './ui/ConfirmModal';
 import pkg from '../../package.json';
 import { TableSkeleton } from './skeletons/TableSkeleton';
 import EmptyState from './ui/EmptyState';
@@ -43,9 +44,13 @@ const tShirtSizes = [
   { id: 'xxlarge', label: 'XX-Large (3-6+ Months)', color: '#f472b6', textColor: '#ffffff' }
 ];
 
+// CSS GRID TEMPLATE DEFINITION
+// Ensures strict alignment between Header and Body
+export const GRID_TEMPLATE = "2rem minmax(300px, 1fr) 10rem 8rem 12rem 10rem 7rem 12rem 7rem 5rem 3rem";
+
 const MainTable = ({ boardId, searchQuery, filters, groupBy }) => {
   const { tasks, users, projects, labels, loading } = useDataState();
-  const { fetchTasks, fetchLabels, updateTaskStatus, updateTask, deleteProject, createTask } = useDataActions();
+  const { fetchTasks, fetchLabels, updateTaskStatus, updateTask, deleteProject, createTask, deleteTask } = useDataActions();
   const [selectedTask, setSelectedTask] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalInitialSection, setModalInitialSection] = useState('activity');
@@ -61,6 +66,12 @@ const MainTable = ({ boardId, searchQuery, filters, groupBy }) => {
   const [expandedRows, setExpandedRows] = useState(new Set());
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
 
+  // --- Deletion & Menu State ---
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [taskToDelete, setTaskToDelete] = useState(null);
+  const [activeMenuTaskId, setActiveMenuTaskId] = useState(null); // Ensure single menu open
+  // -----------------------------
+
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth < 768);
     window.addEventListener('resize', handleResize);
@@ -71,7 +82,7 @@ const MainTable = ({ boardId, searchQuery, filters, groupBy }) => {
   React.useEffect(() => {
     if (boardId) {
       // Fetch tasks if needed
-      const hasTasks = tasks.some(t => t.projectId === boardId);
+      const hasTasks = tasks.some(t => t.projectId === Number(boardId));
       if (!hasTasks) {
         console.log('🔄 Fetching tasks for boardId:', boardId);
         fetchTasks(boardId);
@@ -83,7 +94,7 @@ const MainTable = ({ boardId, searchQuery, filters, groupBy }) => {
 
   const boardTasks = React.useMemo(() => {
     if (!boardId) return [];
-    let filtered = tasks.filter(t => t.projectId === boardId);
+    let filtered = tasks.filter(t => t.projectId === Number(boardId));
 
     // Apply Search
     if (searchQuery) {
@@ -224,6 +235,18 @@ const MainTable = ({ boardId, searchQuery, filters, groupBy }) => {
     setIsModalOpen(true);
   }, []);
 
+  const handleDeleteRequest = (taskId) => {
+    setTaskToDelete(taskId);
+    setIsDeleteModalOpen(true);
+  };
+
+  const confirmDelete = async () => {
+    if (taskToDelete) {
+      await deleteTask(taskToDelete);
+      setTaskToDelete(null);
+    }
+  };
+
   if (!boardId) {
     return (
       <div className="flex-1 flex items-center justify-center bg-white dark:bg-[#0f172a]">
@@ -294,53 +317,57 @@ const MainTable = ({ boardId, searchQuery, filters, groupBy }) => {
 
   return (
     <>
-      <div className="flex-1 overflow-auto bg-white dark:bg-[#0f172a] relative">
+      <div
+        className="flex-1 overflow-auto bg-white dark:bg-[#0f172a] relative"
+        onClick={() => setActiveMenuTaskId(null)} // Click anywhere closes menus
+      >
         {/* 🎯 VERSİYON */}
         <div className="absolute top-2 right-2 z-10 px-2 py-1 bg-emerald-600 text-white text-[10px] font-bold rounded shadow-lg animate-fade-in">
           v{pkg.version} 👤
         </div>
 
-        <div className="min-w-max">
-          {/* Table Header */}
-          <div className="sticky top-0 bg-gray-50 dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 z-10">
-            <div className="flex border-l-4 border-transparent">
-              <div className="w-8 flex items-center justify-center py-2 border-r border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900">
+        <div className="min-w-full inline-block align-top">
+          {/* Table Header using CSS GRID */}
+          <div className="sticky top-0 bg-gray-50 dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 z-10 w-full">
+            <div className="grid border-l-4 border-transparent w-full" style={{ gridTemplateColumns: GRID_TEMPLATE }}>
+              <div className="flex items-center justify-center py-2 border-r border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900">
                 {/* Expander Column Header */}
               </div>
-              <div className="w-[28rem] px-3 py-2 font-semibold text-xs text-gray-600 dark:text-gray-400 border-r border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900">
+              <div className="px-3 py-2 font-semibold text-xs text-gray-600 dark:text-gray-400 border-r border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900">
                 Görev
               </div>
-              <div className="w-40 px-3 py-2 font-semibold text-xs text-gray-600 dark:text-gray-400 border-r border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900">
+              <div className="px-3 py-2 font-semibold text-xs text-gray-600 dark:text-gray-400 border-r border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900">
                 Durum
               </div>
-              <div className="w-32 px-3 py-2 font-semibold text-xs text-gray-600 dark:text-gray-400 border-r border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900">
+              <div className="px-3 py-2 font-semibold text-xs text-gray-600 dark:text-gray-400 border-r border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900">
                 Öncelik
               </div>
-              <div className="w-48 px-3 py-2 font-semibold text-xs text-gray-600 dark:text-gray-400 border-r border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900">
+              <div className="px-3 py-2 font-semibold text-xs text-gray-600 dark:text-gray-400 border-r border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900">
                 T-Shirt Size
               </div>
-              <div className="w-40 px-3 py-2 font-semibold text-xs text-gray-600 dark:text-gray-400 border-r border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900">
+              <div className="px-3 py-2 font-semibold text-xs text-gray-600 dark:text-gray-400 border-r border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900">
                 Atanan
               </div>
-              <div className="w-28 px-3 py-2 font-semibold text-xs text-gray-600 dark:text-gray-400 border-r border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900">
+              <div className="px-3 py-2 font-semibold text-xs text-gray-600 dark:text-gray-400 border-r border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900">
                 Son Tarih
               </div>
-              <div className="w-40 px-3 py-2 font-semibold text-xs text-gray-600 dark:text-gray-400 border-r border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900">
+              <div className="px-3 py-2 font-semibold text-xs text-gray-600 dark:text-gray-400 border-r border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900">
                 Etiketler
               </div>
-              <div className="w-28 px-3 py-2 font-semibold text-xs text-gray-600 dark:text-gray-400 border-r border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900">
+              <div className="px-3 py-2 font-semibold text-xs text-gray-600 dark:text-gray-400 border-r border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900">
                 İlerleme
               </div>
-              <div className="w-20 px-3 py-2 font-semibold text-xs text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-gray-900">
+              <div className="px-3 py-2 font-semibold text-xs text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-gray-900 border-r border-gray-200 dark:border-gray-700">
                 Dosyalar
               </div>
+              <div className="bg-gray-50 dark:bg-gray-900"></div>
             </div>
           </div>
 
           {/* Grouped Rendering */}
           {groupBy ? (
             Object.entries(groupedTasks).map(([groupKey, groupTasks]) => (
-              <div key={groupKey} className="mb-6">
+              <div key={groupKey} className="mb-6 w-full">
                 {/* Group Header */}
                 <div className="px-4 py-2 flex items-center gap-2 group cursor-pointer sticky top-9 z-9 bg-gray-50/95 dark:bg-gray-900/95 backdrop-blur border-b border-l-4 border-gray-200 dark:border-gray-800"
                   style={{ borderLeftColor: getGroupColor(groupKey) || 'transparent' }}>
@@ -354,7 +381,7 @@ const MainTable = ({ boardId, searchQuery, filters, groupBy }) => {
                 </div>
 
                 {/* Tasks */}
-                <div className="border-l-4 border-transparent" style={{ borderLeftColor: (getGroupColor(groupKey) || '#e2e8f0') + '40' }}>
+                <div className="border-l-4 border-transparent w-full" style={{ borderLeftColor: (getGroupColor(groupKey) || '#e2e8f0') + '40' }}>
                   {groupTasks.map((task, index) => (
                     <TaskRow
                       key={`${groupKey}-${task._id}`}
@@ -370,13 +397,17 @@ const MainTable = ({ boardId, searchQuery, filters, groupBy }) => {
                       updateTask={updateTask}
                       updateTaskStatus={updateTaskStatus}
                       tShirtSizes={tShirtSizes}
+                      gridTemplate={GRID_TEMPLATE}
+                      activeMenuTaskId={activeMenuTaskId}
+                      onToggleMenu={setActiveMenuTaskId}
+                      onDelete={handleDeleteRequest}
                     />
                   ))}
 
                   {/* Add Item to Group */}
-                  <div className="flex border-b border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors border-l-4 border-transparent">
-                    <div className="w-8 border-r border-gray-200 dark:border-gray-700 py-3"></div>
-                    <div className="w-[28rem] px-3 py-3 border-r border-gray-200 dark:border-gray-700">
+                  <div className="grid border-b border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors border-l-4 border-transparent w-full" style={{ gridTemplateColumns: GRID_TEMPLATE }}>
+                    <div className="border-r border-gray-200 dark:border-gray-700 py-3"></div>
+                    <div className="px-3 py-3 border-r border-gray-200 dark:border-gray-700">
                       {creatingGroup === groupKey ? (
                         <div className="flex items-center gap-2">
                           <input
@@ -437,22 +468,23 @@ const MainTable = ({ boardId, searchQuery, filters, groupBy }) => {
                         </button>
                       )}
                     </div>
-                    {/* Spacers */}
-                    <div className="w-40 border-r border-gray-200 dark:border-gray-700"></div>
-                    <div className="w-32 border-r border-gray-200 dark:border-gray-700"></div>
-                    <div className="w-48 border-r border-gray-200 dark:border-gray-700"></div>
-                    <div className="w-40 border-r border-gray-200 dark:border-gray-700"></div>
-                    <div className="w-28 border-r border-gray-200 dark:border-gray-700"></div>
-                    <div className="w-40 border-r border-gray-200 dark:border-gray-700"></div>
-                    <div className="w-28 border-r border-gray-200 dark:border-gray-700"></div>
-                    <div className="w-20"></div>
+                    {/* Spacers matching grid columns */}
+                    <div className="border-r border-gray-200 dark:border-gray-700"></div>
+                    <div className="border-r border-gray-200 dark:border-gray-700"></div>
+                    <div className="border-r border-gray-200 dark:border-gray-700"></div>
+                    <div className="border-r border-gray-200 dark:border-gray-700"></div>
+                    <div className="border-r border-gray-200 dark:border-gray-700"></div>
+                    <div className="border-r border-gray-200 dark:border-gray-700"></div>
+                    <div className="border-r border-gray-200 dark:border-gray-700"></div>
+                    <div className="border-r border-gray-200 dark:border-gray-700"></div>
+                    <div className=""></div>
                   </div>
                 </div>
               </div>
             ))
           ) : (
             /* Non-Grouped Rendering (Original) */
-            <div className="border-l-4 border-transparent">
+            <div className="border-l-4 border-transparent w-full">
               <div>
                 {boardTasks.map((task, index) => (
                   <TaskRow
@@ -469,54 +501,56 @@ const MainTable = ({ boardId, searchQuery, filters, groupBy }) => {
                     updateTask={updateTask}
                     updateTaskStatus={updateTaskStatus}
                     tShirtSizes={tShirtSizes}
+                    gridTemplate={GRID_TEMPLATE}
+                    activeMenuTaskId={activeMenuTaskId}
+                    onToggleMenu={setActiveMenuTaskId}
+                    onDelete={handleDeleteRequest}
                   />
                 ))}
               </div>
 
               {/* New Task Row (Inline) */}
-              <div className="flex border-b border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors border-l-4 border-transparent">
-                <div className="w-8 border-r border-gray-200 dark:border-gray-700 py-3"></div>
-                <div className="w-[28rem] px-3 py-3 border-r border-gray-200 dark:border-gray-700">
+              <div className="grid border-b border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors border-l-4 border-transparent w-full" style={{ gridTemplateColumns: GRID_TEMPLATE }}>
+                <div className="border-r border-gray-200 dark:border-gray-700 py-3"></div>
+                <div className="px-3 border-r border-gray-200 dark:border-gray-700 flex items-center" style={{ minHeight: '54px' }}>
                   {isCreating ? (
-                    <div className="flex items-center gap-2">
-                      <input
-                        ref={creationInputRef}
-                        type="text"
-                        value={newTaskTitle}
-                        onChange={(e) => setNewTaskTitle(e.target.value)}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter' && newTaskTitle.trim()) {
-                            createTask({
-                              title: newTaskTitle,
-                              status: 'todo',
-                              priority: 'medium',
-                              projectId: boardId,
-                              startDate: new Date().toISOString()
-                            });
-                            setNewTaskTitle('');
-                            // Keep focus
-                          } else if (e.key === 'Escape') {
-                            setIsCreating(false);
-                          }
-                        }}
-                        onBlur={() => {
-                          if (newTaskTitle.trim()) {
-                            createTask({
-                              title: newTaskTitle,
-                              status: 'todo',
-                              priority: 'medium',
-                              projectId: boardId,
-                              startDate: new Date().toISOString()
-                            });
-                            setNewTaskTitle('');
-                          }
+                    <input
+                      ref={creationInputRef}
+                      type="text"
+                      value={newTaskTitle}
+                      onChange={(e) => setNewTaskTitle(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' && newTaskTitle.trim()) {
+                          createTask({
+                            title: newTaskTitle,
+                            status: 'todo',
+                            priority: 'medium',
+                            projectId: boardId,
+                            startDate: new Date().toISOString()
+                          });
+                          setNewTaskTitle('');
+                          // Keep focus
+                        } else if (e.key === 'Escape') {
                           setIsCreating(false);
-                        }}
-                        placeholder="Görev adı yaz ve Enter'a bas..."
-                        className="w-full bg-white dark:bg-gray-800 border border-indigo-500 rounded px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500 text-gray-900 dark:text-gray-100 placeholder:text-gray-400"
-                        autoFocus
-                      />
-                    </div>
+                        }
+                      }}
+                      onBlur={() => {
+                        if (newTaskTitle.trim()) {
+                          createTask({
+                            title: newTaskTitle,
+                            status: 'todo',
+                            priority: 'medium',
+                            projectId: boardId,
+                            startDate: new Date().toISOString()
+                          });
+                          setNewTaskTitle('');
+                        }
+                        setIsCreating(false);
+                      }}
+                      placeholder="Görev adı yaz ve Enter'a bas..."
+                      className="w-full bg-white dark:bg-gray-800 border border-indigo-500 rounded px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500 text-gray-900 dark:text-gray-100 placeholder:text-gray-400"
+                      autoFocus
+                    />
                   ) : (
                     <button
                       onClick={() => setIsCreating(true)}
@@ -527,15 +561,16 @@ const MainTable = ({ boardId, searchQuery, filters, groupBy }) => {
                     </button>
                   )}
                 </div>
-                {/* Empty Placeholder Cells for Alignment */}
-                <div className="w-40 border-r border-gray-200 dark:border-gray-700 py-3"></div>
-                <div className="w-32 border-r border-gray-200 dark:border-gray-700 py-3"></div>
-                <div className="w-48 border-r border-gray-200 dark:border-gray-700 py-3"></div>
-                <div className="w-40 border-r border-gray-200 dark:border-gray-700 py-3"></div>
-                <div className="w-28 border-r border-gray-200 dark:border-gray-700 py-3"></div>
-                <div className="w-40 border-r border-gray-200 dark:border-gray-700 py-3"></div>
-                <div className="w-28 border-r border-gray-200 dark:border-gray-700 py-3"></div>
-                <div className="w-20 py-3"></div>
+                {/* Empty Placeholder Cells using Grid */}
+                <div className="border-r border-gray-200 dark:border-gray-700 py-3"></div>
+                <div className="border-r border-gray-200 dark:border-gray-700 py-3"></div>
+                <div className="border-r border-gray-200 dark:border-gray-700 py-3"></div>
+                <div className="border-r border-gray-200 dark:border-gray-700 py-3"></div>
+                <div className="border-r border-gray-200 dark:border-gray-700 py-3"></div>
+                <div className="border-r border-gray-200 dark:border-gray-700 py-3"></div>
+                <div className="border-r border-gray-200 dark:border-gray-700 py-3"></div>
+                <div className="border-r border-gray-200 dark:border-gray-700 py-3"></div>
+                <div className="py-3"></div>
               </div>
             </div>
           )}
@@ -555,8 +590,19 @@ const MainTable = ({ boardId, searchQuery, filters, groupBy }) => {
         />
       )}
 
-
       {/* New Task Modal (Global Fab if needed, but here mostly for mobile trigger or unused) */}
+
+      {/* Confirm Delete Modal */}
+      <ConfirmModal
+        isOpen={isDeleteModalOpen}
+        onClose={() => setIsDeleteModalOpen(false)}
+        onConfirm={confirmDelete}
+        title="Görevi Sil"
+        message="Bu görevi silmek istediğinizden emin misiniz? Bu işlem geri alınamaz."
+        confirmText="Evet, Sil"
+        cancelText="İptal"
+        type="danger"
+      />
     </>
   );
 };

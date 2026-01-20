@@ -9,7 +9,7 @@ namespace Unity.Core.Models
     public class Project
     {
         [Key]
-        public string Id { get; set; } = Guid.NewGuid().ToString();
+        public int Id { get; set; }
 
         [Required]
         public string Name { get; set; }
@@ -17,19 +17,19 @@ namespace Unity.Core.Models
         public string? Description { get; set; }
         public string Icon { get; set; } = "📁";
         public string Color { get; set; } = "#0086c0";
-        public string? Owner { get; set; } // UserId - Set by controller
+        public int Owner { get; set; } // UserId
         
         // Stored as JSON
         public string MembersJson { get; set; } = "[]";
 
         [NotMapped]
-        public List<string> Members 
+        public List<int> Members 
         { 
-            get => JsonSerializer.Deserialize<List<string>>(MembersJson ?? "[]") ?? new List<string>();
+            get => JsonSerializer.Deserialize<List<int>>(MembersJson ?? "[]") ?? new List<int>();
             set => MembersJson = JsonSerializer.Serialize(value);
         }
 
-        public string? Department { get; set; }
+        public int DepartmentId { get; set; } // Changed from string Department name
         public DateTime? StartDate { get; set; }
         public DateTime? EndDate { get; set; }
         public double? Budget { get; set; }
@@ -40,7 +40,7 @@ namespace Unity.Core.Models
         public bool Favorite { get; set; } = false;
         public bool IsPrivate { get; set; } = false;
 
-        public string? CreatedBy { get; set; } // Set by controller
+        public int CreatedBy { get; set; }
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
     }

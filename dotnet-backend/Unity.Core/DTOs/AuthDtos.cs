@@ -16,15 +16,15 @@ namespace Unity.Core.DTOs
 
     public class UserDto
     {
-        public string Id { get; set; } = string.Empty;
+        public int Id { get; set; }
         public string Username { get; set; } = string.Empty;
         public string FullName { get; set; } = string.Empty;
         public string Email { get; set; } = string.Empty;
         public string Role { get; set; } = string.Empty;
         public string? Avatar { get; set; }
         public string? Color { get; set; }
-        public string? Department { get; set; }
-        public List<string>? Departments { get; set; }
+        public int? Department { get; set; }
+        public List<int>? Departments { get; set; }
         public string? JobTitle { get; set; }
     }
 
@@ -41,7 +41,7 @@ namespace Unity.Core.DTOs
         public string Email { get; set; } = string.Empty;
         public string Password { get; set; } = string.Empty;
         public string Role { get; set; } = "member";
-        public List<string> Departments { get; set; } = new List<string>();
+        public List<int> Departments { get; set; } = new List<int>();
         public string? JobTitle { get; set; }
     }
 }

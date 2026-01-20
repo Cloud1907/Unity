@@ -10,6 +10,7 @@ namespace Unity.API.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
+    [Microsoft.AspNetCore.Authorization.Authorize]
     public class AuditController : ControllerBase
     {
         private readonly AppDbContext _context;

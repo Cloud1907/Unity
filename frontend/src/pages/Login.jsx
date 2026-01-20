@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import { toast } from 'react-hot-toast';
+import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
 import StarryBackground from '../components/ui/StarryBackground';
 import { Lock, Mail, ArrowRight, Loader2, Hexagon, Star, Zap, Shield, Heart, Users, TrendingUp } from 'lucide-react';

@@ -48,10 +48,13 @@ export const AuthProvider = ({ children }) => {
           throw new Error('Invalid Test User returned from backend');
         }
         setUser(response.data);
+        localStorage.setItem('user', JSON.stringify(response.data));
       } catch (error) {
         console.error('Auth check failed:', error);
         localStorage.removeItem('token');
+        localStorage.removeItem('refreshToken');
         localStorage.removeItem('user');
+        setUser(null);
       }
     }
     setLoading(false);
@@ -60,9 +63,16 @@ export const AuthProvider = ({ children }) => {
   const login = async (email, password) => {
     try {
       const response = await authAPI.login({ email, password });
-      const { access_token, user: userData } = response.data;
+      const { access_token, accessToken, refresh_token, user: userData } = response.data;
+      const finalToken = accessToken || access_token;
 
-      localStorage.setItem('token', access_token);
+      if (finalToken) {
+        localStorage.setItem('token', finalToken);
+      }
+      if (refresh_token) {
+        localStorage.setItem('refreshToken', refresh_token);
+      }
+
       localStorage.setItem('user', JSON.stringify(userData));
       setUser(userData);
 
@@ -79,9 +89,12 @@ export const AuthProvider = ({ children }) => {
   const register = async (data) => {
     try {
       const response = await authAPI.register(data);
-      const { access_token, user: userData } = response.data;
+      const { access_token, refresh_token, user: userData } = response.data;
 
       localStorage.setItem('token', access_token);
+      if (refresh_token) {
+        localStorage.setItem('refreshToken', refresh_token);
+      }
       localStorage.setItem('user', JSON.stringify(userData));
       setUser(userData);
 
@@ -97,6 +110,7 @@ export const AuthProvider = ({ children }) => {
 
   const logout = () => {
     localStorage.removeItem('token');
+    localStorage.removeItem('refreshToken');
     localStorage.removeItem('user');
     setUser(null);
     navigate('/login');

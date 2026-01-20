@@ -8,7 +8,8 @@ namespace Unity.Core.Models
     public class User
     {
         [Key]
-        public string Id { get; set; } = Guid.NewGuid().ToString();
+        [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
+        public int Id { get; set; }
 
         [Required]
         public string FullName { get; set; }
@@ -22,15 +23,15 @@ namespace Unity.Core.Models
         public string DepartmentsJson { get; set; } = "[]";
 
         [NotMapped]
-        public List<string> Departments 
+        public List<int> Departments 
         { 
-            get => System.Text.Json.JsonSerializer.Deserialize<List<string>>(DepartmentsJson ?? "[]") ?? new List<string>();
+            get => System.Text.Json.JsonSerializer.Deserialize<List<int>>(DepartmentsJson ?? "[]") ?? new List<int>();
             set => DepartmentsJson = System.Text.Json.JsonSerializer.Serialize(value);
         }
 
         public string Role { get; set; } = "member";
 
-        public string? Manager { get; set; }
+        public int? Manager { get; set; }
         public string? Avatar { get; set; }
         public string? Color { get; set; }
         public string? JobTitle { get; set; }
@@ -45,6 +46,6 @@ namespace Unity.Core.Models
         public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 
         [NotMapped]
-        public List<string> ProjectIds { get; set; } = new List<string>();
+        public List<int> ProjectIds { get; set; } = new List<int>();
     }
 }

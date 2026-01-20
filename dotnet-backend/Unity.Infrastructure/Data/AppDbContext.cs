@@ -25,32 +25,37 @@ namespace Unity.Infrastructure.Data
                 .IsUnique();
 
             modelBuilder.Entity<User>()
-                .Property(u => u.DepartmentsJson)
-                .HasColumnName("Departments");
+                .Property(u => u.DepartmentsJson);
+            modelBuilder.Entity<User>()
+                .ToTable(tb => tb.HasTrigger("trg_Users_Audit"));
 
             modelBuilder.Entity<Project>()
-                .Property(u => u.MembersJson)
-                .HasColumnName("Members");
+                .Property(u => u.MembersJson);
+            modelBuilder.Entity<Project>()
+                .ToTable(tb => tb.HasTrigger("trg_Projects_Audit"));
 
             modelBuilder.Entity<TaskItem>()
-                .Property(u => u.AssigneesJson)
-                .HasColumnName("Assignees");
+                .Property(u => u.AssigneesJson);
+            modelBuilder.Entity<TaskItem>()
+                .ToTable(tb => tb.HasTrigger("trg_Tasks_Audit"));
 
             modelBuilder.Entity<TaskItem>()
-                .Property(u => u.LabelsJson)
-                .HasColumnName("Labels");
+                .Property(u => u.LabelsJson);
             
             modelBuilder.Entity<TaskItem>()
-                .Property(u => u.SubtasksJson)
-                .HasColumnName("Subtasks");
+                .Property(u => u.SubtasksJson);
 
             modelBuilder.Entity<TaskItem>()
-                .Property(u => u.CommentsJson)
-                .HasColumnName("Comments");
+                .Property(u => u.CommentsJson);
 
             modelBuilder.Entity<TaskItem>()
-                .Property(u => u.AttachmentsJson)
-                .HasColumnName("Attachments");
+                .Property(u => u.AttachmentsJson);
+
+            modelBuilder.Entity<Department>()
+                .ToTable(tb => tb.HasTrigger("trg_Departments_Audit"));
+
+            modelBuilder.Entity<Label>()
+                .ToTable(tb => tb.HasTrigger("trg_Labels_Audit"));
         }
     }
 }

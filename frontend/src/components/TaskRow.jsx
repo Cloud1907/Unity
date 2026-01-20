@@ -1,5 +1,6 @@
-import React from 'react';
-import { ChevronDown, Maximize2, GitMerge, MessageSquare, TrendingUp, Plus, Lock } from 'lucide-react';
+import React, { useRef, useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
+import { ChevronDown, Maximize2, GitMerge, MessageSquare, TrendingUp, Plus, Lock, MoreHorizontal, Trash2 } from 'lucide-react';
 import InlineTextEdit from './InlineTextEdit';
 import InlineDropdown from './InlineDropdown';
 import InlineAssigneePicker from './InlineAssigneePicker';
@@ -18,10 +19,19 @@ const TaskRow = React.memo(({
     openTaskModal,
     updateTask,
     updateTaskStatus,
-    tShirtSizes
+    tShirtSizes,
+    gridTemplate, // Passed from MainTable
+    activeMenuTaskId, // For exclusive menu handling
+    onToggleMenu,     // Toggle menu handler
+    onDelete          // Delete handler
 }) => {
     // const isExpanded = expandedRows.has(task._id); // Removed, passed as prop
     const hasSubtasks = task.subtasks && task.subtasks.length > 0;
+    const menuRef = useRef(null);
+    const menuButtonRef = useRef(null);
+    const [menuPosition, setMenuPosition] = useState({ top: 0, left: 0 });
+
+    const isMenuOpen = activeMenuTaskId === task._id;
 
     // Helpers embedded here (or can be props if needed, but safe here if pure)
     const getStatusColor = (statusId) => statuses.find(s => s.id === statusId)?.color || '#c4c4c4';
@@ -50,14 +60,42 @@ const TaskRow = React.memo(({
         updateTask(task._id, { subtasks: newSubtasks });
     };
 
+    // Calculate menu position
+    useEffect(() => {
+        if (isMenuOpen && menuButtonRef.current) {
+            const rect = menuButtonRef.current.getBoundingClientRect();
+            setMenuPosition({
+                top: rect.bottom + window.scrollY + 4,
+                left: rect.left + window.scrollX
+            });
+        }
+    }, [isMenuOpen]);
+
+    // Handle outside clicks for menu
+    useEffect(() => {
+        if (!isMenuOpen) return;
+
+        const handleClickOutside = (event) => {
+            if (menuRef.current && !menuRef.current.contains(event.target) &&
+                menuButtonRef.current && !menuButtonRef.current.contains(event.target)) {
+                onToggleMenu(null);
+            }
+        };
+
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, [isMenuOpen, onToggleMenu]);
+
     return (
         <React.Fragment>
             {/* Main Task Row */}
             <div
-                className="flex items-center h-10 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all duration-200 border-b border-gray-200 dark:border-gray-700 group cursor-pointer"
+                className="grid items-stretch min-h-[2.5rem] hover:bg-gray-50 dark:hover:bg-gray-800 transition-all duration-200 border-b border-gray-200 dark:border-gray-700 group cursor-pointer w-full"
                 onClick={() => openTaskModal(task)}
+                style={{ gridTemplateColumns: gridTemplate }}
             >
-                <div className="w-8 flex items-center justify-center py-1 border-r border-gray-200 dark:border-gray-700 ml-0">
+                {/* 1. Expander */}
+                <div className="flex items-center justify-center py-1 border-r border-gray-200 dark:border-gray-700 ml-0">
                     {hasSubtasks && (
                         <button
                             onClick={(e) => {
@@ -70,23 +108,27 @@ const TaskRow = React.memo(({
                         </button>
                     )}
                 </div>
-                <div className="w-[28rem] px-3 py-0 border-r border-gray-200 dark:border-gray-700 group/title flex justify-between gap-2 relative h-full">
-                    <div className="flex-1 min-w-0 flex items-stretch gap-2 h-full">
-                        <div className="w-1.5 h-1.5 rounded-full shrink-0 self-center" style={{ backgroundColor: getStatusColor(task.status) }}></div>
+
+                {/* 2. Task Title */}
+                <div className="px-3 py-0 border-r border-gray-200 dark:border-gray-700 group/title flex justify-between gap-2 relative h-full">
+                    <div className="flex-1 min-w-0 flex items-center gap-2 h-full">
+                        <div className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: getStatusColor(task.status) }}></div>
                         {task.isPrivate && (
-                            <div title="Özel Görev (Sadece siz ve atananlar görebilir)" className="self-center">
+                            <div title="Özel Görev (Sadece siz ve atananlar görebilir)" className="shrink-0">
                                 <Lock size={12} className="text-gray-400 shrink-0" />
                             </div>
                         )}
                         <InlineTextEdit
                             value={task.title}
                             onSave={(newTitle) => updateTask(task._id, { title: newTitle })}
-                            className="font-medium text-gray-900 dark:text-gray-100"
+                            className="font-medium text-gray-900 dark:text-gray-100 flex-1"
                         />
                     </div>
 
                     {/* Hover Actions */}
-                    <div className="flex items-center gap-1 absolute right-2 bg-white/50 dark:bg-slate-800/50 backdrop-blur-[2px] rounded-md px-1 py-0.5 z-10">
+                    <div className="flex items-center gap-1 absolute right-2 bg-white/50 dark:bg-slate-800/50 backdrop-blur-[2px] rounded-md px-1 py-0.5 z-10 top-1/2 -translate-y-1/2">
+                        {/* More Menu functionality moved to end column */}
+
                         <button
                             onClick={(e) => {
                                 e.stopPropagation();
@@ -131,41 +173,53 @@ const TaskRow = React.memo(({
                         )}
                     </div>
                 </div>
-                <div className="w-40 px-3 py-1 border-r border-gray-100 dark:border-gray-800 flex items-center h-full">
+
+                {/* 3. Status */}
+                <div className="px-3 py-1 border-r border-gray-100 dark:border-gray-800 flex items-center h-full">
                     <InlineDropdown
                         value={task.status}
                         options={statuses}
                         onChange={(newStatus) => updateTaskStatus(task._id, newStatus)}
                     />
                 </div>
-                <div className="w-32 px-3 py-1 border-r border-gray-100 dark:border-gray-800 flex items-center h-full">
+
+                {/* 4. Priority */}
+                <div className="px-3 py-1 border-r border-gray-100 dark:border-gray-800 flex items-center h-full">
                     <InlineDropdown
                         value={task.priority}
                         options={priorities}
                         onChange={(newPriority) => updateTask(task._id, { priority: newPriority })}
                     />
                 </div>
-                <div className="w-48 px-3 py-1 border-r border-gray-100 dark:border-gray-800 flex items-center h-full">
+
+                {/* 5. T-Shirt Size */}
+                <div className="px-3 py-1 border-r border-gray-100 dark:border-gray-800 flex items-center h-full">
                     <InlineDropdown
-                        value={task.tShirtSize || null} // Handle undefined/null
+                        value={task.tShirtSize || null}
                         options={tShirtSizes}
                         onChange={(newSize) => updateTask(task._id, { tShirtSize: newSize })}
                     />
                 </div>
-                <div className="w-40 px-3 py-1 border-r border-gray-100 dark:border-gray-800 flex items-center h-full">
+
+                {/* 6. Assignees */}
+                <div className="px-3 py-1 border-r border-gray-100 dark:border-gray-800 flex items-center h-full">
                     <InlineAssigneePicker
                         assigneeIds={task.assignees}
                         allUsers={users}
                         onChange={(newAssignees) => updateTask(task._id, { assignees: newAssignees })}
                     />
                 </div>
-                <div className="w-28 px-3 py-1 border-r border-gray-100 dark:border-gray-800 flex items-center h-full">
+
+                {/* 7. Due Date */}
+                <div className="px-3 py-1 border-r border-gray-100 dark:border-gray-800 flex items-center h-full">
                     <InlineDatePicker
                         value={task.dueDate}
                         onChange={(newDate) => updateTask(task._id, { dueDate: newDate })}
                     />
                 </div>
-                <div className="w-40 px-3 py-1 border-r border-gray-100 dark:border-gray-800 flex items-center h-full">
+
+                {/* 8. Labels */}
+                <div className="px-3 py-1 border-r border-gray-100 dark:border-gray-800 flex items-center h-full">
                     <InlineLabelPicker
                         taskId={task._id}
                         currentLabels={task.labels || []}
@@ -173,7 +227,9 @@ const TaskRow = React.memo(({
                         onUpdate={(taskId, newLabels) => updateTask(taskId, { labels: newLabels })}
                     />
                 </div>
-                <div className="w-28 px-3 py-1 border-r border-gray-100 dark:border-gray-800 flex items-center h-full">
+
+                {/* 9. Progress */}
+                <div className="px-3 py-1 border-r border-gray-100 dark:border-gray-800 flex items-center h-full">
                     <div className="flex items-center gap-2 w-full">
                         <div className="flex-1 bg-slate-200 dark:bg-slate-700 rounded-full h-2 overflow-hidden shadow-inner">
                             <div
@@ -197,7 +253,9 @@ const TaskRow = React.memo(({
                         </div>
                     </div>
                 </div>
-                <div className="w-20 px-3 py-1 border-r border-gray-200 dark:border-gray-700 flex items-center justify-center">
+
+                {/* 10. Files */}
+                <div className="px-3 py-1 border-r border-gray-200 dark:border-gray-700 flex items-center justify-center">
                     <button
                         onClick={(e) => {
                             e.stopPropagation();
@@ -215,28 +273,37 @@ const TaskRow = React.memo(({
                         )}
                     </button>
                 </div>
-                {/* Expand Button - Always Visible */}
-                <div className="w-10 px-2 py-1 flex items-center justify-center">
+
+                {/* 11. Actions (Delete) */}
+                <div className="px-1 py-1 flex items-center justify-center">
                     <button
                         onClick={(e) => {
                             e.stopPropagation();
-                            openTaskModal(task);
+                            onDelete(task._id);
                         }}
-                        className="p-1.5 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 rounded-md transition-all"
-                        title="Tam Görünüm Aç"
+                        className="p-1.5 hover:bg-red-50 text-slate-400 hover:text-red-600 rounded transition-colors"
+                        title="Görevi Sil"
                     >
-                        <Maximize2 size={14} />
+                        <Trash2 size={14} />
                     </button>
                 </div>
             </div>
 
+
             {/* Subtasks Accordion Row */}
             {isExpanded && hasSubtasks && (
-                <div className="bg-gray-50/50 dark:bg-gray-800/50 shadow-inner">
+                <div className="bg-gray-50/50 dark:bg-gray-800/50 shadow-inner w-full">
                     {task.subtasks.map((subtask, sIndex) => (
-                        <div key={sIndex} className="flex border-b border-gray-100/50 dark:border-gray-700/50 pl-12 h-10 items-center hover:bg-gray-100 dark:hover:bg-gray-700/50 transition-colors">
-                            <div className="w-8 border-r border-gray-100/50 dark:border-gray-700/50 h-full"></div> {/* Indent line */}
-                            <div className="w-[28rem] px-3 flex items-center gap-2 border-r border-gray-100/50 dark:border-gray-700/50 h-full">
+                        <div
+                            key={sIndex}
+                            className="grid border-b border-gray-100/50 dark:border-gray-700/50 h-10 items-center hover:bg-gray-100 dark:hover:bg-gray-700/50 transition-colors w-full"
+                            style={{ gridTemplateColumns: gridTemplate }}
+                        >
+                            {/* 1. Indent/Expander - Empty or different for subtask */}
+                            <div className="border-r border-gray-100/50 dark:border-gray-700/50 h-full"></div>
+
+                            {/* 2. Title + Checkbox */}
+                            <div className="px-3 flex items-center gap-2 border-r border-gray-100/50 dark:border-gray-700/50 h-full pl-8"> {/* Indented */}
                                 <input
                                     type="checkbox"
                                     checked={subtask.completed}
@@ -250,19 +317,39 @@ const TaskRow = React.memo(({
                                     {subtask.title}
                                 </span>
                             </div>
-                            <div className="w-40 border-r border-gray-100/50 dark:border-gray-700/50 h-full"></div>
-                            <div className="w-32 border-r border-gray-100/50 dark:border-gray-700/50 h-full"></div>
-                            <div className="w-48 border-r border-gray-100/50 dark:border-gray-700/50 h-full pl-3 flex items-center">
+
+                            {/* 3. Status - Empty for subtask or specific logic */}
+                            <div className="border-r border-gray-100/50 dark:border-gray-700/50 h-full"></div>
+
+                            {/* 4. Priority - Empty */}
+                            <div className="border-r border-gray-100/50 dark:border-gray-700/50 h-full"></div>
+
+                            {/* 5. T-Shirt = Empty */}
+                            <div className="border-r border-gray-100/50 dark:border-gray-700/50 h-full"></div>
+
+                            {/* 6. Assignee - for subtask */}
+                            <div className="border-r border-gray-100/50 dark:border-gray-700/50 h-full pl-3 flex items-center">
                                 <InlineAssigneePicker
                                     assigneeIds={subtask.assignee ? [subtask.assignee] : []}
                                     allUsers={users}
                                     onChange={(newIds) => updateSubtaskAssignee(task, sIndex, newIds)}
                                 />
                             </div>
-                            <div className="w-28 border-r border-gray-100/50 dark:border-gray-700/50 h-full"></div>
-                            <div className="w-40 border-r border-gray-100/50 dark:border-gray-700/50 h-full"></div>
-                            <div className="w-28 border-r border-gray-100/50 dark:border-gray-700/50 h-full"></div>
-                            <div className="w-20 h-full"></div>
+
+                            {/* 7. Due Date - Empty */}
+                            <div className="border-r border-gray-100/50 dark:border-gray-700/50 h-full"></div>
+
+                            {/* 8. Labels - Empty */}
+                            <div className="border-r border-gray-100/50 dark:border-gray-700/50 h-full"></div>
+
+                            {/* 9. Progress - Empty */}
+                            <div className="border-r border-gray-100/50 dark:border-gray-700/50 h-full"></div>
+
+                            {/* 10. Files - Empty */}
+                            <div className="h-full border-r border-gray-100/50 dark:border-gray-700/50"></div>
+
+                            {/* 11. Actions - Empty */}
+                            <div className="h-full"></div>
                         </div>
                     ))}
                 </div>

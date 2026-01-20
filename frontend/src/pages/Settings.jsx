@@ -9,7 +9,8 @@ import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Textarea } from '../components/ui/textarea';
 import { toast } from '../components/ui/sonner';
-import { authAPI } from '../services/api';
+import api, { authAPI } from '../services/api';
+import { getAvatarUrl } from '../utils/avatarHelper';
 
 const Settings = () => {
   const { user, updateUser } = useAuth();
@@ -64,24 +65,26 @@ const Settings = () => {
         const formData = new FormData();
         formData.append('file', file);
 
-        const response = await fetch('http://localhost:8000/api/files/upload', {
-          method: 'POST',
+        const userJson = localStorage.getItem('user');
+        const user = userJson ? JSON.parse(userJson) : null;
+        const userId = user?.id || user?._id;
+
+        // Use 'api' instance to ensure base URL and interceptors are used
+        const response = await api.post('/files/upload', formData, {
           headers: {
-            'Authorization': `Bearer ${localStorage.getItem('token')}`
+            'Content-Type': 'multipart/form-data',
           },
-          body: formData
         });
 
-        if (!response.ok) throw new Error('Upload failed');
-
-        const data = await response.json();
-        const avatarUrl = `http://localhost:8000${data.url}`;
+        const data = response.data;
+        const avatarUrl = data.url;
 
         setAvatarPreview(avatarUrl);
-        toast.success('Avatar yüklendi!');
+        setFormData({ ...formData, avatar: avatarUrl }); // Update form data too
+        toast.success('Avatar yüklendi! Kaydet butonuna basmayı unutmayın.');
       } catch (error) {
         console.error('Avatar upload error:', error);
-        toast.error('Avatar yüklenemedi');
+        toast.error('Avatar yüklenemedi. Lütfen tekrar deneyin.');
       }
     }
   };
@@ -90,25 +93,29 @@ const Settings = () => {
     try {
       const updateData = {
         fullName: formData.fullName,
-        avatar: avatarPreview || null
+        avatar: formData.avatar || avatarPreview || user?.avatar,
+        color: formData.color || user?.color
       };
+
+      console.log('DEBUG [Settings.handleSaveProfile]: Sending update:', updateData);
       const response = await authAPI.updateProfile(updateData);
-      // Update React context state (this updates Sidebar immediately)
+
       if (response.data) {
         updateUser(response.data);
+        toast.success('Profil başarıyla güncellendi!');
       } else {
-        // Fallback: merge with current user
+        // Fallback: merge with current user if response body is empty
         updateUser({ ...user, ...updateData });
+        toast.success('Profil güncellendi!');
       }
-      toast.success('Profil güncellendi!');
       setIsEditing(false);
     } catch (error) {
       console.error('Profile update error:', error);
-      toast.error('Profil güncellenemedi');
+      toast.error('Profil güncellenemedi: ' + (error.response?.data?.detail || error.message));
     }
   };
 
-  const handleChangePassword = () => {
+  const handleChangePassword = async () => {
     if (formData.newPassword !== formData.confirmPassword) {
       toast.error('Şifreler eşleşmiyor!');
       return;
@@ -117,9 +124,18 @@ const Settings = () => {
       toast.error('Şifre en az 6 karakter olmalı!');
       return;
     }
-    // Şifre değiştirme API çağrısı
-    toast.success('Şifre başarıyla değiştirildi!');
-    setFormData({ ...formData, currentPassword: '', newPassword: '', confirmPassword: '' });
+
+    try {
+      await authAPI.changePassword({
+        currentPassword: formData.currentPassword,
+        newPassword: formData.newPassword
+      });
+      toast.success('Şifre başarıyla değiştirildi!');
+      setFormData({ ...formData, currentPassword: '', newPassword: '', confirmPassword: '' });
+    } catch (error) {
+      console.error('Password change error:', error);
+      toast.error(error.response?.data?.detail || 'Şifre değiştirilemedi');
+    }
   };
 
   return (
@@ -186,7 +202,9 @@ const Settings = () => {
                     <div className="flex items-center gap-6">
                       <div className="relative">
                         <Avatar className="w-24 h-24 border-4 border-white shadow-lg">
-                          <AvatarImage src={avatarPreview || user?.avatar} />
+                          <AvatarImage
+                            src={getAvatarUrl(avatarPreview || user?.avatar)}
+                          />
                           <AvatarFallback className="text-2xl">
                             {user?.fullName?.charAt(0) || 'K'}
                           </AvatarFallback>
@@ -216,7 +234,11 @@ const Settings = () => {
                               {avatarColors.map((color, idx) => (
                                 <button
                                   key={idx}
-                                  className={`w-10 h-10 rounded-full bg-gradient-to-br ${color.bg} hover:scale-110 transition-transform border-2 border-white shadow-md`}
+                                  onClick={() => {
+                                    setFormData({ ...formData, color: color.bg });
+                                    toast.info(`${color.name} renk seçildi`);
+                                  }}
+                                  className={`w-10 h-10 rounded-full bg-gradient-to-br ${color.bg} hover:scale-110 transition-transform border-2 ${formData.color === color.bg ? 'border-blue-500 scale-110 shadow-lg' : 'border-white shadow-md'}`}
                                   title={color.name}
                                 />
                               ))}

@@ -10,9 +10,9 @@ namespace Unity.Core.Models
     public class TaskItem
     {
         [Key]
-        public string Id { get; set; } = Guid.NewGuid().ToString();
+        public int Id { get; set; }
 
-        public string? ProjectId { get; set; }
+        public int ProjectId { get; set; }
 
         [Required]
         public string Title { get; set; }
@@ -21,21 +21,21 @@ namespace Unity.Core.Models
 
         public string AssigneesJson { get; set; } = "[]";
         [NotMapped]
-        public List<string> Assignees 
+        public List<int> Assignees 
         { 
-            get => JsonSerializer.Deserialize<List<string>>(AssigneesJson ?? "[]") ?? new List<string>();
+            get => JsonSerializer.Deserialize<List<int>>(AssigneesJson ?? "[]") ?? new List<int>();
             set => AssigneesJson = JsonSerializer.Serialize(value);
         }
 
-        public string? AssignedBy { get; set; }
+        public int AssignedBy { get; set; }
         public string Status { get; set; } = "todo"; // todo, working, review, done, stuck
         public string Priority { get; set; } = "medium";
         
         public string LabelsJson { get; set; } = "[]";
         [NotMapped]
-        public List<string> Labels 
+        public List<int> Labels 
         { 
-            get => JsonSerializer.Deserialize<List<string>>(LabelsJson ?? "[]") ?? new List<string>();
+            get => JsonSerializer.Deserialize<List<int>>(LabelsJson ?? "[]") ?? new List<int>();
             set => LabelsJson = JsonSerializer.Serialize(value);
         }
 

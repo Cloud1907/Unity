@@ -14,7 +14,8 @@ import { Button } from './ui/button';
 import { Textarea } from './ui/textarea';
 import { Input } from './ui/input';
 import { toast } from './ui/sonner';
-import { auditAPI } from '../services/api';
+import api, { auditAPI } from '../services/api';
+import ConfirmModal from './ui/ConfirmModal';
 
 const statuses = [
   { id: 'todo', label: 'Yapılacak', color: '#cbd5e1' },      // Slate-300
@@ -56,6 +57,12 @@ const ModernTaskModal = ({ task, isOpen, onClose, initialSection = 'subtasks' })
   const statusMenuRef = useRef(null);
   const assigneeMenuRef = useRef(null);
 
+  // Track if fields are dirty
+  const isDirty = JSON.stringify(taskData) !== JSON.stringify(task) ||
+    JSON.stringify(subtasks) !== JSON.stringify(task.subtasks || []) ||
+    JSON.stringify(comments) !== JSON.stringify(task.comments || []) ||
+    JSON.stringify(attachments) !== JSON.stringify(task.attachments || []);
+
   // Get current project to filter users
   const currentProject = projects.find(p => p._id === task.projectId);
 
@@ -74,6 +81,14 @@ const ModernTaskModal = ({ task, isOpen, onClose, initialSection = 'subtasks' })
   useEffect(() => {
     if (isOpen) setActiveSection(initialSection);
   }, [isOpen, initialSection]);
+
+  // Sync state with task prop when it changes (e.g. opening a different task)
+  useEffect(() => {
+    setTaskData(task);
+    setSubtasks(task.subtasks || []);
+    setComments(task.comments || []);
+    setAttachments(task.attachments || []);
+  }, [task]);
 
   // Click outside listener for menus
   useEffect(() => {
@@ -97,7 +112,7 @@ const ModernTaskModal = ({ task, isOpen, onClose, initialSection = 'subtasks' })
   useEffect(() => {
     if (!isOpen) return;
     const handleKeyDown = (e) => {
-      if (e.key === 'Escape') onClose();
+      if (e.key === 'Escape') handleCloseAttempt();
       if ((e.metaKey || e.ctrlKey) && e.key === 's') {
         e.preventDefault();
         handleSave();
@@ -108,6 +123,21 @@ const ModernTaskModal = ({ task, isOpen, onClose, initialSection = 'subtasks' })
   }, [isOpen, onClose, taskData, subtasks, attachments, comments]);
 
   if (!isOpen) return null;
+
+  const [showUnsavedModal, setShowUnsavedModal] = useState(false);
+
+  const handleCloseAttempt = () => {
+    if (isDirty) {
+      setShowUnsavedModal(true);
+    } else {
+      onClose();
+    }
+  };
+
+  const confirmClose = () => {
+    setShowUnsavedModal(false);
+    onClose();
+  };
 
   const handleSave = () => {
     updateTask(task._id, {
@@ -129,6 +159,8 @@ const ModernTaskModal = ({ task, isOpen, onClose, initialSection = 'subtasks' })
       id: Date.now(),
       title: newSubtask,
       completed: false,
+      startDate: null,
+      dueDate: null,
       createdAt: new Date().toISOString()
     };
     const newSubtasks = [...subtasks, subtask];
@@ -166,18 +198,20 @@ const ModernTaskModal = ({ task, isOpen, onClose, initialSection = 'subtasks' })
     formData.append('file', file);
 
     try {
-      const response = await fetch(`${process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000'}/api/upload`, {
-        method: 'POST',
-        body: formData,
+      // Use centralized api instance
+      const response = await api.post('/files/upload', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
       });
-      if (!response.ok) throw new Error('Yükleme başarısız');
-      const data = await response.json();
+
+      const data = response.data;
       const newAttachment = {
         id: Date.now(),
-        name: data.filename,
-        url: `${process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000'}${data.url}`,
-        type: data.content_type,
-        size: data.size,
+        name: file.name,
+        url: data.url, // Backend returns relative URL like "/uploads/xxx.jpg"
+        type: file.type,
+        size: file.size,
         uploadedAt: new Date().toISOString()
       };
       const newAttachments = [...attachments, newAttachment];
@@ -185,14 +219,14 @@ const ModernTaskModal = ({ task, isOpen, onClose, initialSection = 'subtasks' })
       setTaskData(prev => ({ ...prev, attachments: newAttachments }));
       toast.success('Dosya başarıyla yüklendi');
     } catch (error) {
-      toast.error('Hata oluştu');
+      toast.error('Dosya yüklenemedi');
     } finally {
       setIsUploading(false);
     }
   };
 
   const modalContent = (
-    <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[9999] flex items-center justify-center p-4 sm:p-6" onClick={onClose}>
+    <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[9999] flex items-center justify-center p-4 sm:p-6">
       <div
         className="bg-white dark:bg-slate-950 w-full max-w-5xl h-[85vh] rounded-2xl shadow-2xl flex flex-col overflow-hidden animate-in zoom-in-95 duration-200"
         onClick={e => e.stopPropagation()}
@@ -218,7 +252,7 @@ const ModernTaskModal = ({ task, isOpen, onClose, initialSection = 'subtasks' })
               Kaydet
             </Button>
             <button
-              onClick={onClose}
+              onClick={handleCloseAttempt}
               className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-50 dark:hover:bg-slate-900 rounded-lg transition-colors"
             >
               <X size={20} />
@@ -344,6 +378,74 @@ const ModernTaskModal = ({ task, isOpen, onClose, initialSection = 'subtasks' })
                             </button>
                           )}
 
+                          {/* Date Pickers for Subtask */}
+                          <div className="flex items-center gap-2 ml-2">
+                            {/* Start Date */}
+                            <Popover>
+                              <PopoverTrigger asChild>
+                                <button
+                                  className={`flex items-center gap-1.5 px-2 py-1.5 rounded-md text-xs font-medium transition-all border ${subtask.startDate
+                                    ? 'bg-blue-50 text-blue-600 border-blue-200 dark:bg-blue-900/20 dark:border-blue-800'
+                                    : 'text-slate-400 border-transparent hover:bg-slate-100 hover:text-slate-600 dark:hover:bg-slate-800'
+                                    }`}
+                                  title="Başlangıç Tarihi"
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  <Calendar size={13} />
+                                  {subtask.startDate && (
+                                    <span>{new Date(subtask.startDate).toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' })}</span>
+                                  )}
+                                </button>
+                              </PopoverTrigger>
+                              <PopoverContent className="w-auto p-0 z-[99999]" align="end" onClick={(e) => e.stopPropagation()}>
+                                <CalendarComponent
+                                  mode="single"
+                                  selected={subtask.startDate ? new Date(subtask.startDate) : undefined}
+                                  onSelect={(date) => {
+                                    const updated = subtasks.map(s => s.id === subtask.id ? { ...s, startDate: date ? date.toISOString() : null } : s);
+                                    setSubtasks(updated);
+                                    setTaskData(prev => ({ ...prev, subtasks: updated }));
+                                  }}
+                                  initialFocus
+                                  locale={tr}
+                                />
+                              </PopoverContent>
+                            </Popover>
+
+                            {/* Due Date Only - As per user request "No need for clock/start" */}
+                            <Popover>
+                              <PopoverTrigger asChild>
+                                <button
+                                  className={`flex items-center gap-1.5 px-2 py-1.5 rounded-md text-xs font-medium transition-all border ${subtask.dueDate
+                                    ? (new Date(subtask.dueDate) < new Date() && !subtask.completed
+                                      ? 'bg-red-50 text-red-600 border-red-200 dark:bg-red-900/20 dark:border-red-800' // Overdue
+                                      : 'bg-slate-50 text-slate-600 border-slate-200 dark:bg-slate-800 dark:border-slate-700') // Normal
+                                    : 'text-slate-400 border-transparent hover:bg-slate-100 hover:text-slate-600 dark:hover:bg-slate-800' // Empty
+                                    }`}
+                                  title="Son Tarih"
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  <Calendar size={13} />
+                                  {subtask.dueDate && (
+                                    <span>{new Date(subtask.dueDate).toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' })}</span>
+                                  )}
+                                </button>
+                              </PopoverTrigger>
+                              <PopoverContent className="w-auto p-0 z-[99999]" align="end" onClick={(e) => e.stopPropagation()}>
+                                <CalendarComponent
+                                  mode="single"
+                                  selected={subtask.dueDate ? new Date(subtask.dueDate) : undefined}
+                                  onSelect={(date) => {
+                                    const updated = subtasks.map(s => s.id === subtask.id ? { ...s, dueDate: date ? date.toISOString() : null } : s);
+                                    setSubtasks(updated);
+                                    setTaskData(prev => ({ ...prev, subtasks: updated }));
+                                  }}
+                                  initialFocus
+                                  locale={tr}
+                                />
+                              </PopoverContent>
+                            </Popover>
+                          </div>
                           {/* Dropdown - Using Portal to escape modal overflow */}
                           {openSubtaskAssignee === subtask.id && ReactDOM.createPortal(
                             <div
@@ -882,6 +984,8 @@ const ModernTaskModal = ({ task, isOpen, onClose, initialSection = 'subtasks' })
               </div>
             </div>
 
+
+
             {/* Due Date */}
             <div className="space-y-3">
               <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Son Tarih</label>
@@ -919,10 +1023,24 @@ const ModernTaskModal = ({ task, isOpen, onClose, initialSection = 'subtasks' })
           </div>
         </div>
       </div>
-    </div>
+    </div >
   );
 
-  return ReactDOM.createPortal(modalContent, document.body);
+  return (
+    <>
+      {ReactDOM.createPortal(modalContent, document.body)}
+      <ConfirmModal
+        isOpen={showUnsavedModal}
+        onClose={() => setShowUnsavedModal(false)}
+        onConfirm={confirmClose}
+        title="Kaydedilmemiş Değişiklikler"
+        message="Yaptığınız değişiklikler kaydedilmedi. Çıkarsanız bu değişiklikler kaybolacak. Emin misiniz?"
+        confirmText="Evet, Çık"
+        cancelText="İptal Et"
+        type="warning"
+      />
+    </>
+  );
 };
 
 export default ModernTaskModal;

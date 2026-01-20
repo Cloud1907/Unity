@@ -4,7 +4,7 @@ import urllib.parse
 import json
 import uuid
 
-API_URL = "http://localhost:8000/api"
+API_URL = "http://localhost:8080/api"
 
 # --- Helpers ---
 def make_request(method, endpoint, data=None, token=None):

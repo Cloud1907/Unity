@@ -23,18 +23,21 @@ namespace Unity.API.Controllers
             if (Request.Headers.TryGetValue("X-Test-User-Id", out var userId))
             {
                 Console.WriteLine($"DEBUG [AuthController.GetCurrentUserAsync]: Found X-Test-User-Id header: {userId}");
-                var user = await _context.Users.FirstOrDefaultAsync(u => u.Id == userId.ToString());
-                if (user != null)
+                if (int.TryParse(userId, out int uid))
                 {
-                    Console.WriteLine($"DEBUG [AuthController.GetCurrentUserAsync]: Resolved user from header: {user.FullName} ({user.Id})");
-                    return user;
+                    var user = await _context.Users.FirstOrDefaultAsync(u => u.Id == uid);
+                    if (user != null)
+                    {
+                        Console.WriteLine($"DEBUG [AuthController.GetCurrentUserAsync]: Resolved user from header: {user.FullName} ({user.Id})");
+                        return user;
+                    }
                 }
             }
             // Fallback for dev/offline: Default to Melih (Admin)
-            var melih = await _context.Users.FirstOrDefaultAsync(u => u.Id == "user-melih");
+            var melih = await _context.Users.FirstOrDefaultAsync(u => u.Username == "melih");
             if (melih != null) return melih;
 
-            return await _context.Users.FirstOrDefaultAsync() ?? new User { Id = "test-user", Departments = new List<string> { "IT" } };
+            return await _context.Users.FirstOrDefaultAsync() ?? new User { Id = 0, Departments = new List<int>() };
         }
 
         [HttpPost("login")]
@@ -54,7 +57,7 @@ namespace Unity.API.Controllers
             Console.WriteLine($"DEBUG [AuthController.Login]: Login successful for user: {user.FullName} ({user.Id}, {user.Email})");
             return Ok(new LoginResponse
             {
-                AccessToken = "dummy_jwt_token_for_now",
+                AccessToken = GenerateJwtToken(user),
                 User = new UserDto
                 {
                     Id = user.Id,
@@ -67,14 +70,34 @@ namespace Unity.API.Controllers
                 }
             });
         }
+
+        private string GenerateJwtToken(User user)
+        {
+            var tokenHandler = new System.IdentityModel.Tokens.Jwt.JwtSecurityTokenHandler();
+            var key = AppConfig.JwtKey; // Use the dynamic key from AppConfig
+            var tokenDescriptor = new Microsoft.IdentityModel.Tokens.SecurityTokenDescriptor
+            {
+                Subject = new System.Security.Claims.ClaimsIdentity(new[]
+                {
+                    new System.Security.Claims.Claim("id", user.Id.ToString()),
+                    new System.Security.Claims.Claim(System.Security.Claims.ClaimTypes.Name, user.Username ?? user.Email),
+                    new System.Security.Claims.Claim(System.Security.Claims.ClaimTypes.Role, user.Role ?? "user")
+                }),
+                Expires = DateTime.UtcNow.AddDays(7),
+                SigningCredentials = new Microsoft.IdentityModel.Tokens.SigningCredentials(new Microsoft.IdentityModel.Tokens.SymmetricSecurityKey(key), Microsoft.IdentityModel.Tokens.SecurityAlgorithms.HmacSha256Signature)
+            };
+            var token = tokenHandler.CreateToken(tokenDescriptor);
+            return tokenHandler.WriteToken(token);
+        }
         
         [HttpPut("profile")]
+        [Microsoft.AspNetCore.Authorization.Authorize]
         public async Task<IActionResult> UpdateProfile([FromBody] UpdateProfileRequest request)
         {
             // Use shared user resolution helper
             var user = await GetCurrentUserAsync();
             
-            if (user == null || user.Id == "test-user")
+            if (user == null || user.Id == 0)
             {
                 return NotFound(new { detail = "User not found" });
             }
@@ -111,9 +134,11 @@ namespace Unity.API.Controllers
         }
         
         [HttpGet("me")]
+        [Microsoft.AspNetCore.Authorization.Authorize]
         public async Task<ActionResult<UserDto>> Me()
         {
             var user = await GetCurrentUserAsync();
+            Console.WriteLine($"DEBUG [AuthController.Me]: Returning profile for {user.FullName} ({user.Id}). Avatar: {user.Avatar}");
             return Ok(new UserDto 
             { 
                 Id = user.Id,
@@ -125,5 +150,36 @@ namespace Unity.API.Controllers
                 Departments = user.Departments
             });
         }
+        [HttpPost("change-password")]
+        [Microsoft.AspNetCore.Authorization.Authorize]
+        public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordRequest request)
+        {
+            var user = await GetCurrentUserAsync();
+            if (user == null || user.Id == 0)
+            {
+                return NotFound(new { detail = "User not found" });
+            }
+
+            // Verify current password
+            if (!BCrypt.Net.BCrypt.Verify(request.CurrentPassword, user.PasswordHash))
+            {
+                return BadRequest(new { detail = "Mevcut şifre hatalı" });
+            }
+
+            // Hash new password
+            user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.NewPassword);
+            user.UpdatedAt = DateTime.UtcNow;
+
+            await _context.SaveChangesAsync();
+            
+            Console.WriteLine($"DEBUG [AuthController.ChangePassword]: Password updated for user: {user.FullName}");
+            return Ok(new { message = "Şifre başarıyla güncellendi" });
+        }
+    }
+
+    public class ChangePasswordRequest
+    {
+        public string CurrentPassword { get; set; }
+        public string NewPassword { get; set; }
     }
 }

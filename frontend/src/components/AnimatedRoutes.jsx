@@ -14,6 +14,7 @@ import TeamPage from '../pages/TeamPage';
 import Reports from '../pages/Reports';
 import ProjectsPage from '../pages/ProjectsPage';
 import TestResults from '../pages/TestResults';
+import MyTasks from '../pages/MyTasks';
 import PageTransition from './PageTransition';
 
 const AnimatedRoutes = () => {
@@ -142,6 +143,19 @@ const AnimatedRoutes = () => {
                                         <TestResults />
                                     </div>
                                 </div>
+                            </PageTransition>
+                        </ProtectedRoute>
+                    }
+                />
+
+                <Route
+                    path="/my-tasks"
+                    element={
+                        <ProtectedRoute>
+                            <PageTransition>
+                                <Layout sidebar={<Sidebar onBoardChange={() => { }} />}>
+                                    <MyTasks />
+                                </Layout>
                             </PageTransition>
                         </ProtectedRoute>
                     }

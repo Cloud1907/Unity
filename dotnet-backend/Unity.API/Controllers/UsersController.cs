@@ -17,18 +17,29 @@ namespace Unity.API.Controllers
             _context = context;
         }
 
-        // Mock Helper
+        // Helper
         private async Task<User> GetCurrentUserAsync()
         {
+            // 1. JWT Claims 
+            var claimId = User.FindFirst("id")?.Value;
+            if (!string.IsNullOrEmpty(claimId) && int.TryParse(claimId, out int claimUid))
+            {
+                var user = await _context.Users.FirstOrDefaultAsync(u => u.Id == claimUid);
+                if (user != null) return user;
+            }
+
             Console.WriteLine($"DEBUG [UsersController.GetCurrentUserAsync]: Resolving current user...");
             if (Request.Headers.TryGetValue("X-Test-User-Id", out var userId))
             {
                 Console.WriteLine($"DEBUG [UsersController.GetCurrentUserAsync]: Found X-Test-User-Id header: {userId}");
-                var user = await _context.Users.FirstOrDefaultAsync(u => u.Id == userId.ToString());
-                if (user != null)
+                if (int.TryParse(userId, out int uid))
                 {
-                    Console.WriteLine($"DEBUG [UsersController.GetCurrentUserAsync]: Resolved user from header: {user.FullName} ({user.Id})");
-                    return user;
+                    var user = await _context.Users.FirstOrDefaultAsync(u => u.Id == uid);
+                    if (user != null)
+                    {
+                        Console.WriteLine($"DEBUG [UsersController.GetCurrentUserAsync]: Resolved user from header: {user.FullName} ({user.Id})");
+                        return user;
+                    }
                 }
                 Console.WriteLine($"DEBUG [UsersController.GetCurrentUserAsync]: User ID '{userId}' not found in database");
             }
@@ -37,22 +48,23 @@ namespace Unity.API.Controllers
                 Console.WriteLine($"DEBUG [UsersController.GetCurrentUserAsync]: No X-Test-User-Id header found");
             }
             // Fallback for dev/offline: Default to Melih (Admin)
-            var melih = await _context.Users.FirstOrDefaultAsync(u => u.Id == "user-melih");
+            var melih = await _context.Users.FirstOrDefaultAsync(u => u.Username == "melih");
             if (melih != null)
             {
                 Console.WriteLine($"DEBUG [UsersController.GetCurrentUserAsync]: Using fallback user Melih: {melih.FullName} ({melih.Id})");
                 return melih;
             }
             Console.WriteLine($"DEBUG [UsersController.GetCurrentUserAsync]: Melih not found, using first user or test-user");
-            return await _context.Users.FirstOrDefaultAsync() ?? new User { Id = "test-user", Departments = new List<string> { "IT" } };
+            return await _context.Users.FirstOrDefaultAsync() ?? new User { Id = 0, Departments = new List<int>() };
         }
 
         [HttpGet]
+        [Microsoft.AspNetCore.Authorization.Authorize]
         public async Task<ActionResult<IEnumerable<UserDto>>> GetUsers()
         {
             var currentUser = await GetCurrentUserAsync();
             Console.WriteLine($"DEBUG [UsersController.GetUsers]: Current user resolved as: {currentUser.FullName} ({currentUser.Id}), Role: {currentUser.Role}");
-            var userDeptList = currentUser.Departments ?? new List<string>();
+            var userDeptList = currentUser.Departments ?? new List<int>();
 
             // Optimisation: For large datasets, use a proper join table for Departments.
             // For now (JSON storage), we fetch all and filter in memory.
@@ -144,7 +156,7 @@ namespace Unity.API.Controllers
         }
 
         [HttpPut("{id}")]
-        public async Task<IActionResult> PutUser(string id, User user)
+        public async Task<IActionResult> PutUser(int id, User user)
         {
             if (id != user.Id) return BadRequest("ID mismatch");
 
@@ -204,7 +216,7 @@ namespace Unity.API.Controllers
         }
 
         [HttpDelete("{id}")]
-        public async Task<IActionResult> DeleteUser(string id)
+        public async Task<IActionResult> DeleteUser(int id)
         {
             var currentUser = await GetCurrentUserAsync();
             if (currentUser.Role != "admin") return Forbid();

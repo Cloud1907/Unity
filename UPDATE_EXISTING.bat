@@ -6,6 +6,10 @@ echo ==========================================
 echo Unity Guncelleme (IIS:8080 + Service)
 echo ==========================================
 
+:: Ayarlanabilir Hedef Klasor
+set TARGET_DIR=C:\Unity\app
+echo Hedef Klasor: %TARGET_DIR%
+
 :: 1. Backend Servis Kurulumu (Eger yoksa)
 echo.
 echo [1/3] Backend Servis Kontrolu...
@@ -24,19 +28,36 @@ echo.
 echo [2/3] Dosyalar Guncelleniyor...
 
 :: Backend kodlarini kopyala (sadece kodlar, venv degil)
-if not exist "C:\Unity\app\backend" mkdir "C:\Unity\app\backend"
-xcopy /E /Y /I app\backend "C:\Unity\app\backend"
+:: Backend kodlarini kopyala (sadece kodlar, venv degil)
+if not exist "%TARGET_DIR%\backend" mkdir "%TARGET_DIR%\backend"
+xcopy /E /Y /I app\backend "%TARGET_DIR%\backend"
 
 :: Frontend build kopyala (IIS'in baktigi yer - Varsayilan C:\Unity\app\frontend-build)
 :: Eger IIS baska yere bakiyorsa burayi duzeltin!
-if not exist "C:\Unity\app\frontend-build" mkdir "C:\Unity\app\frontend-build"
-xcopy /E /Y /I app\frontend-build "C:\Unity\app\frontend-build"
-copy /Y app\frontend-build\web.config "C:\Unity\app\frontend-build\"
+if not exist "%TARGET_DIR%\frontend-build" mkdir "%TARGET_DIR%\frontend-build"
+xcopy /E /Y /I app\frontend-build "%TARGET_DIR%\frontend-build"
+copy /Y app\frontend-build\web.config "%TARGET_DIR%\frontend-build\"
 
 :: 3. Servisleri Baslat
 echo.
 echo [3/3] Servisler Baslatiliyor...
 schtasks /run /tn "UnityBackend"
+if %errorLevel% neq 0 (
+    echo [UYARI] Servis baslatilamadi! Manuel baslatmayi deniyoruz...
+    start "Unity Backend" "%TARGET_DIR%\start_backend.bat"
+) else (
+    echo [INFO] Servis baslatma komutu gonderildi.
+)
+
+echo.
+echo [4/4] Saglik Kontrolu...
+timeout /t 5 >nul
+curl http://127.0.0.1:8000/api/health
+if %errorLevel% neq 0 (
+    echo [ERROR] Backend hala cevap vermiyor! Lutfen 'start_backend.bat' dosyasini manuel calistirin.
+) else (
+    echo [OK] Backend calisiyor.
+)
 
 echo.
 echo ==========================================

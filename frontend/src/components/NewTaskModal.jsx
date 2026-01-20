@@ -7,8 +7,10 @@ import { Textarea } from './ui/textarea';
 import { useData } from '../contexts/DataContext';
 
 const NewTaskModal = ({ isOpen, onClose, projectId, defaultStatus = 'todo' }) => {
-  const { createTask } = useData();
+  const { createTask, projects } = useData();
   const [loading, setLoading] = useState(false);
+  const [selectedProjectId, setSelectedProjectId] = useState(projectId || '');
+
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -16,15 +18,15 @@ const NewTaskModal = ({ isOpen, onClose, projectId, defaultStatus = 'todo' }) =>
     status: defaultStatus,
     assignees: [],
     labels: [],
-    assignees: [],
-    labels: [],
+    startDate: new Date().toISOString().split('T')[0],
     dueDate: '',
     isPrivate: false
   });
 
-  // Reset form when modal closes
+  // Reset form when modal closes or projectId changes
   React.useEffect(() => {
-    if (!isOpen) {
+    if (isOpen) {
+      setSelectedProjectId(projectId || '');
       setFormData({
         title: '',
         description: '',
@@ -32,12 +34,12 @@ const NewTaskModal = ({ isOpen, onClose, projectId, defaultStatus = 'todo' }) =>
         status: defaultStatus,
         assignees: [],
         labels: [],
-        labels: [],
+        startDate: new Date().toISOString().split('T')[0],
         dueDate: '',
         isPrivate: false
       });
     }
-  }, [isOpen, defaultStatus]);
+  }, [isOpen, projectId, defaultStatus]);
 
   const handleChange = (e) => {
     setFormData({
@@ -48,12 +50,20 @@ const NewTaskModal = ({ isOpen, onClose, projectId, defaultStatus = 'todo' }) =>
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    // Validate Project Selection if not provided via props
+    const finalProjectId = projectId || selectedProjectId;
+    if (!finalProjectId) {
+      alert('Lütfen bir proje seçiniz.'); // Simple alert, could be toast
+      return;
+    }
+
     setLoading(true);
 
     const taskData = {
       ...formData,
-      projectId: projectId || null,
-      startDate: new Date().toISOString(),
+      projectId: finalProjectId,
+      startDate: formData.startDate ? new Date(formData.startDate).toISOString() : new Date().toISOString(),
       // Remove empty dueDate to avoid validation error
       dueDate: formData.dueDate || undefined
     };
@@ -80,7 +90,6 @@ const NewTaskModal = ({ isOpen, onClose, projectId, defaultStatus = 'todo' }) =>
     <div
       className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4"
       style={{ zIndex: 9999 }}
-      onClick={onClose}
     >
       <div
         className="bg-white rounded-lg shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-auto"
@@ -96,6 +105,26 @@ const NewTaskModal = ({ isOpen, onClose, projectId, defaultStatus = 'todo' }) =>
 
         {/* Form */}
         <form onSubmit={handleSubmit} className="p-6 space-y-6">
+
+          {/* Project Selection (Only if not provided) */}
+          {!projectId && (
+            <div>
+              <Label htmlFor="project">Proje Seçin *</Label>
+              <select
+                id="project"
+                value={selectedProjectId}
+                onChange={(e) => setSelectedProjectId(e.target.value)}
+                required
+                className="mt-1 w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#6366f1]"
+              >
+                <option value="">Proje Seçiniz...</option>
+                {projects.map(p => (
+                  <option key={p._id} value={p._id}>{p.name}</option>
+                ))}
+              </select>
+            </div>
+          )}
+
           <div>
             <Label htmlFor="title">Görev Başlığı *</Label>
             <Input
@@ -157,16 +186,29 @@ const NewTaskModal = ({ isOpen, onClose, projectId, defaultStatus = 'todo' }) =>
             </div>
           </div>
 
-          <div>
-            <Label htmlFor="dueDate">Son Tarih</Label>
-            <Input
-              id="dueDate"
-              name="dueDate"
-              type="date"
-              value={formData.dueDate}
-              onChange={handleChange}
-              className="mt-1"
-            />
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <Label htmlFor="startDate">Başlangıç Tarihi</Label>
+              <Input
+                id="startDate"
+                name="startDate"
+                type="date"
+                value={formData.startDate}
+                onChange={handleChange}
+                className="mt-1"
+              />
+            </div>
+            <div>
+              <Label htmlFor="dueDate">Son Tarih</Label>
+              <Input
+                id="dueDate"
+                name="dueDate"
+                type="date"
+                value={formData.dueDate}
+                onChange={handleChange}
+                className="mt-1"
+              />
+            </div>
           </div>
 
           <div className="flex items-center gap-2 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-100 dark:border-gray-700">

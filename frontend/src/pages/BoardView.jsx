@@ -9,7 +9,6 @@ import KanbanView from '../components/KanbanViewV2';
 import CalendarView from '../components/CalendarView';
 import GanttView from '../components/GanttView';
 import WorkloadView from '../components/WorkloadView';
-import { Toaster } from '../components/ui/sonner';
 import { KanbanSkeleton } from '../components/skeletons/KanbanSkeleton';
 import { TableSkeleton } from '../components/skeletons/TableSkeleton';
 
@@ -115,7 +114,6 @@ const BoardView = () => {
                     </AnimatePresence>
                 </div>
             </div>
-            <Toaster />
         </div>
     );
 };

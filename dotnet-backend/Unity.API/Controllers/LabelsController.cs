@@ -11,6 +11,7 @@ namespace Unity.API.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
+    [Microsoft.AspNetCore.Authorization.Authorize]
     public class LabelsController : ControllerBase
     {
         private readonly AppDbContext _context;
@@ -29,7 +30,7 @@ namespace Unity.API.Controllers
         }
 
         [HttpGet("project/{projectId}")]
-        public async Task<ActionResult<IEnumerable<Label>>> GetLabelsByProject(string projectId)
+        public async Task<ActionResult<IEnumerable<Label>>> GetLabelsByProject(int projectId)
         {
             var labels = await _context.Labels
                                        .Where(l => l.ProjectId == projectId)
@@ -41,7 +42,7 @@ namespace Unity.API.Controllers
         [HttpPost]
         public async Task<ActionResult<Label>> CreateLabel([FromBody] Label label)
         {
-            if (string.IsNullOrEmpty(label.ProjectId))
+            if (label.ProjectId <= 0)
                 return BadRequest("ProjectId is required");
             
             if (string.IsNullOrEmpty(label.Name))
@@ -52,10 +53,16 @@ namespace Unity.API.Controllers
                 .AnyAsync(l => l.ProjectId == label.ProjectId && l.Name == label.Name);
             
             if (exists)
-                return Conflict("Label with this name already exists in the project.");
+            {
+                return Conflict(new { 
+                    detail = "Bu isimde bir etiket bu projede zaten mevcut.", 
+                    message = "Bu isimde bir etiket bu projede zaten mevcut.",
+                    title = "Tekrarlayan Kayıt"
+                });
+            }
 
-            if (string.IsNullOrEmpty(label.Id))
-                label.Id = Guid.NewGuid().ToString();
+            // Guid.NewGuid() removed for Int Identity
+            label.Id = 0;
             
             if (string.IsNullOrEmpty(label.Color))
                 label.Color = "#cccccc";
@@ -69,7 +76,7 @@ namespace Unity.API.Controllers
         }
 
         [HttpDelete("{id}")]
-        public async Task<IActionResult> DeleteLabel(string id)
+        public async Task<IActionResult> DeleteLabel(int id)
         {
             var label = await _context.Labels.FindAsync(id);
             if (label == null)

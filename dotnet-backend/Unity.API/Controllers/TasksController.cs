@@ -8,6 +8,7 @@ namespace Unity.API.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
+    [Microsoft.AspNetCore.Authorization.Authorize]
     public class TasksController : ControllerBase
     {
         private readonly AppDbContext _context;
@@ -19,31 +20,40 @@ namespace Unity.API.Controllers
             _auditService = auditService;
         }
 
-        // Mock Helper
+        // Helper to get current user
         private async Task<User> GetCurrentUserAsync()
         {
-            if (Request.Headers.TryGetValue("X-Test-User-Id", out var userId))
+             // 1. JWT Claims 
+            var claimId = User.FindFirst("id")?.Value;
+            if (!string.IsNullOrEmpty(claimId) && int.TryParse(claimId, out int claimUid))
             {
-                var user = await _context.Users.FirstOrDefaultAsync(u => u.Id == userId.ToString());
+                var user = await _context.Users.FirstOrDefaultAsync(u => u.Id == claimUid);
                 if (user != null) return user;
             }
-            return await _context.Users.FirstOrDefaultAsync() ?? new User { Id = "test-user", Departments = new List<string> { "IT" } };
+
+            // 2. Mock Header
+            if (Request.Headers.TryGetValue("X-Test-User-Id", out var userId) && int.TryParse(userId, out int uid))
+            {
+                var user = await _context.Users.FirstOrDefaultAsync(u => u.Id == uid);
+                if (user != null) return user;
+            }
+            return await _context.Users.FirstOrDefaultAsync() ?? new User { Id = 0, Departments = new List<int>() };
         }
 
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<TaskItem>>> GetTasks([FromQuery] string? projectId)
+        public async Task<ActionResult<IEnumerable<TaskItem>>> GetTasks([FromQuery] int? projectId)
         {
             var currentUser = await GetCurrentUserAsync();
-            var userDeptList = currentUser.Departments ?? new List<string>();
+            var userDeptList = currentUser.Departments ?? new List<int>();
 
             Console.WriteLine($"DEBUG: GetTasks Called. User: {currentUser.Id} ({currentUser.FullName})");
             Console.WriteLine($"DEBUG: User Departments: {string.Join(", ", userDeptList)}");
 
             // 1. Get all tasks (filtered by projectId if provided)
             IQueryable<TaskItem> query = _context.Tasks;
-            if (!string.IsNullOrEmpty(projectId))
+            if (projectId.HasValue && projectId.Value > 0)
             {
-                query = query.Where(t => t.ProjectId == projectId);
+                query = query.Where(t => t.ProjectId == projectId.Value);
             }
             var allTasks = await query.ToListAsync();
             Console.WriteLine($"DEBUG: Total Tasks in DB (pre-filter): {allTasks.Count}");
@@ -54,14 +64,14 @@ namespace Unity.API.Controllers
                 currentUser.Role == "admin" || // Admin bypass
                 p.Owner == currentUser.Id || 
                 p.Members.Contains(currentUser.Id) || 
-                (userDeptList.Contains(p.Department) && !p.IsPrivate)
+                (userDeptList.Contains(p.DepartmentId) && !p.IsPrivate)
             ).Select(p => p.Id).ToHashSet();
             Console.WriteLine($"DEBUG: Accessible Projects: {string.Join(", ", accessibleProjectIds)}");
 
             // 3. Filter Tasks
             // Visible if: Parent Project is Accessible AND (Task Local Visibility)
             var visibleTasks = allTasks.Where(t => 
-                t.ProjectId != null && accessibleProjectIds.Contains(t.ProjectId) && 
+                t.ProjectId > 0 && accessibleProjectIds.Contains(t.ProjectId) && 
                 (!t.IsPrivate || 
                  t.AssignedBy == currentUser.Id || 
                  (t.Assignees != null && t.Assignees.Contains(currentUser.Id)))
@@ -72,7 +82,7 @@ namespace Unity.API.Controllers
         }
 
         [HttpGet("{id}")]
-        public async Task<ActionResult<TaskItem>> GetTask(string id)
+        public async Task<ActionResult<TaskItem>> GetTask(int id)
         {
             var task = await _context.Tasks.FindAsync(id);
 
@@ -85,19 +95,31 @@ namespace Unity.API.Controllers
         }
 
         [HttpPost]
+        [HttpPost]
         public async Task<ActionResult<TaskItem>> PostTask(TaskItem task)
         {
+            var currentUser = await GetCurrentUserAsync();
+            
+            // Fix: Explicitly set AssignedBy to avoiding FK violation (if AssginedBy=0)
+            task.AssignedBy = currentUser.Id;
+            task.CreatedAt = DateTime.UtcNow;
+            task.UpdatedAt = DateTime.UtcNow;
+
+            // Ensure ProjectId is valid to prevent orphans
+            // if (!await _context.Projects.AnyAsync(p => p.Id == task.ProjectId)) return BadRequest("Invalid ProjectId");
+
             _context.Tasks.Add(task);
             await _context.SaveChangesAsync();
             
-            var currentUser = await GetCurrentUserAsync();
-            await _auditService.LogAsync(currentUser.Id, "CREATE_TASK", "Task", task.Id, null, task, $"Task '{task.Title}' created.");
+            // Log with the ID that is now generated
+            // We use task.Id (generated) vs task (object)
+            await _auditService.LogAsync(currentUser.Id.ToString(), "CREATE_TASK", "Task", task.Id.ToString(), null, task, $"Task '{task.Title}' created.");
 
             return CreatedAtAction("GetTask", new { id = task.Id }, task);
         }
 
         [HttpPut("{id}")]
-        public async Task<ActionResult<TaskItem>> PutTask(string id, TaskItem task)
+        public async Task<ActionResult<TaskItem>> PutTask(int id, TaskItem task)
         {
             if (id != task.Id)
             {
@@ -116,7 +138,7 @@ namespace Unity.API.Controllers
             {
                 await _context.SaveChangesAsync();
                 var currentUser = await GetCurrentUserAsync();
-                await _auditService.LogAsync(currentUser.Id, "UPDATE_TASK", "Task", task.Id, oldTask, task, $"Task '{task.Title}' updated.");
+                await _auditService.LogAsync(currentUser.Id.ToString(), "UPDATE_TASK", "Task", task.Id.ToString(), oldTask, task, $"Task '{task.Title}' updated.");
             }
             catch (DbUpdateConcurrencyException)
             {
@@ -135,7 +157,7 @@ namespace Unity.API.Controllers
         }
 
         [HttpPatch("{id}")]
-        public async Task<ActionResult<TaskItem>> PatchTask(string id, [FromBody] System.Text.Json.JsonElement body)
+        public async Task<ActionResult<TaskItem>> PatchTask(int id, [FromBody] System.Text.Json.JsonElement body)
         {
             var task = await _context.Tasks.FindAsync(id);
             if (task == null) return NotFound();
@@ -178,10 +200,10 @@ namespace Unity.API.Controllers
                     case "assignees":
                          if (property.Value.ValueKind == JsonValueKind.Array)
                          {
-                             var list = new List<string>();
+                             var list = new List<int>();
                              foreach (var item in property.Value.EnumerateArray())
                              {
-                                 if (item.ValueKind == JsonValueKind.String) list.Add(item.GetString());
+                                 if (item.ValueKind == JsonValueKind.Number) list.Add(item.GetInt32());
                              }
                              task.Assignees = list;
                          }
@@ -189,10 +211,10 @@ namespace Unity.API.Controllers
                     case "labels":
                          if (property.Value.ValueKind == JsonValueKind.Array)
                          {
-                             var list = new List<string>();
+                             var list = new List<int>();
                              foreach (var item in property.Value.EnumerateArray())
                              {
-                                 if (item.ValueKind == JsonValueKind.String) list.Add(item.GetString());
+                                 if (item.ValueKind == JsonValueKind.Number) list.Add(item.GetInt32());
                              }
                              task.Labels = list;
                          }
@@ -219,7 +241,7 @@ namespace Unity.API.Controllers
         }
         
         [HttpPut("{id}/status")]
-        public async Task<ActionResult<TaskItem>> UpdateStatus(string id, [FromQuery] string status)
+        public async Task<ActionResult<TaskItem>> UpdateStatus(int id, [FromQuery] string status)
         {
             var task = await _context.Tasks.FindAsync(id);
             if (task == null) return NotFound();
@@ -230,13 +252,13 @@ namespace Unity.API.Controllers
             await _context.SaveChangesAsync();
             
             var currentUser = await GetCurrentUserAsync();
-            await _auditService.LogAsync(currentUser.Id, "UPDATE_STATUS", "Task", task.Id, new { Status = oldStatus }, new { Status = status }, $"Task status changed to {status}.");
+            await _auditService.LogAsync(currentUser.Id.ToString(), "UPDATE_STATUS", "Task", task.Id.ToString(), new { Status = oldStatus }, new { Status = status }, $"Task status changed to {status}.");
             
             return Ok(task);
         }
 
         [HttpDelete("{id}")]
-        public async Task<IActionResult> DeleteTask(string id)
+        public async Task<IActionResult> DeleteTask(int id)
         {
             var task = await _context.Tasks.FindAsync(id);
             if (task == null)
@@ -250,7 +272,7 @@ namespace Unity.API.Controllers
             return NoContent();
         }
 
-        private bool TaskExists(string id)
+        private bool TaskExists(int id)
         {
             return _context.Tasks.Any(e => e.Id == id);
         }

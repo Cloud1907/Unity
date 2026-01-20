@@ -1,12 +1,14 @@
 using System;
 using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Unity.Core.Models
 {
     public class AuditLog
     {
         [Key]
-        public string Id { get; set; } = Guid.NewGuid().ToString();
+        [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
+        public int Id { get; set; }
 
         [Required]
         public string UserId { get; set; }  // Who performed the action
