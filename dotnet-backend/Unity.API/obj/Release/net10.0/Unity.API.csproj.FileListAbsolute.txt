@@ -170,3 +170,11 @@
 /Users/cloudsmac/Documents/GitHub/4Flow/dotnet-backend/Unity.API/bin/Release/net10.0/backend-publish/backend-publish/Unity.API.runtimeconfig.json
 /Users/cloudsmac/Documents/GitHub/4Flow/dotnet-backend/Unity.API/bin/Release/net10.0/backend-publish/backend-publish/Unity.API.staticwebassets.endpoints.json
 /Users/cloudsmac/Documents/GitHub/4Flow/dotnet-backend/Unity.API/bin/Release/net10.0/backend-publish/backend-publish/wwwroot/asset-manifest.json
+/Users/cloudsmac/Documents/GitHub/4Flow/dotnet-backend/Unity.API/bin/Release/net10.0/backend-publish/backend-publish/backend-publish/web.config
+/Users/cloudsmac/Documents/GitHub/4Flow/dotnet-backend/Unity.API/bin/Release/net10.0/backend-publish/backend-publish/backend-publish/appsettings.Development.json
+/Users/cloudsmac/Documents/GitHub/4Flow/dotnet-backend/Unity.API/bin/Release/net10.0/backend-publish/backend-publish/backend-publish/appsettings.json
+/Users/cloudsmac/Documents/GitHub/4Flow/dotnet-backend/Unity.API/bin/Release/net10.0/backend-publish/backend-publish/backend-publish/appsettings.Production.json
+/Users/cloudsmac/Documents/GitHub/4Flow/dotnet-backend/Unity.API/bin/Release/net10.0/backend-publish/backend-publish/backend-publish/Unity.API.deps.json
+/Users/cloudsmac/Documents/GitHub/4Flow/dotnet-backend/Unity.API/bin/Release/net10.0/backend-publish/backend-publish/backend-publish/Unity.API.runtimeconfig.json
+/Users/cloudsmac/Documents/GitHub/4Flow/dotnet-backend/Unity.API/bin/Release/net10.0/backend-publish/backend-publish/backend-publish/Unity.API.staticwebassets.endpoints.json
+/Users/cloudsmac/Documents/GitHub/4Flow/dotnet-backend/Unity.API/bin/Release/net10.0/backend-publish/backend-publish/backend-publish/wwwroot/asset-manifest.json

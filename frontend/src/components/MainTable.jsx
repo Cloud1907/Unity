@@ -12,7 +12,7 @@ import InlineLabelPicker from './InlineLabelPicker';
 import MobileBoardView from './MobileBoardView';
 import TaskRow from './TaskRow';
 import ConfirmModal from './ui/ConfirmModal';
-import pkg from '../../package.json';
+
 import { TableSkeleton } from './skeletons/TableSkeleton';
 import EmptyState from './ui/EmptyState';
 
@@ -318,13 +318,9 @@ const MainTable = ({ boardId, searchQuery, filters, groupBy }) => {
   return (
     <>
       <div
-        className="flex-1 overflow-auto bg-white dark:bg-[#0f172a] relative"
+        className="h-full overflow-auto bg-white dark:bg-[#0f172a] relative"
         onClick={() => setActiveMenuTaskId(null)} // Click anywhere closes menus
       >
-        {/* 🎯 VERSİYON */}
-        <div className="absolute top-2 right-2 z-10 px-2 py-1 bg-emerald-600 text-white text-[10px] font-bold rounded shadow-lg animate-fade-in">
-          v{pkg.version} 👤
-        </div>
 
         <div className="min-w-full inline-block align-top">
           {/* Table Header using CSS GRID */}
@@ -405,9 +401,9 @@ const MainTable = ({ boardId, searchQuery, filters, groupBy }) => {
                   ))}
 
                   {/* Add Item to Group */}
-                  <div className="grid border-b border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors border-l-4 border-transparent w-full" style={{ gridTemplateColumns: GRID_TEMPLATE }}>
-                    <div className="border-r border-gray-200 dark:border-gray-700 py-3"></div>
-                    <div className="px-3 py-3 border-r border-gray-200 dark:border-gray-700">
+                  <div className={`grid transition-colors border-l-4 border-transparent w-full ${creatingGroup === groupKey ? 'border-b border-gray-200 dark:border-gray-700' : 'hover:bg-gray-50 dark:hover:bg-gray-800'}`} style={{ gridTemplateColumns: GRID_TEMPLATE }}>
+                    <div className={`${creatingGroup === groupKey ? 'border-r border-gray-200 dark:border-gray-700' : ''} py-3`}></div>
+                    <div className={`px-3 py-3 ${creatingGroup === groupKey ? 'border-r border-gray-200 dark:border-gray-700' : ''}`}>
                       {creatingGroup === groupKey ? (
                         <div className="flex items-center gap-2">
                           <input
@@ -461,23 +457,39 @@ const MainTable = ({ boardId, searchQuery, filters, groupBy }) => {
                             setCreatingGroup(groupKey);
                             setNewTaskTitle('');
                           }}
-                          className="flex items-center gap-2 text-gray-400 hover:text-gray-600 transition-colors w-full text-left ml-2"
+                          className="flex items-center gap-2 text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 transition-colors w-full text-left"
                         >
                           <Plus size={14} />
-                          <span className="text-xs">Bu gruba ekle</span>
+                          <span className="text-xs font-medium">Bu gruba ekle</span>
                         </button>
                       )}
                     </div>
-                    {/* Spacers matching grid columns */}
-                    <div className="border-r border-gray-200 dark:border-gray-700"></div>
-                    <div className="border-r border-gray-200 dark:border-gray-700"></div>
-                    <div className="border-r border-gray-200 dark:border-gray-700"></div>
-                    <div className="border-r border-gray-200 dark:border-gray-700"></div>
-                    <div className="border-r border-gray-200 dark:border-gray-700"></div>
-                    <div className="border-r border-gray-200 dark:border-gray-700"></div>
-                    <div className="border-r border-gray-200 dark:border-gray-700"></div>
-                    <div className="border-r border-gray-200 dark:border-gray-700"></div>
-                    <div className=""></div>
+                    {/* Spacers matching grid columns - Clean when not creating */}
+                    {creatingGroup === groupKey ? (
+                      <>
+                        <div className="border-r border-gray-200 dark:border-gray-700"></div>
+                        <div className="border-r border-gray-200 dark:border-gray-700"></div>
+                        <div className="border-r border-gray-200 dark:border-gray-700"></div>
+                        <div className="border-r border-gray-200 dark:border-gray-700"></div>
+                        <div className="border-r border-gray-200 dark:border-gray-700"></div>
+                        <div className="border-r border-gray-200 dark:border-gray-700"></div>
+                        <div className="border-r border-gray-200 dark:border-gray-700"></div>
+                        <div className="border-r border-gray-200 dark:border-gray-700"></div>
+                        <div className=""></div>
+                      </>
+                    ) : (
+                      <>
+                        <div></div>
+                        <div></div>
+                        <div></div>
+                        <div></div>
+                        <div></div>
+                        <div></div>
+                        <div></div>
+                        <div></div>
+                        <div></div>
+                      </>
+                    )}
                   </div>
                 </div>
               </div>
@@ -510,9 +522,9 @@ const MainTable = ({ boardId, searchQuery, filters, groupBy }) => {
               </div>
 
               {/* New Task Row (Inline) */}
-              <div className="grid border-b border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors border-l-4 border-transparent w-full" style={{ gridTemplateColumns: GRID_TEMPLATE }}>
-                <div className="border-r border-gray-200 dark:border-gray-700 py-3"></div>
-                <div className="px-3 border-r border-gray-200 dark:border-gray-700 flex items-center" style={{ minHeight: '54px' }}>
+              <div className={`grid transition-colors border-l-4 border-transparent w-full ${isCreating ? 'border-b border-gray-200 dark:border-gray-700' : 'hover:bg-gray-50 dark:hover:bg-gray-800'}`} style={{ gridTemplateColumns: GRID_TEMPLATE }}>
+                <div className={`${isCreating ? 'border-r border-gray-200 dark:border-gray-700' : ''} py-3`}></div>
+                <div className={`px-3 ${isCreating ? 'border-r border-gray-200 dark:border-gray-700' : ''} flex items-center mb-0`} style={{ minHeight: '54px' }}>
                   {isCreating ? (
                     <input
                       ref={creationInputRef}
@@ -554,23 +566,39 @@ const MainTable = ({ boardId, searchQuery, filters, groupBy }) => {
                   ) : (
                     <button
                       onClick={() => setIsCreating(true)}
-                      className="flex items-center gap-2 text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 transition-colors w-full text-left"
+                      className="flex items-center gap-2 text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 transition-colors w-full text-left pl-0"
                     >
                       <Plus size={14} />
-                      <span className="text-xs">Yeni görev ekle</span>
+                      <span className="text-xs font-medium">Yeni görev ekle</span>
                     </button>
                   )}
                 </div>
                 {/* Empty Placeholder Cells using Grid */}
-                <div className="border-r border-gray-200 dark:border-gray-700 py-3"></div>
-                <div className="border-r border-gray-200 dark:border-gray-700 py-3"></div>
-                <div className="border-r border-gray-200 dark:border-gray-700 py-3"></div>
-                <div className="border-r border-gray-200 dark:border-gray-700 py-3"></div>
-                <div className="border-r border-gray-200 dark:border-gray-700 py-3"></div>
-                <div className="border-r border-gray-200 dark:border-gray-700 py-3"></div>
-                <div className="border-r border-gray-200 dark:border-gray-700 py-3"></div>
-                <div className="border-r border-gray-200 dark:border-gray-700 py-3"></div>
-                <div className="py-3"></div>
+                {isCreating ? (
+                  <>
+                    <div className="border-r border-gray-200 dark:border-gray-700 py-3"></div>
+                    <div className="border-r border-gray-200 dark:border-gray-700 py-3"></div>
+                    <div className="border-r border-gray-200 dark:border-gray-700 py-3"></div>
+                    <div className="border-r border-gray-200 dark:border-gray-700 py-3"></div>
+                    <div className="border-r border-gray-200 dark:border-gray-700 py-3"></div>
+                    <div className="border-r border-gray-200 dark:border-gray-700 py-3"></div>
+                    <div className="border-r border-gray-200 dark:border-gray-700 py-3"></div>
+                    <div className="border-r border-gray-200 dark:border-gray-700 py-3"></div>
+                    <div className="py-3"></div>
+                  </>
+                ) : (
+                  <>
+                    <div className="py-3"></div>
+                    <div className="py-3"></div>
+                    <div className="py-3"></div>
+                    <div className="py-3"></div>
+                    <div className="py-3"></div>
+                    <div className="py-3"></div>
+                    <div className="py-3"></div>
+                    <div className="py-3"></div>
+                    <div className="py-3"></div>
+                  </>
+                )}
               </div>
             </div>
           )}

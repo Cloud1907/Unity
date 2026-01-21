@@ -13,7 +13,7 @@ import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
 import { Button } from './ui/button';
 import { Textarea } from './ui/textarea';
 import { Input } from './ui/input';
-import { toast } from './ui/sonner';
+import { toast } from 'react-hot-toast';
 import api, { auditAPI } from '../services/api';
 import ConfirmModal from './ui/ConfirmModal';
 
@@ -36,10 +36,22 @@ const ModernTaskModal = ({ task, isOpen, onClose, initialSection = 'subtasks' })
   const { updateTask, users, projects } = useData();
   const { user: currentUser } = useAuth();
 
+  // Helper to parse JSON safely
+  const safeParse = (jsonString, fallback = []) => {
+    if (!jsonString) return fallback;
+    if (typeof jsonString === 'object') return jsonString; // Already parsed
+    try {
+      return JSON.parse(jsonString);
+    } catch (e) {
+      console.error('JSON parse error:', e);
+      return fallback;
+    }
+  };
+
   const [taskData, setTaskData] = useState(task);
-  const [subtasks, setSubtasks] = useState(task.subtasks || []);
-  const [comments, setComments] = useState(task.comments || []);
-  const [attachments, setAttachments] = useState(task.attachments || []);
+  const [subtasks, setSubtasks] = useState(() => safeParse(task.subtasksJson, task.subtasks || []));
+  const [comments, setComments] = useState(() => safeParse(task.commentsJson, task.comments || []));
+  const [attachments, setAttachments] = useState(() => safeParse(task.attachmentsJson, task.attachments || []));
   const [activeSection, setActiveSection] = useState(initialSection);
 
   const [newSubtask, setNewSubtask] = useState('');
@@ -48,8 +60,8 @@ const ModernTaskModal = ({ task, isOpen, onClose, initialSection = 'subtasks' })
   const [showStatusMenu, setShowStatusMenu] = useState(false);
   const [showAssigneeMenu, setShowAssigneeMenu] = useState(false);
   const [openSubtaskAssignee, setOpenSubtaskAssignee] = useState(null);
-  const [subtaskDropdownPos, setSubtaskDropdownPos] = useState({ top: 0, left: 0 }); // New state for portal position
-  const [mainDropdownPos, setMainDropdownPos] = useState({ top: 0, left: 0 }); // New state for main portal position
+  const [subtaskDropdownPos, setSubtaskDropdownPos] = useState({ top: 0, left: 0 });
+  const [mainDropdownPos, setMainDropdownPos] = useState({ top: 0, left: 0 });
   const [searchQuery, setSearchQuery] = useState('');
   const [activityLogs, setActivityLogs] = useState([]);
   const [loadingLogs, setLoadingLogs] = useState(false);
@@ -57,37 +69,18 @@ const ModernTaskModal = ({ task, isOpen, onClose, initialSection = 'subtasks' })
   const statusMenuRef = useRef(null);
   const assigneeMenuRef = useRef(null);
 
-  // Track if fields are dirty
-  const isDirty = JSON.stringify(taskData) !== JSON.stringify(task) ||
-    JSON.stringify(subtasks) !== JSON.stringify(task.subtasks || []) ||
-    JSON.stringify(comments) !== JSON.stringify(task.comments || []) ||
-    JSON.stringify(attachments) !== JSON.stringify(task.attachments || []);
-
-  // Get current project to filter users
-  const currentProject = projects.find(p => p._id === task.projectId);
-
-  // Filter users: must be in project members OR be the current user OR be admin
-  const projectUsers = users.filter(u =>
-    currentProject?.members?.includes(u._id) ||
-    u._id === currentProject?.owner ||
-    u.role === 'admin'
-  );
-
-  const filteredUsers = projectUsers.filter(u =>
-    u.fullName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    u.email.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  // ... existing code ...
 
   useEffect(() => {
     if (isOpen) setActiveSection(initialSection);
   }, [isOpen, initialSection]);
 
-  // Sync state with task prop when it changes (e.g. opening a different task)
+  // Sync state with task prop when it changes
   useEffect(() => {
     setTaskData(task);
-    setSubtasks(task.subtasks || []);
-    setComments(task.comments || []);
-    setAttachments(task.attachments || []);
+    setSubtasks(safeParse(task.subtasksJson, task.subtasks || []));
+    setComments(safeParse(task.commentsJson, task.comments || []));
+    setAttachments(safeParse(task.attachmentsJson, task.attachments || []));
   }, [task]);
 
   // Click outside listener for menus
@@ -107,6 +100,12 @@ const ModernTaskModal = ({ task, isOpen, onClose, initialSection = 'subtasks' })
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [openSubtaskAssignee]);
+
+  // Track if fields are dirty
+  const isDirty = JSON.stringify(taskData) !== JSON.stringify(task) ||
+    JSON.stringify(subtasks) !== JSON.stringify(safeParse(task.subtasksJson, task.subtasks || [])) ||
+    JSON.stringify(comments) !== JSON.stringify(safeParse(task.commentsJson, task.comments || [])) ||
+    JSON.stringify(attachments) !== JSON.stringify(safeParse(task.attachmentsJson, task.attachments || []));
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -146,8 +145,6 @@ const ModernTaskModal = ({ task, isOpen, onClose, initialSection = 'subtasks' })
       attachments,
       comments
     });
-    // Removed toast here to make it feel snappier, rely on UI optimistically updating or parent closing
-    toast.success('Değişiklikler kaydedildi');
     onClose();
   };
 
@@ -169,20 +166,38 @@ const ModernTaskModal = ({ task, isOpen, onClose, initialSection = 'subtasks' })
     setNewSubtask('');
   };
 
-  const handleAddComment = () => {
+  const handleAddComment = async () => {
     if (!newComment.trim()) return;
     const comment = {
       id: Date.now(),
       text: newComment,
-      userId: currentUser?._id,
-      userName: currentUser?.fullName,
-      userAvatar: currentUser?.avatar,
+      author: currentUser?.fullName || 'Kullanıcı',
       createdAt: new Date().toISOString()
     };
     const updatedComments = [...comments, comment];
     setComments(updatedComments);
     setTaskData(prev => ({ ...prev, comments: updatedComments }));
     setNewComment('');
+
+    // Immediately save to backend
+    try {
+      const result = await updateTask(task._id, {
+        ...taskData,
+        comments: updatedComments,
+        subtasks,
+        attachments
+      });
+
+      if (!result.success) {
+        throw new Error('Update failed');
+      }
+    } catch (error) {
+      // Revert on error
+      setComments(comments);
+      setTaskData(prev => ({ ...prev, comments }));
+      // Toast is already shown by DataContext if it fails, but we can verify
+      if (!toast.success) toast.error('Yorum eklenemedi');
+    }
   };
 
   const handleFileUpload = async (e) => {
@@ -217,9 +232,30 @@ const ModernTaskModal = ({ task, isOpen, onClose, initialSection = 'subtasks' })
       const newAttachments = [...attachments, newAttachment];
       setAttachments(newAttachments);
       setTaskData(prev => ({ ...prev, attachments: newAttachments }));
+
+      // Immediately save to backend
+      const result = await updateTask(task._id, {
+        ...taskData,
+        attachments: newAttachments,
+        subtasks,
+        comments
+      });
+
+      if (!result.success) {
+        throw new Error('Update failed');
+      }
+
       toast.success('Dosya başarıyla yüklendi');
     } catch (error) {
-      toast.error('Dosya yüklenemedi');
+      console.error('File upload error:', error);
+      // Revert on error - remove the last attachment
+      const revertedAttachments = attachments; // Original state
+      setAttachments(revertedAttachments);
+      setTaskData(prev => ({ ...prev, attachments: revertedAttachments }));
+
+      if (error.message !== 'Update failed') {
+        toast.error('Dosya yüklenemedi');
+      }
     } finally {
       setIsUploading(false);
     }

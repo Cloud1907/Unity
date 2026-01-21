@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("Unity.Infrastructure")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Release")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+66c9d2228f25441c86639bca3caf015ad44eb913")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+7f7bea80a1dbd4272091e5560fd94362c9ca2b90")]
 [assembly: System.Reflection.AssemblyProductAttribute("Unity.Infrastructure")]
 [assembly: System.Reflection.AssemblyTitleAttribute("Unity.Infrastructure")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

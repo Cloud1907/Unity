@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Star, MoreHorizontal, Filter, Search, Users as UsersIcon, Tag, Table, LayoutGrid, Calendar, BarChart3, Users, Trash2, MoreVertical, Settings, Layers } from 'lucide-react';
+import { Star, MoreHorizontal, Filter, Search, Users as UsersIcon, Tag, Table, LayoutGrid, Calendar, BarChart3, Users, Trash2, MoreVertical, Settings, Layers, Plus } from 'lucide-react';
 import { useData } from '../contexts/DataContext';
 import { useNavigate } from 'react-router-dom';
 import { Button } from './ui/button';
@@ -119,10 +119,6 @@ const BoardHeader = ({
                 <button onClick={handleToggleFavorite} className="p-1 hover:bg-gray-100 rounded transition-all">
                   <Star size={14} className={board.favorite ? 'text-yellow-500 fill-yellow-500' : 'text-gray-400'} />
                 </button>
-                {/* 🎯 VERSION BADGE */}
-                <span className="px-2 py-0.5 bg-gradient-to-r from-emerald-600 to-green-600 text-white text-[10px] font-bold rounded-full shadow-lg animate-fade-in">
-                  v{pkg.version}
-                </span>
               </div>
               {/* Project Settings Menu Relocated Here */}
               <div className="relative settings-menu ml-1">
@@ -188,8 +184,8 @@ const BoardHeader = ({
 
           <div className="h-6 w-px bg-gray-300"></div>
 
-          <Button onClick={() => setShowNewTaskModal(true)} size="sm" className="gap-1 bg-[#6366f1] hover:bg-[#5558e3] text-white text-xs h-7 px-3">
-            <span className="text-sm">+</span>
+          <Button onClick={() => setShowNewTaskModal(true)} size="sm" className="gap-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium h-8 px-3 rounded-md shadow-sm transition-all">
+            <Plus size={16} />
             Yeni Görev
           </Button>
 
@@ -206,13 +202,13 @@ const BoardHeader = ({
               <button
                 key={view.id}
                 onClick={() => onViewChange(view.id)}
-                className={`flex items-center gap-2.5 px-4 py-2.5 rounded-lg text-sm font-medium transition-all ${currentView === view.id
-                  ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/30'
-                  : 'text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800'
+                className={`flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-all ${currentView === view.id
+                  ? 'bg-gray-100 text-gray-900 font-semibold'
+                  : 'text-gray-500 hover:text-gray-900 hover:bg-gray-50'
                   }`}
               >
-                <IconComponent size={18} strokeWidth={2.5} />
-                <span className="font-semibold">{view.shortLabel}</span>
+                <IconComponent size={16} strokeWidth={2} />
+                <span>{view.shortLabel}</span>
               </button>
             );
           })}
@@ -236,9 +232,9 @@ const BoardHeader = ({
               onClick={() => setShowGroupByMenu(!showGroupByMenu)}
               variant="outline"
               size="sm"
-              className={`gap-1 rounded px-2 py-1 border border-gray-300 dark:border-gray-700 hover:border-gray-400 dark:hover:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors text-xs h-6 ${groupBy ? 'bg-blue-50 border-blue-200 text-blue-700' : 'text-gray-700 dark:text-gray-300'}`}
+              className={`gap-2 rounded-md px-3 py-1.5 border border-gray-300 dark:border-gray-700 hover:border-gray-400 dark:hover:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors h-8 text-xs font-medium ${groupBy ? 'bg-blue-50 border-blue-200 text-blue-700' : 'text-gray-700 dark:text-gray-300'}`}
             >
-              <Layers size={13} />
+              <Layers size={14} />
               <span>{groupBy ? 'Gruplandı' : 'Grupla'}</span>
               {groupBy && (
                 <span className="ml-1 text-[10px] font-bold">
@@ -298,9 +294,9 @@ const BoardHeader = ({
               onClick={() => setShowFilterMenu(!showFilterMenu)}
               variant="outline"
               size="sm"
-              className="gap-1 rounded px-2 py-1 border border-gray-300 dark:border-gray-700 hover:border-gray-400 dark:hover:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors text-xs h-6 text-gray-700 dark:text-gray-300"
+              className="gap-2 rounded-md px-3 py-1.5 border border-gray-300 dark:border-gray-700 hover:border-gray-400 dark:hover:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors h-8 text-xs font-medium text-gray-700 dark:text-gray-300"
             >
-              <Filter size={13} />
+              <Filter size={14} />
               <span>Filtrele</span>
               {(filters.status.length > 0 || filters.priority.length > 0 || filters.assignee.length > 0 || filters.labels.length > 0) && (
                 <span className="ml-1 px-1.5 py-0.5 bg-blue-600 text-white rounded-full text-[10px]">
@@ -432,9 +428,9 @@ const BoardHeader = ({
             onClick={() => setShowLabelManager(true)}
             variant="outline"
             size="sm"
-            className="gap-1 rounded px-2 py-1 border border-gray-300 dark:border-gray-700 hover:border-gray-400 dark:hover:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors text-xs h-6 text-gray-700 dark:text-gray-300"
+            className="gap-2 rounded-md px-3 py-1.5 border border-gray-300 dark:border-gray-700 hover:border-gray-400 dark:hover:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors h-8 text-xs font-medium text-gray-700 dark:text-gray-300"
           >
-            <Tag size={13} />
+            <Tag size={14} />
             <span>Etiketler</span>
           </Button>
         </div>

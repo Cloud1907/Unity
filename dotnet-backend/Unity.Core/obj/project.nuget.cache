@@ -1,8 +1,11 @@
 {
   "version": 2,
-  "dgSpecHash": "p+ZfG9yHI28=",
+  "dgSpecHash": "0mVVIX9UbQ8=",
   "success": true,
   "projectFilePath": "/Users/cloudsmac/Documents/GitHub/4Flow/dotnet-backend/Unity.Core/Unity.Core.csproj",
-  "expectedPackageFiles": [],
+  "expectedPackageFiles": [
+    "/Users/cloudsmac/.nuget/packages/microsoft.netcore.app.runtime.win-x64/10.0.1/microsoft.netcore.app.runtime.win-x64.10.0.1.nupkg.sha512",
+    "/Users/cloudsmac/.nuget/packages/microsoft.aspnetcore.app.runtime.win-x64/10.0.1/microsoft.aspnetcore.app.runtime.win-x64.10.0.1.nupkg.sha512"
+  ],
   "logs": []
 }

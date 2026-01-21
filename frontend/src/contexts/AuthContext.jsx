@@ -79,9 +79,23 @@ export const AuthProvider = ({ children }) => {
       return { success: true };
     } catch (error) {
       console.error('Login failed:', error);
+      let errorMessage = 'Giriş başarısız';
+
+      if (error.response) {
+        if (error.response.status === 401) {
+          errorMessage = 'E-posta veya şifre hatalı';
+        } else if (error.response.data && error.response.data.detail) {
+          // Backend might send English errors, map them if possible
+          const detail = error.response.data.detail;
+          if (detail.includes('Incorrect email or password')) errorMessage = 'E-posta veya şifre hatalı';
+          else if (detail.includes('User not found')) errorMessage = 'Kullanıcı bulunamadı';
+          else errorMessage = detail; // Fallback to backend message
+        }
+      }
+
       return {
         success: false,
-        error: error.response?.data?.detail || 'Giriş başarısız'
+        error: errorMessage
       };
     }
   };

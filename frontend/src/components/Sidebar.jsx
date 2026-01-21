@@ -78,7 +78,7 @@ const UserProfile = () => {
 };
 
 const Sidebar = ({ currentBoard, onBoardChange, onNewBoard }) => {
-  const { projects, toggleFavorite, departments, createDepartment } = useData();
+  const { projects, toggleFavorite, departments, createDepartment, tasks } = useData();
   const [expandedSections, setExpandedSections] = useState({
     favorites: true,
     boards: true
@@ -170,8 +170,8 @@ const Sidebar = ({ currentBoard, onBoardChange, onNewBoard }) => {
       <div className={`
         bg-white dark:bg-slate-950 border-r border-slate-200 dark:border-slate-800 h-screen flex flex-col
         transition-transform duration-300 ease-out z-50
-        md:translate-x-0 md:w-72 md:relative
-        fixed inset-y-0 left-0 w-72 shadow-2xl md:shadow-none
+        md:translate-x-0 md:w-60 md:relative
+        fixed inset-y-0 left-0 w-64 shadow-2xl md:shadow-none
         ${isMobileOpen ? 'translate-x-0' : '-translate-x-full'}
       `}>
 
@@ -210,18 +210,11 @@ const Sidebar = ({ currentBoard, onBoardChange, onNewBoard }) => {
               <TrendingUp size={18} className="group-hover:scale-110 transition-transform" />
               <span>Raporlar</span>
             </Link>
-            <Link
-              to="/my-tasks"
-              className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-indigo-50 dark:hover:bg-indigo-900/20 hover:text-indigo-600 dark:hover:text-indigo-400 transition-all font-medium text-slate-600 dark:text-slate-400 text-[13px] group"
-            >
-              <CheckSquare size={18} className="group-hover:scale-110 transition-transform" />
-              <span>İşlerim</span>
-            </Link>
           </div>
 
           {/* Workspaces (Formerly Boards grouped by Department) */}
           <div className="space-y-1">
-            <div className="px-3 py-1 flex items-center justify-between text-[11px] font-bold text-slate-400 uppercase tracking-wider group">
+            <div className="px-3 py-1 flex items-center justify-between text-xs font-semibold text-slate-400 uppercase tracking-wider group">
               <button
                 onClick={() => toggleSection('boards')}
                 className="flex items-center gap-1 hover:text-slate-600 dark:hover:text-slate-300 transition-colors"
@@ -257,11 +250,14 @@ const Sidebar = ({ currentBoard, onBoardChange, onNewBoard }) => {
                   // Skip if no projects and user not relevant? 
                   // Current requirement seems to be "show based on real workspaces"
 
+                  // Only render if there are projects
+                  if (deptProjects.length === 0) return null;
+
                   return (
                     <div key={dept._id || dept.id} className="space-y-1 relative group/section">
                       <div className="px-3 py-1.5 pb-2 flex items-center justify-between border-b border-slate-100 dark:border-slate-800/50 mb-1">
                         <div className="flex items-center gap-2">
-                          <span className="truncate max-w-[140px] text-[11px] font-bold text-slate-400 dark:text-slate-500 capitalize tracking-wide">{dept.name}</span>
+                          <span className="truncate max-w-[140px] text-xs font-semibold text-slate-400 dark:text-slate-500 capitalize tracking-wide">{dept.name}</span>
                         </div>
 
                         {/* Settings Trigger */}
@@ -278,29 +274,26 @@ const Sidebar = ({ currentBoard, onBoardChange, onNewBoard }) => {
                         </button>
                       </div>
 
-                      {deptProjects.length > 0 ? (
-                        deptProjects.map(board => (
-                          <Link
-                            key={board._id}
-                            to={`/board/${board._id}`}
-                            className={`group w-full flex items-center gap-3 px-3 py-2 rounded-xl transition-all text-[13px] ${currentBoard === board._id
-                              ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 font-semibold border-r-2 border-blue-600'
-                              : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 font-medium'
-                              }`}
-                          >
-                            <div
-                              className="w-1 rounded-full h-6 transition-all"
-                              style={{ backgroundColor: board.color }}
-                            />
-                            <span className="flex-1 text-left truncate flex items-center gap-1.5">
-                              {board.name}
-                              {board.isPrivate && <Lock size={12} className="text-slate-400" />}
-                            </span>
-                          </Link>
-                        ))
-                      ) : (
-                        <div className="px-3 py-1 text-xs text-slate-400 italic">Proje yok</div>
-                      )}
+                      {deptProjects.map(board => (
+                        <Link
+                          key={board._id}
+                          to={`/board/${board._id}`}
+                          className={`group w-full flex items-center gap-1.5 px-3 py-1 rounded-md transition-all text-[13px] ${currentBoard === board._id
+                            ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 font-medium border-r-2 border-blue-600'
+                            : 'text-gray-600 dark:text-slate-400 hover:bg-gray-50 dark:hover:bg-slate-800 font-normal'
+                            }`}
+                        >
+                          <div
+                            className="w-1 rounded-full h-6 transition-all"
+                            style={{ backgroundColor: board.color }}
+                          />
+                          <span className="flex-1 text-left truncate flex items-center gap-1.5">
+                            {board.name}
+                            {board.isPrivate && <Lock size={12} className="text-slate-400" />}
+                          </span>
+                        </Link>
+                      ))
+                      }
                     </div>
                   );
                 })}

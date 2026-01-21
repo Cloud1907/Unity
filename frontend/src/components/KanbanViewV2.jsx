@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { Plus, MoreHorizontal, User, Calendar, GitMerge, MessageSquare, Trash2 } from 'lucide-react';
+import { Plus, MoreHorizontal, User, Calendar, GitMerge, MessageSquare, Trash2, TrendingUp } from 'lucide-react';
 import { useDataState, useDataActions } from '../contexts/DataContext';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
 import ModernTaskModal from './ModernTaskModal';
@@ -9,7 +9,7 @@ import InlineLabelPicker from './InlineLabelPicker';
 import InlineTextEdit from './InlineTextEdit';
 import ConfirmModal from './ui/ConfirmModal';
 import confetti from 'canvas-confetti';
-import pkg from '../../package.json';
+
 import { KanbanSkeleton } from './skeletons/KanbanSkeleton';
 import EmptyState from './ui/EmptyState';
 
@@ -533,26 +533,26 @@ const CompactTaskCard = React.memo(({
         if (e.target.closest('button') || e.target.closest('[role="menu"]')) return;
         onTaskClick(task);
       }}
-      className={`bg-white dark:bg-slate-800 rounded-lg p-3 border transition-all duration-200 cursor-pointer group ${isDragging
-        ? 'opacity-50 scale-95 shadow-2xl rotate-2'
-        : 'opacity-100 hover:shadow-xl dark:hover:shadow-[0_8px_30px_rgba(0,0,0,0.4)] hover:scale-[1.02] border-gray-200 dark:border-slate-700 hover:border-blue-400 dark:hover:border-blue-500 shadow-md'
+      className={`bg-white dark:bg-slate-800 rounded-xl p-3 border transition-all duration-300 cursor-pointer group ${isDragging
+        ? 'opacity-80 scale-105 shadow-2xl rotate-2 z-50'
+        : 'opacity-100 shadow-sm hover:shadow-lg dark:hover:shadow-[0_8px_30px_rgba(0,0,0,0.4)] hover:-translate-y-1 border-gray-100 dark:border-slate-700 hover:border-blue-300 dark:hover:border-blue-500'
         } ${autoFocus ? 'animate-in fade-in slide-in-from-top-2 duration-300' : ''}`}
       style={{
-        transform: isDragging ? 'rotate(2deg)' : 'rotate(0deg)',
-        transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)'
+        transform: isDragging ? 'rotate(2deg)' : 'translateY(0)',
+        transition: 'box-shadow 0.2s, transform 0.2s, border-color 0.2s'
       }}
     >
-      {/* Task Title */}
       <div className="flex items-start justify-between gap-2 mb-2 relative">
         <div className="flex-1 min-w-0">
           <InlineTextEdit
             value={task.title}
             onSave={(newTitle) => onUpdate(task._id, { title: newTitle })}
             startEditing={autoFocus}
-            className="text-sm font-semibold text-gray-900 dark:text-gray-100 leading-tight !p-0 hover:!bg-transparent"
-            inputClassName="w-full bg-white dark:bg-slate-800 border border-indigo-500 rounded px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500 resize-none overflow-hidden leading-normal min-h-[28px]"
+            className="text-sm font-semibold text-gray-900 dark:text-gray-100 leading-tight !p-0 hover:!bg-transparent truncate block"
+            inputClassName="w-full bg-white dark:bg-slate-800 border border-indigo-500 rounded px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500 resize-none overflow-hidden leading-normal min-h-[24px]"
           />
         </div>
+
         <button
           className={`p-1 rounded hover:bg-gray-100 dark:hover:bg-slate-700 transition-opacity card-menu-trigger ${isHovered || showMenu ? 'opacity-100' : 'opacity-0'
             }`}
@@ -565,10 +565,11 @@ const CompactTaskCard = React.memo(({
           <MoreHorizontal size={14} className="text-gray-400" />
         </button>
 
+        {/* Portals for Menus */}
         {showMenu && (
           <div
             ref={menuRef}
-            className="absolute right-0 top-full mt-1 w-32 bg-white dark:bg-slate-800 rounded-lg shadow-xl border border-gray-200 dark:border-slate-700 z-50 py-1"
+            className="absolute right-0 top-6 w-32 bg-white dark:bg-slate-800 rounded-lg shadow-xl border border-gray-200 dark:border-slate-700 z-50 py-1"
             onClick={(e) => e.stopPropagation()}
           >
             <button
@@ -583,10 +584,53 @@ const CompactTaskCard = React.memo(({
             </button>
           </div>
         )}
+
+        {showAssigneeMenu && createPortal(
+          <div
+            ref={assigneeMenuRef}
+            role="menu"
+            className="bg-white dark:bg-slate-900 rounded-lg shadow-2xl border border-gray-200 dark:border-slate-700 min-w-[200px] py-2"
+            style={{
+              position: 'fixed',
+              top: `${assigneeMenuPosition.top}px`,
+              left: `${assigneeMenuPosition.left}px`,
+              zIndex: 999999
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="px-3 py-1.5 text-xs font-semibold text-gray-500 border-b border-gray-100">
+              Kişi Ata
+            </div>
+            <div className="max-h-48 overflow-y-auto">
+              {users.map(user => (
+                <button
+                  key={user.id || user._id}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    toggleAssignee(user.id || user._id);
+                  }}
+                  className="w-full flex items-center gap-2 px-3 py-2 text-xs hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors"
+                >
+                  <Avatar className="w-6 h-6">
+                    <AvatarImage src={user.avatar} />
+                    <AvatarFallback className="text-[10px]">
+                      {user.fullName?.charAt(0)}
+                    </AvatarFallback>
+                  </Avatar>
+                  <span className="flex-1 text-left text-gray-900 dark:text-gray-200">{user.fullName}</span>
+                  {(task.assignees || []).includes(user.id || user._id) && (
+                    <span className="text-blue-600 text-sm">✓</span>
+                  )}
+                </button>
+              ))}
+            </div>
+          </div>,
+          document.body
+        )}
       </div>
 
       {/* Priority & Date Row */}
-      <div className="flex items-center gap-2 mb-3">
+      <div className="flex items-center gap-2 mb-2">
         {/* Priority */}
         <InlinePriorityDropdown
           currentPriority={task.priority}
@@ -601,7 +645,7 @@ const CompactTaskCard = React.memo(({
       </div>
 
       {/* Task Indicators */}
-      <div className="flex items-center gap-2 mb-3">
+      <div className="flex items-center gap-2 mb-2">
         {task.subtasks?.length > 0 && (
           <div
             className="flex items-center gap-1 px-1.5 py-0.5 bg-gray-50 dark:bg-slate-700/50 rounded border border-gray-100 dark:border-slate-700 text-gray-500 dark:text-gray-400 hover:border-[#6366f1] transition-colors cursor-pointer"
@@ -617,23 +661,46 @@ const CompactTaskCard = React.memo(({
             </span>
           </div>
         )}
-        {task.comments && (
-          <div
-            className="flex items-center gap-1 px-1.5 py-0.5 bg-gray-50 dark:bg-slate-700/50 rounded border border-gray-100 dark:border-slate-700 text-gray-500 dark:text-gray-400 hover:border-[#00c875] transition-colors cursor-pointer"
-            title="Yorumlar"
-            onClick={(e) => {
-              e.stopPropagation();
-              onTaskClick(task, 'comments');
-            }}
-          >
-            <MessageSquare size={10} className="text-[#00c875]" />
-            <span className="text-[9px] font-bold">{task.comments.length}</span>
-          </div>
-        )}
+
+        {/* Attachments */}
+        {(() => {
+          const attachmentsJson = task.attachmentsJson || '[]';
+          const attachmentsCount = (typeof attachmentsJson === 'string' ? JSON.parse(attachmentsJson).length : task.attachments?.length) || 0;
+          if (attachmentsCount > 0) return (
+            <div
+              className="flex items-center gap-1 px-1.5 py-0.5 bg-gray-50 dark:bg-slate-700/50 rounded border border-gray-100 dark:border-slate-700 text-gray-500 dark:text-gray-400 hover:border-[#6366f1] transition-colors cursor-pointer"
+              title={`${attachmentsCount} dosya`}
+              onClick={(e) => {
+                e.stopPropagation();
+                onTaskClick(task, 'files');
+              }}
+            >
+              <TrendingUp size={10} className="rotate-90 text-[#6366f1]" />
+              <span className="text-[9px] font-bold">{attachmentsCount}</span>
+            </div>
+          );
+        })()}
+        {(() => {
+          const commentsJson = task.commentsJson || '[]';
+          const commentsCount = (typeof commentsJson === 'string' ? JSON.parse(commentsJson).length : task.comments?.length) || 0;
+          if (commentsCount > 0) return (
+            <div
+              className="flex items-center gap-1 px-1.5 py-0.5 bg-gray-50 dark:bg-slate-700/50 rounded border border-gray-100 dark:border-slate-700 text-gray-500 dark:text-gray-400 hover:border-[#00c875] transition-colors cursor-pointer"
+              title={`${commentsCount} yorum`}
+              onClick={(e) => {
+                e.stopPropagation();
+                onTaskClick(task, 'comments');
+              }}
+            >
+              <MessageSquare size={10} className="text-[#00c875]" />
+              <span className="text-[9px] font-bold">{commentsCount}</span>
+            </div>
+          );
+        })()}
       </div>
 
       {/* Labels Row */}
-      <div className="mb-3">
+      <div className="mb-2">
         <InlineLabelPicker
           taskId={task._id}
           currentLabels={task.labels || []}
@@ -642,8 +709,8 @@ const CompactTaskCard = React.memo(({
         />
       </div>
 
-      {/* Bottom Section - Assignee & Status */}
-      <div className="flex items-center justify-between gap-2">
+      {/* Bottom Section - Assignee (Status Eliminated) */}
+      <div className="flex items-center gap-2">
         {/* Assignee - Clickable to add/remove */}
         <button
           ref={assigneeButtonRef}
@@ -658,6 +725,7 @@ const CompactTaskCard = React.memo(({
               key={assignee.id || assignee._id}
               className="w-6 h-6 border-2 border-white dark:border-slate-700 ring-1 ring-gray-200 dark:ring-slate-600 hover:ring-blue-400 transition-all hover:z-10"
               style={{ zIndex: 2 - idx }}
+              title={assignee.fullName}
             >
               <AvatarImage src={assignee.avatar} />
               <AvatarFallback className="text-[10px] font-bold bg-gradient-to-br from-blue-400 to-purple-500 text-white">
@@ -720,13 +788,6 @@ const CompactTaskCard = React.memo(({
           </div>,
           document.body
         )}
-
-        {/* Inline Status Dropdown */}
-        <InlineStatusDropdown
-          currentStatus={task.status}
-          taskId={task._id}
-          onStatusChange={onStatusChange}
-        />
       </div>
     </div>
   );
@@ -841,11 +902,16 @@ const KanbanViewV2 = ({ boardId, searchQuery, filters }) => {
   const handleDragOver = React.useCallback((e, columnId) => {
     e.preventDefault();
     e.dataTransfer.dropEffect = 'move';
-    setDragOverColumn(columnId);
-  }, []);
+
+    // Performance optimization: prevent unnecessary re-renders
+    if (dragOverColumn !== columnId) {
+      setDragOverColumn(columnId);
+    }
+  }, [dragOverColumn]);
 
   const handleDragLeave = React.useCallback(() => {
-    setDragOverColumn(null);
+    // Optional: add logic if needed, but keeping it simple for now
+    // setDragOverColumn(null) causes flickering if not careful with boundaries
   }, []);
 
   const handleDrop = React.useCallback(async (e, newStatus) => {
@@ -972,14 +1038,9 @@ const KanbanViewV2 = ({ boardId, searchQuery, filters }) => {
       className="h-full bg-gradient-to-br from-gray-50 to-gray-100 dark:from-slate-950 dark:to-slate-900 relative overflow-visible"
       onClick={() => setActiveMenuTaskId(null)} // Click anywhere closes menus
     >
-      {/* 🎯 VERSİYON */}
-      <div className="absolute top-2 right-2 z-10 px-2 py-1 bg-emerald-600 text-white text-[10px] font-bold rounded shadow-lg animate-fade-in">
-        v{pkg.version}
-      </div>
-
       {/* Kanban Board */}
       <div className="h-full overflow-x-auto overflow-y-hidden">
-        <div className="flex gap-6 p-8 h-full min-w-max pb-12">
+        <div className="flex gap-3 p-4 h-full min-w-max pb-4">
           {columns.map(column => {
             const columnTasks = tasksByStatus[column.id] || [];
             const isDropTarget = dragOverColumn === column.id;
@@ -987,29 +1048,28 @@ const KanbanViewV2 = ({ boardId, searchQuery, filters }) => {
             return (
               <div
                 key={column.id}
-                className={`flex flex-col w-[320px] rounded-2xl transition-all duration-300 ${isDropTarget
-                  ? 'ring-4 ring-blue-400 ring-opacity-50 scale-[1.03] shadow-2xl z-10'
-                  : 'scale-100'
-                  } bg-gray-100/30 dark:bg-slate-900/40 border border-gray-200/50 dark:border-slate-800/50 h-full overflow-hidden`}
+                className={`flex flex-col w-[270px] rounded-2xl ${isDropTarget
+                  ? 'bg-blue-50 dark:bg-blue-900/30 border-blue-200 dark:border-blue-800'
+                  : 'bg-gray-100 dark:bg-slate-900/50 border-gray-200 dark:border-slate-800'
+                  } border h-full overflow-hidden`}
                 onDragOver={(e) => handleDragOver(e, column.id)}
                 onDragLeave={handleDragLeave}
                 onDrop={(e) => handleDrop(e, column.id)}
               >
                 {/* Column Header - Sticky & Monday.com style */}
                 <div
-                  className="sticky top-0 z-10 px-5 py-4 backdrop-blur-md border-b border-gray-100 dark:border-slate-800 shadow-sm"
+                  className="sticky top-0 z-10 px-4 py-3 bg-gray-50/95 dark:bg-slate-900/95 border-b border-gray-200 dark:border-slate-800 shadow-sm"
                   style={{
-                    backgroundColor: `${column.color}10`,
-                    borderLeft: `5px solid ${column.color}`
+                    borderLeft: `4px solid ${column.color}`
                   }}
                 >
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                      <span className="text-[13px] font-black text-gray-900 dark:text-gray-100 uppercase tracking-wider">
+                      <span className="text-sm font-medium text-gray-700 dark:text-gray-200">
                         {column.title}
                       </span>
                       <span
-                        className="px-2 py-0.5 rounded-md text-[11px] font-black text-white min-w-[24px] text-center shadow-sm"
+                        className="px-2 py-0.5 rounded-md text-[11px] font-bold text-white min-w-[24px] text-center shadow-sm"
                         style={{ backgroundColor: column.color }}
                       >
                         {columnTasks.length}
@@ -1024,14 +1084,10 @@ const KanbanViewV2 = ({ boardId, searchQuery, filters }) => {
                   </div>
                 </div>
 
+
                 {/* Tasks Area - Independent Scroll */}
                 <div
-                  className="flex-1 overflow-y-auto overflow-x-hidden px-4 py-5 scrollbar-thin scrollbar-thumb-gray-200 dark:scrollbar-thumb-slate-800"
-                  style={{
-                    background: isDropTarget
-                      ? `linear-gradient(to bottom, transparent 0%, ${column.color}08 100%)`
-                      : 'transparent'
-                  }}
+                  className={`flex-1 overflow-y-auto overflow-x-hidden px-4 py-5 scrollbar-thin scrollbar-thumb-gray-200 dark:scrollbar-thumb-slate-800 transition-colors duration-200 ${isDropTarget ? 'bg-blue-50/30 dark:bg-blue-900/10' : 'bg-transparent'}`}
                 >
                   <div className="space-y-4">
                     {columnTasks.map(task => (
@@ -1083,14 +1139,16 @@ const KanbanViewV2 = ({ boardId, searchQuery, filters }) => {
       </div>
 
       {/* Task Detail Modal - Centered (like MainTable) */}
-      {isDetailOpen && selectedTask && (
-        <ModernTaskModal
-          task={selectedTask}
-          isOpen={isDetailOpen}
-          onClose={handleCloseDetail}
-          initialSection={modalInitialSection}
-        />
-      )}
+      {
+        isDetailOpen && selectedTask && (
+          <ModernTaskModal
+            task={selectedTask}
+            isOpen={isDetailOpen}
+            onClose={handleCloseDetail}
+            initialSection={modalInitialSection}
+          />
+        )
+      }
 
       {/* New Task Modal */}
       <NewTaskModal
@@ -1111,7 +1169,7 @@ const KanbanViewV2 = ({ boardId, searchQuery, filters }) => {
         cancelText="İptal"
         type="danger"
       />
-    </div>
+    </div >
   );
 };
 

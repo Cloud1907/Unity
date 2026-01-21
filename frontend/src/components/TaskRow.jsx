@@ -156,21 +156,46 @@ const TaskRow = React.memo(({
                             </div>
                         )}
 
-                        {task.comments?.length > 0 && (
-                            <div
-                                className="flex items-center gap-1.5 px-1.5 py-0.5 bg-gray-50/80 dark:bg-gray-800/80 text-gray-500 dark:text-gray-400 rounded-md border border-gray-100 dark:border-gray-700/50 shadow-sm hover:border-[#00c875] transition-colors cursor-pointer"
-                                title="Yorumlar"
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    openTaskModal(task, 'comments');
-                                }}
-                            >
-                                <MessageSquare size={10} className="text-[#00c875]" />
-                                <span className="text-[10px] font-bold tracking-tight">
-                                    {task.comments.length}
-                                </span>
-                            </div>
-                        )}
+
+                        {(() => {
+                            const attachmentsJson = task.attachmentsJson || '[]';
+                            const attachmentsCount = (typeof attachmentsJson === 'string' ? JSON.parse(attachmentsJson).length : task.attachments?.length) || 0;
+                            if (attachmentsCount > 0) return (
+                                <div
+                                    className="flex items-center gap-1.5 px-1.5 py-0.5 bg-gray-50/80 dark:bg-gray-800/80 text-gray-500 dark:text-gray-400 rounded-md border border-gray-100 dark:border-gray-700/50 shadow-sm hover:border-[#6366f1] transition-colors cursor-pointer"
+                                    title={`${attachmentsCount} dosya`}
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        openTaskModal(task, 'files');
+                                    }}
+                                >
+                                    <TrendingUp size={10} className="rotate-90 text-[#6366f1]" />
+                                    <span className="text-[10px] font-bold tracking-tight">
+                                        {attachmentsCount}
+                                    </span>
+                                </div>
+                            );
+                        })()}
+
+                        {(() => {
+                            const commentsJson = task.commentsJson || '[]';
+                            const commentsCount = (typeof commentsJson === 'string' ? JSON.parse(commentsJson).length : task.comments?.length) || 0;
+                            if (commentsCount > 0) return (
+                                <div
+                                    className="flex items-center gap-1.5 px-1.5 py-0.5 bg-gray-50/80 dark:bg-gray-800/80 text-gray-500 dark:text-gray-400 rounded-md border border-gray-100 dark:border-gray-700/50 shadow-sm hover:border-[#00c875] transition-colors cursor-pointer"
+                                    title={`${commentsCount} yorum`}
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        openTaskModal(task, 'comments');
+                                    }}
+                                >
+                                    <MessageSquare size={10} className="text-[#00c875]" />
+                                    <span className="text-[10px] font-bold tracking-tight">
+                                        {commentsCount}
+                                    </span>
+                                </div>
+                            );
+                        })()}
                     </div>
                 </div>
 

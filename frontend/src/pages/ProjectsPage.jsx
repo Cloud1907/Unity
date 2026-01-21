@@ -45,8 +45,8 @@ const ProjectsPage = () => {
             </div>
             <p className="text-gray-600 dark:text-gray-400">Tüm projelerinizi görüntüleyin ve yönetin</p>
           </div>
-          <button className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2">
-            <Plus size={20} />
+          <button className="h-9 px-4 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors flex items-center gap-2 text-sm font-medium shadow-sm">
+            <Plus size={18} />
             Yeni Proje
           </button>
         </div>
@@ -55,27 +55,27 @@ const ProjectsPage = () => {
         <div className="flex gap-2 mb-6">
           <button
             onClick={() => setFilter('all')}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${filter === 'all'
-              ? 'bg-blue-600 dark:bg-blue-500 text-white'
-              : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700'
+            className={`h-8 px-3 rounded-md text-xs font-medium transition-colors border ${filter === 'all'
+              ? 'bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100 border-gray-200 dark:border-gray-700'
+              : 'bg-white dark:bg-gray-900 text-gray-600 dark:text-gray-400 border-transparent hover:bg-gray-50 dark:hover:bg-gray-800'
               }`}
           >
             Tümü ({projects.length})
           </button>
           <button
             onClick={() => setFilter('favorites')}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${filter === 'favorites'
-              ? 'bg-blue-600 dark:bg-blue-500 text-white'
-              : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700'
+            className={`h-8 px-3 rounded-md text-xs font-medium transition-colors border ${filter === 'favorites'
+              ? 'bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100 border-gray-200 dark:border-gray-700'
+              : 'bg-white dark:bg-gray-900 text-gray-600 dark:text-gray-400 border-transparent hover:bg-gray-50 dark:hover:bg-gray-800'
               }`}
           >
             Favoriler ({projects.filter(p => p.favorite).length})
           </button>
           <button
             onClick={() => setFilter('active')}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${filter === 'active'
-              ? 'bg-blue-600 dark:bg-blue-500 text-white'
-              : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700'
+            className={`h-8 px-3 rounded-md text-xs font-medium transition-colors border ${filter === 'active'
+              ? 'bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100 border-gray-200 dark:border-gray-700'
+              : 'bg-white dark:bg-gray-900 text-gray-600 dark:text-gray-400 border-transparent hover:bg-gray-50 dark:hover:bg-gray-800'
               }`}
           >
             Aktif Projeler
@@ -191,7 +191,7 @@ const ProjectsPage = () => {
                 ? 'Henüz favori projeniz yok'
                 : 'Yeni bir proje oluşturarak başlayın'}
             </p>
-            <button className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+            <button className="h-10 px-6 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors text-sm font-medium shadow-sm">
               Yeni Proje Oluştur
             </button>
           </div>

@@ -92,7 +92,7 @@ const InlineAssigneePicker = ({ assigneeIds, allUsers, onChange }) => {
                 className="flex items-center -space-x-1.5 hover:scale-105 transition-transform"
             >
                 {assignees.slice(0, 3).map(assignee => (
-                    <Avatar key={assignee.id || assignee._id} className="w-5 h-5 border border-white ring-1 ring-gray-200 hover:z-10">
+                    <Avatar key={assignee.id || assignee._id} className="w-5 h-5 border border-white ring-1 ring-gray-200 hover:z-10" title={assignee.fullName}>
                         <AvatarImage src={assignee.avatar} alt={assignee.fullName} />
                         <AvatarFallback className="text-[10px]">
                             {assignee.fullName?.charAt(0) || 'U'}
