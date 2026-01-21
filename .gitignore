@@ -46,3 +46,23 @@ test_wheels/
 *.db.bak
 *.log
 backend_backup/
+
+# Deploy & Setup Artifacts
+pkg_v20/
+pkg_temp/
+silinecekler/
+Unity_Final/
+Unity_Final.zip
+deploy_pkg/
+dotnet-update*/
+update-bundle*/
+migration-bundle/
+*.bat
+*.sh
+!scripts/*.sh
+!prepare_setup_bundle.sh
+!prepare_final_bundle.sh
+!start_dev.sh
+backend/debug_data.py
+backend_mongo_deprecated/
+backend/backend-publish/
