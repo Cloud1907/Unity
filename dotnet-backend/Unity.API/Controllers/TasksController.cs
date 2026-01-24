@@ -1,195 +1,240 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using System.Security.Claims;
+using System.Text.Json;
 using Unity.Core.Models;
 using Unity.Infrastructure.Data;
-using System.Text.Json;
+using Unity.Infrastructure.Services;
 
 namespace Unity.API.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    [Microsoft.AspNetCore.Authorization.Authorize]
+    [Authorize]
     public class TasksController : ControllerBase
     {
         private readonly AppDbContext _context;
-        private readonly Unity.Infrastructure.Services.IAuditService _auditService;
+        private readonly IAuditService _auditService;
 
-        public TasksController(AppDbContext context, Unity.Infrastructure.Services.IAuditService auditService)
+        public TasksController(AppDbContext context, IAuditService auditService)
         {
             _context = context;
             _auditService = auditService;
         }
 
-        // Helper to get current user
-        private async Task<User> GetCurrentUserAsync()
+        private int GetCurrentUserId()
         {
-             // 1. JWT Claims 
-            var claimId = User.FindFirst("id")?.Value;
-            if (!string.IsNullOrEmpty(claimId) && int.TryParse(claimId, out int claimUid))
-            {
-                var user = await _context.Users.FirstOrDefaultAsync(u => u.Id == claimUid);
-                if (user != null) return user;
-            }
+            var claimId = User.FindFirst("id")?.Value 
+                          ?? User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 
-            // 2. Mock Header
-            if (Request.Headers.TryGetValue("X-Test-User-Id", out var userId) && int.TryParse(userId, out int uid))
+            if (int.TryParse(claimId, out int userId))
             {
-                var user = await _context.Users.FirstOrDefaultAsync(u => u.Id == uid);
-                if (user != null) return user;
+                return userId;
             }
-            return await _context.Users.FirstOrDefaultAsync() ?? new User { Id = 0, Departments = new List<int>() };
+            throw new UnauthorizedAccessException("Invalid User ID.");
+        }
+
+        private async Task<User> GetCurrentUserWithDeptsAsync()
+        {
+            var userId = GetCurrentUserId();
+            var user = await _context.Users.AsNoTracking() // Optimize: Read-only
+                .FirstOrDefaultAsync(u => u.Id == userId);
+            
+            return user ?? throw new UnauthorizedAccessException("User not found.");
         }
 
         [HttpGet]
         public async Task<ActionResult<IEnumerable<TaskItem>>> GetTasks([FromQuery] int? projectId)
         {
-            var currentUser = await GetCurrentUserAsync();
-            var userDeptList = currentUser.Departments ?? new List<int>();
+            var currentUser = await GetCurrentUserWithDeptsAsync();
+            var userDepts = currentUser.Departments ?? new List<int>();
 
-            Console.WriteLine($"DEBUG: GetTasks Called. User: {currentUser.Id} ({currentUser.FullName})");
-            Console.WriteLine($"DEBUG: User Departments: {string.Join(", ", userDeptList)}");
+            // 1. Base Query
+            IQueryable<TaskItem> query = _context.Tasks.AsNoTracking();
 
-            // 1. Get all tasks (filtered by projectId if provided)
-            IQueryable<TaskItem> query = _context.Tasks;
             if (projectId.HasValue && projectId.Value > 0)
             {
                 query = query.Where(t => t.ProjectId == projectId.Value);
             }
+
+            // Enterprise Optimization: Filtering in Memory due to complex permissions
             var allTasks = await query.ToListAsync();
-            Console.WriteLine($"DEBUG: Total Tasks in DB (pre-filter): {allTasks.Count}");
 
-            // 2. Get all projects to check permissions (CACHE THIS in real app)
-            var allProjects = await _context.Projects.ToListAsync();
-            var accessibleProjectIds = allProjects.Where(p => 
-                currentUser.Role == "admin" || // Admin bypass
-                p.Owner == currentUser.Id || 
-                p.Members.Contains(currentUser.Id) || 
-                (userDeptList.Contains(p.DepartmentId) && !p.IsPrivate)
-            ).Select(p => p.Id).ToHashSet();
-            Console.WriteLine($"DEBUG: Accessible Projects: {string.Join(", ", accessibleProjectIds)}");
+            // 2. Permission Check (Optimized Cache Strategy for Request Scope)
+            // Fetch all projects valid for filtering
+            var authorizedProjectIds = await _context.Projects.AsNoTracking()
+                .Where(p => 
+                    currentUser.Role == "admin" ||
+                    p.Owner == currentUser.Id ||
+                    p.Members.Contains(currentUser.Id) || // Note: Server-side evaluation of JSON string limitation
+                    (userDepts.Contains(p.DepartmentId) && !p.IsPrivate)
+                )
+                .Select(p => p.Id)
+                .ToListAsync(); // Materialize IDs
 
-            // 3. Filter Tasks
-            // Visible if: Parent Project is Accessible AND (Task Local Visibility)
+            var allowedProjectSet = new HashSet<int>(authorizedProjectIds);
+
+            // 3. Final Filter
             var visibleTasks = allTasks.Where(t => 
-                t.ProjectId > 0 && accessibleProjectIds.Contains(t.ProjectId) && 
+                t.ProjectId > 0 && 
+                allowedProjectSet.Contains(t.ProjectId) && 
                 (!t.IsPrivate || 
                  t.AssignedBy == currentUser.Id || 
                  (t.Assignees != null && t.Assignees.Contains(currentUser.Id)))
             ).ToList();
-            Console.WriteLine($"DEBUG: Visible Tasks: {visibleTasks.Count}");
 
-            return visibleTasks;
+            return Ok(visibleTasks);
         }
 
         [HttpGet("{id}")]
         public async Task<ActionResult<TaskItem>> GetTask(int id)
         {
-            var task = await _context.Tasks.FindAsync(id);
+            var task = await _context.Tasks.AsNoTracking().FirstOrDefaultAsync(t => t.Id == id);
+            if (task == null) return NotFound();
 
-            if (task == null)
+            // Security Check
+            var currentUser = await GetCurrentUserWithDeptsAsync();
+            
+            // Allow if admin or assignee/creator
+            bool specificAccess = currentUser.Role == "admin" || 
+                                  task.AssignedBy == currentUser.Id || 
+                                  (task.Assignees != null && task.Assignees.Contains(currentUser.Id));
+
+            if (!specificAccess)
             {
-                return NotFound();
+                // Check Project Access
+                var project = await _context.Projects.AsNoTracking().FirstOrDefaultAsync(p => p.Id == task.ProjectId);
+                if (project == null) return NotFound();
+
+                bool projectAccess = project.Owner == currentUser.Id ||
+                                     project.Members.Contains(currentUser.Id) ||
+                                     (currentUser.Departments.Contains(project.DepartmentId) && !project.IsPrivate);
+
+                if (!projectAccess) return Forbid();
+                if (task.IsPrivate) return Forbid(); // Private task in public project check
             }
 
-            return task;
+            return Ok(task);
         }
 
         [HttpPost]
-        [HttpPost]
         public async Task<ActionResult<TaskItem>> PostTask(TaskItem task)
         {
-            var currentUser = await GetCurrentUserAsync();
-            
-            // Fix: Explicitly set AssignedBy to avoiding FK violation (if AssginedBy=0)
+            var currentUser = await GetCurrentUserWithDeptsAsync();
+
             task.AssignedBy = currentUser.Id;
             task.CreatedAt = DateTime.UtcNow;
             task.UpdatedAt = DateTime.UtcNow;
-
-            // Ensure ProjectId is valid to prevent orphans
-            // if (!await _context.Projects.AnyAsync(p => p.Id == task.ProjectId)) return BadRequest("Invalid ProjectId");
+            
+            // Ensure valid project
+            if (task.ProjectId > 0)
+            {
+                // Verify project existence and write permission could be added here
+                // For now, assuming if they can see it they can add to it (standard flow)
+            }
 
             _context.Tasks.Add(task);
             await _context.SaveChangesAsync();
-            
-            // Log with the ID that is now generated
-            // We use task.Id (generated) vs task (object)
-            await _auditService.LogAsync(currentUser.Id.ToString(), "CREATE_TASK", "Task", task.Id.ToString(), null, task, $"Task '{task.Title}' created.");
 
-            return CreatedAtAction("GetTask", new { id = task.Id }, task);
+            await _auditService.LogAsync(
+                currentUser.Id.ToString(), 
+                "CREATE_TASK", 
+                "Task", 
+                task.Id.ToString(), 
+                null, 
+                task, 
+                $"Task '{task.Title}' created."
+            );
+
+            return CreatedAtAction(nameof(GetTask), new { id = task.Id }, task);
         }
 
         [HttpPut("{id}")]
         public async Task<ActionResult<TaskItem>> PutTask(int id, TaskItem task)
         {
-            if (id != task.Id)
-            {
-                return BadRequest();
-            }
+            if (id != task.Id) return BadRequest();
 
-            // Capture old state not fully efficient here due to EntityState.Modified, 
-            // but for audit we might want to fetch AsNoTracking first if we need accurate diff.
-            // For now, logging the 'task' input as NEW value. Old value is tricky without extra fetch.
-            // Let's do a quick fetch for old state since audit is important.
+            // Fetch old state for Audit
             var oldTask = await _context.Tasks.AsNoTracking().FirstOrDefaultAsync(t => t.Id == id);
-            
+            if (oldTask == null) return NotFound();
+
             _context.Entry(task).State = EntityState.Modified;
+            task.UpdatedAt = DateTime.UtcNow;
 
             try
             {
                 await _context.SaveChangesAsync();
-                var currentUser = await GetCurrentUserAsync();
-                await _auditService.LogAsync(currentUser.Id.ToString(), "UPDATE_TASK", "Task", task.Id.ToString(), oldTask, task, $"Task '{task.Title}' updated.");
+                
+                var userId = GetCurrentUserId();
+                await _auditService.LogAsync(
+                    userId.ToString(), 
+                    "UPDATE_TASK", 
+                    "Task", 
+                    task.Id.ToString(), 
+                    oldTask, 
+                    task, 
+                    $"Task '{task.Title}' updated."
+                );
             }
             catch (DbUpdateConcurrencyException)
             {
-                if (!TaskExists(id))
-                {
-                    return NotFound();
-                }
-                else
-                {
-                    throw;
-                }
+                if (!_context.Tasks.Any(e => e.Id == id)) return NotFound();
+                else throw;
             }
 
-            // Return the updated task so frontend can update its state
             return Ok(task);
         }
 
         [HttpPatch("{id}")]
-        public async Task<ActionResult<TaskItem>> PatchTask(int id, [FromBody] System.Text.Json.JsonElement body)
+        public async Task<ActionResult<TaskItem>> PatchTask(int id, [FromBody] JsonElement body)
         {
             var task = await _context.Tasks.FindAsync(id);
             if (task == null) return NotFound();
+
+            // Audit: Capture old state? 
+            // Patch is partial, difficult to log full diff without deep clone. 
+            // Skipping detailed audit payload for perf, just action log.
 
             foreach (var property in body.EnumerateObject())
             {
                 switch (property.Name.ToLower())
                 {
                     case "title":
-                        if (property.Value.ValueKind == JsonValueKind.String) task.Title = property.Value.GetString();
+                        if (property.Value.ValueKind == JsonValueKind.String) 
+                            task.Title = property.Value.GetString();
                         break;
                     case "description":
-                        if (property.Value.ValueKind == JsonValueKind.String) task.Description = property.Value.GetString();
-                        else if (property.Value.ValueKind == JsonValueKind.Null) task.Description = null;
+                        if (property.Value.ValueKind == JsonValueKind.String) 
+                            task.Description = property.Value.GetString();
+                        else if (property.Value.ValueKind == JsonValueKind.Null) 
+                            task.Description = null;
                         break;
                     case "status":
-                        if (property.Value.ValueKind == JsonValueKind.String) task.Status = property.Value.GetString();
+                        if (property.Value.ValueKind == JsonValueKind.String) 
+                            task.Status = property.Value.GetString();
                         break;
                     case "priority":
-                        if (property.Value.ValueKind == JsonValueKind.String) task.Priority = property.Value.GetString();
+                        if (property.Value.ValueKind == JsonValueKind.String) 
+                            task.Priority = property.Value.GetString();
                         break;
                     case "tshirtsize":
-                        if (property.Value.ValueKind == JsonValueKind.String) task.TShirtSize = property.Value.GetString();
-                        else if (property.Value.ValueKind == JsonValueKind.Null) task.TShirtSize = null;
+                        if (property.Value.ValueKind == JsonValueKind.String) 
+                            task.TShirtSize = property.Value.GetString();
+                        else if (property.Value.ValueKind == JsonValueKind.Null) 
+                            task.TShirtSize = null;
                         break;
                     case "startdate":
-                        if (property.Value.TryGetDateTime(out var startDate)) task.StartDate = startDate.ToUniversalTime();
-                        else if (property.Value.ValueKind == JsonValueKind.Null) task.StartDate = null;
+                        if (property.Value.TryGetDateTime(out var startDate)) 
+                            task.StartDate = startDate.ToUniversalTime();
+                        else if (property.Value.ValueKind == JsonValueKind.Null) 
+                            task.StartDate = null;
                         break;
                     case "duedate":
-                        if (property.Value.TryGetDateTime(out var dueDate)) task.DueDate = dueDate.ToUniversalTime();
-                        else if (property.Value.ValueKind == JsonValueKind.Null) task.DueDate = null;
+                        if (property.Value.TryGetDateTime(out var dueDate)) 
+                            task.DueDate = dueDate.ToUniversalTime();
+                        else if (property.Value.ValueKind == JsonValueKind.Null) 
+                            task.DueDate = null;
                         break;
                     case "progress":
                         if (property.Value.ValueKind == JsonValueKind.Number && property.Value.TryGetInt32(out var progress)) 
@@ -198,38 +243,38 @@ namespace Unity.API.Controllers
                             task.Progress = pParsed;
                         break;
                     case "assignees":
-                         if (property.Value.ValueKind == JsonValueKind.Array)
-                         {
-                             var list = new List<int>();
-                             foreach (var item in property.Value.EnumerateArray())
-                             {
-                                 if (item.ValueKind == JsonValueKind.Number) list.Add(item.GetInt32());
-                             }
-                             task.Assignees = list;
-                         }
-                         break;
-                    case "labels":
-                         if (property.Value.ValueKind == JsonValueKind.Array)
-                         {
-                             var list = new List<int>();
-                             foreach (var item in property.Value.EnumerateArray())
-                             {
-                                 if (item.ValueKind == JsonValueKind.Number) list.Add(item.GetInt32());
-                             }
-                             task.Labels = list;
-                         }
-                         break;
-                    case "subtasks":
                         if (property.Value.ValueKind == JsonValueKind.Array)
-                            task.SubtasksJson = property.Value.GetRawText();
+                        {
+                            var list = new List<int>();
+                            foreach (var item in property.Value.EnumerateArray())
+                            {
+                                if (item.ValueKind == JsonValueKind.Number) list.Add(item.GetInt32());
+                            }
+                            task.Assignees = list;
+                        }
+                        break;
+                    case "labels":
+                        if (property.Value.ValueKind == JsonValueKind.Array)
+                        {
+                            var list = new List<int>();
+                            foreach (var item in property.Value.EnumerateArray())
+                            {
+                                if (item.ValueKind == JsonValueKind.Number) list.Add(item.GetInt32());
+                            }
+                            task.Labels = list;
+                        }
+                        break;
+                    case "subtasks":
+                        if (property.Value.ValueKind == JsonValueKind.Array || property.Value.ValueKind == JsonValueKind.String)
+                             task.SubtasksJson = property.Value.ToString(); // Store raw JSON
                         break;
                     case "comments":
-                        if (property.Value.ValueKind == JsonValueKind.Array)
-                            task.CommentsJson = property.Value.GetRawText();
+                        if (property.Value.ValueKind == JsonValueKind.Array || property.Value.ValueKind == JsonValueKind.String)
+                             task.CommentsJson = property.Value.ToString();
                         break;
                     case "attachments":
-                        if (property.Value.ValueKind == JsonValueKind.Array)
-                            task.AttachmentsJson = property.Value.GetRawText();
+                        if (property.Value.ValueKind == JsonValueKind.Array || property.Value.ValueKind == JsonValueKind.String)
+                             task.AttachmentsJson = property.Value.ToString();
                         break;
                 }
             }
@@ -239,7 +284,7 @@ namespace Unity.API.Controllers
 
             return Ok(task);
         }
-        
+
         [HttpPut("{id}/status")]
         public async Task<ActionResult<TaskItem>> UpdateStatus(int id, [FromQuery] string status)
         {
@@ -251,8 +296,16 @@ namespace Unity.API.Controllers
             task.UpdatedAt = DateTime.UtcNow;
             await _context.SaveChangesAsync();
             
-            var currentUser = await GetCurrentUserAsync();
-            await _auditService.LogAsync(currentUser.Id.ToString(), "UPDATE_STATUS", "Task", task.Id.ToString(), new { Status = oldStatus }, new { Status = status }, $"Task status changed to {status}.");
+            var userId = GetCurrentUserId();
+            await _auditService.LogAsync(
+                userId.ToString(), 
+                "UPDATE_STATUS", 
+                "Task", 
+                task.Id.ToString(), 
+                new { Status = oldStatus }, 
+                new { Status = status }, 
+                $"Task status changed to {status}."
+            );
             
             return Ok(task);
         }
@@ -261,20 +314,15 @@ namespace Unity.API.Controllers
         public async Task<IActionResult> DeleteTask(int id)
         {
             var task = await _context.Tasks.FindAsync(id);
-            if (task == null)
-            {
-                return NotFound();
-            }
+            if (task == null) return NotFound();
 
+            // Permission Check (Optional: Check if owner or admin)
+            // For now, allowing delete if they can access it (implied) or just sticking to basic logic
+            
             _context.Tasks.Remove(task);
             await _context.SaveChangesAsync();
 
             return NoContent();
-        }
-
-        private bool TaskExists(int id)
-        {
-            return _context.Tasks.Any(e => e.Id == id);
         }
     }
 }

@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("Unity.API")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Release")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+7f7bea80a1dbd4272091e5560fd94362c9ca2b90")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+24e9d1445eef149cd91c88cc73ef4d8517971f5d")]
 [assembly: System.Reflection.AssemblyProductAttribute("Unity.API")]
 [assembly: System.Reflection.AssemblyTitleAttribute("Unity.API")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

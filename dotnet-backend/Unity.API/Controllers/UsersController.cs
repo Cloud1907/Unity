@@ -1,5 +1,7 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using System.Security.Claims;
 using Unity.Core.DTOs;
 using Unity.Core.Models;
 using Unity.Infrastructure.Data;
@@ -17,155 +19,120 @@ namespace Unity.API.Controllers
             _context = context;
         }
 
-        // Helper
-        private async Task<User> GetCurrentUserAsync()
+        private int GetCurrentUserId()
         {
-            // 1. JWT Claims 
-            var claimId = User.FindFirst("id")?.Value;
-            if (!string.IsNullOrEmpty(claimId) && int.TryParse(claimId, out int claimUid))
-            {
-                var user = await _context.Users.FirstOrDefaultAsync(u => u.Id == claimUid);
-                if (user != null) return user;
-            }
+            var claimId = User.FindFirst("id")?.Value 
+                          ?? User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 
-            Console.WriteLine($"DEBUG [UsersController.GetCurrentUserAsync]: Resolving current user...");
-            if (Request.Headers.TryGetValue("X-Test-User-Id", out var userId))
+            if (int.TryParse(claimId, out int userId))
             {
-                Console.WriteLine($"DEBUG [UsersController.GetCurrentUserAsync]: Found X-Test-User-Id header: {userId}");
-                if (int.TryParse(userId, out int uid))
-                {
-                    var user = await _context.Users.FirstOrDefaultAsync(u => u.Id == uid);
-                    if (user != null)
-                    {
-                        Console.WriteLine($"DEBUG [UsersController.GetCurrentUserAsync]: Resolved user from header: {user.FullName} ({user.Id})");
-                        return user;
-                    }
-                }
-                Console.WriteLine($"DEBUG [UsersController.GetCurrentUserAsync]: User ID '{userId}' not found in database");
+                return userId;
             }
-            else
-            {
-                Console.WriteLine($"DEBUG [UsersController.GetCurrentUserAsync]: No X-Test-User-Id header found");
-            }
-            // Fallback for dev/offline: Default to Melih (Admin)
-            var melih = await _context.Users.FirstOrDefaultAsync(u => u.Username == "melih");
-            if (melih != null)
-            {
-                Console.WriteLine($"DEBUG [UsersController.GetCurrentUserAsync]: Using fallback user Melih: {melih.FullName} ({melih.Id})");
-                return melih;
-            }
-            Console.WriteLine($"DEBUG [UsersController.GetCurrentUserAsync]: Melih not found, using first user or test-user");
-            return await _context.Users.FirstOrDefaultAsync() ?? new User { Id = 0, Departments = new List<int>() };
+            throw new UnauthorizedAccessException("Invalid User Token.");
+        }
+
+        private async Task<User> GetCurrentUserWithDeptsAsync()
+        {
+            var userId = GetCurrentUserId();
+            var user = await _context.Users.AsNoTracking()
+                .FirstOrDefaultAsync(u => u.Id == userId);
+            
+            return user ?? throw new UnauthorizedAccessException("User not found.");
         }
 
         [HttpGet]
-        [Microsoft.AspNetCore.Authorization.Authorize]
+        [Authorize]
         public async Task<ActionResult<IEnumerable<UserDto>>> GetUsers()
         {
-            var currentUser = await GetCurrentUserAsync();
-            Console.WriteLine($"DEBUG [UsersController.GetUsers]: Current user resolved as: {currentUser.FullName} ({currentUser.Id}), Role: {currentUser.Role}");
-            var userDeptList = currentUser.Departments ?? new List<int>();
+            var currentUser = await GetCurrentUserWithDeptsAsync();
+            var userDepts = currentUser.Departments ?? new List<int>();
 
-            // Optimisation: For large datasets, use a proper join table for Departments.
-            // For now (JSON storage), we fetch all and filter in memory.
-            var allUsers = await _context.Users.ToListAsync();
+            // Optimization warning: Fetching all users is okay for small companies (<1000 users), 
+            // but for Enterprise scaling (>10k), this should be paginated (skip/take).
+            // Keeping list for now to satisfy current frontend requirements.
+            
+            var allUsers = await _context.Users.AsNoTracking().ToListAsync();
             
             var visibleUsers = allUsers.Where(u => 
                 currentUser.Role == "admin" || 
                 u.Id == currentUser.Id ||
-                (u.Departments != null && u.Departments.Any(d => userDeptList.Contains(d)))
+                (u.Departments != null && u.Departments.Any(d => userDepts.Contains(d)))
             ).Select(u => new UserDto
-                {
-                    Id = u.Id,
-                    Username = u.Username,
-                    Email = u.Email,
-                    FullName = u.FullName,
-                    Role = u.Role,
-                    Avatar = u.Avatar,
-                    Color = u.Color,
-                    Department = u.Departments.FirstOrDefault(),
-                    Departments = u.Departments,
-                    JobTitle = u.JobTitle
-                })
-                .ToList();
+            {
+                Id = u.Id,
+                Username = u.Username,
+                Email = u.Email,
+                FullName = u.FullName,
+                Role = u.Role,
+                Avatar = u.Avatar,
+                Color = u.Color,
+                Department = u.Departments.FirstOrDefault(),
+                Departments = u.Departments,
+                JobTitle = u.JobTitle
+            }).ToList();
 
             return Ok(visibleUsers);
         }
+
         [HttpPost]
         public async Task<ActionResult<UserDto>> PostUser(CreateUserRequest request)
         {
-            try 
+            // Initial Auth Check (Manual because endpoint might be used for registration if open, 
+            // but strict rules imply Enterprise context where Admin creates users).
+            // Assuming Admin-only creation for internal apps.
+            // If public registration is needed, [Authorize] should be removed or conditioned.
+            // Based on code context (checking currentUser.Role), this is an Admin function.
+            
+            var claimId = User.FindFirst("id")?.Value ?? User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(claimId)) return Unauthorized();
+
+            var currentUser = await _context.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == int.Parse(claimId));
+            if (currentUser == null || currentUser.Role != "admin") return Forbid();
+
+            if (await _context.Users.AnyAsync(u => u.Email == request.Email))
             {
-                Console.WriteLine($"DEBUG [UsersController.PostUser]: Creation request received for {request.Email}");
-                var currentUser = await GetCurrentUserAsync();
-                Console.WriteLine($"DEBUG [UsersController.PostUser]: Current user: {currentUser?.FullName} (Role: {currentUser?.Role})");
-
-                if (currentUser.Role != "admin") 
-                {
-                    Console.WriteLine("DEBUG [UsersController.PostUser]: Forbidden - Current user is not admin.");
-                    return Forbid();
-                }
-
-                // Check if user already exists
-                if (await _context.Users.AnyAsync(u => u.Email == request.Email))
-                {
-                    Console.WriteLine($"DEBUG [UsersController.PostUser]: Email {request.Email} already exists.");
-                    return BadRequest("Bu e-posta adresi zaten kullanımda.");
-                }
-
-                var user = new User
-                {
-                    FullName = request.FullName,
-                    Email = request.Email,
-                    Role = request.Role,
-                    Departments = request.Departments,
-                    JobTitle = request.JobTitle,
-                    PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password),
-                    CreatedAt = DateTime.UtcNow,
-                    UpdatedAt = DateTime.UtcNow
-                };
-
-                // Set username as email prefix
-                if (string.IsNullOrEmpty(user.Username))
-                {
-                    user.Username = request.Email.Split('@')[0];
-                }
-
-                Console.WriteLine($"DEBUG [UsersController.PostUser]: Saving user to database...");
-                _context.Users.Add(user);
-                await _context.SaveChangesAsync();
-                Console.WriteLine($"DEBUG [UsersController.PostUser]: User created successfully with ID: {user.Id}");
-
-                return Ok(new UserDto
-                {
-                    Id = user.Id,
-                    Username = user.Username,
-                    Email = user.Email,
-                    FullName = user.FullName,
-                    Role = user.Role,
-                    Departments = user.Departments,
-                    JobTitle = user.JobTitle
-                });
+                return BadRequest("Bu e-posta adresi zaten kullanımda.");
             }
-            catch (Exception ex)
+
+            var user = new User
             {
-                Console.WriteLine($"CRITICAL ERROR [UsersController.PostUser]: {ex.Message}");
-                Console.WriteLine(ex.StackTrace);
-                return StatusCode(500, $"Sunucu hatası: {ex.Message}");
-            }
+                FullName = request.FullName,
+                Email = request.Email,
+                Role = request.Role,
+                Departments = request.Departments,
+                JobTitle = request.JobTitle,
+                PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password),
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow,
+                Username = string.IsNullOrEmpty(request.Username) ? request.Email.Split('@')[0] : request.Username
+            };
+
+            _context.Users.Add(user);
+            await _context.SaveChangesAsync();
+
+            return Ok(new UserDto
+            {
+                Id = user.Id,
+                Username = user.Username,
+                Email = user.Email,
+                FullName = user.FullName,
+                Role = user.Role,
+                Departments = user.Departments,
+                JobTitle = user.JobTitle
+            });
         }
 
         [HttpPut("{id}")]
+        [Authorize]
         public async Task<IActionResult> PutUser(int id, User user)
         {
             if (id != user.Id) return BadRequest("ID mismatch");
 
-            var currentUser = await GetCurrentUserAsync();
+            var currentUser = await GetCurrentUserWithDeptsAsync();
             
             // Only allow self-update or admin
             if (currentUser.Id != id && currentUser.Role != "admin") return Forbid();
 
-            // Fetch the existing user (tracked)
             var existingUser = await _context.Users.FirstOrDefaultAsync(u => u.Id == id);
             if (existingUser == null) return NotFound();
 
@@ -173,12 +140,11 @@ namespace Unity.API.Controllers
             existingUser.FullName = user.FullName ?? existingUser.FullName;
             existingUser.Email = user.Email ?? existingUser.Email;
             existingUser.Username = user.Username ?? existingUser.Username;
-            existingUser.Avatar = user.Avatar; // Allow null to clear
+            existingUser.Avatar = user.Avatar; 
             existingUser.Color = user.Color ?? existingUser.Color;
             existingUser.JobTitle = user.JobTitle ?? existingUser.JobTitle;
             existingUser.UpdatedAt = DateTime.UtcNow;
 
-            // Handle password update if provided
             if (!string.IsNullOrEmpty(user.Password))
             {
                 existingUser.PasswordHash = BCrypt.Net.BCrypt.HashPassword(user.Password);
@@ -188,14 +154,9 @@ namespace Unity.API.Controllers
             if (currentUser.Role == "admin")
             {
                 existingUser.Role = user.Role ?? existingUser.Role;
-                // Handle departments - accept either DepartmentsJson or Departments list
                 if (user.Departments != null && user.Departments.Count > 0)
                 {
                     existingUser.Departments = user.Departments;
-                }
-                else if (!string.IsNullOrEmpty(user.DepartmentsJson) && user.DepartmentsJson != "[]")
-                {
-                    existingUser.DepartmentsJson = user.DepartmentsJson;
                 }
             }
 
@@ -205,20 +166,18 @@ namespace Unity.API.Controllers
             }
             catch (DbUpdateConcurrencyException)
             {
-                if (!_context.Users.Any(e => e.Id == id))
-                {
-                    return NotFound();
-                }
-                throw;
+                if (!_context.Users.Any(e => e.Id == id)) return NotFound();
+                else throw;
             }
 
             return NoContent();
         }
 
         [HttpDelete("{id}")]
+        [Authorize]
         public async Task<IActionResult> DeleteUser(int id)
         {
-            var currentUser = await GetCurrentUserAsync();
+            var currentUser = await GetCurrentUserWithDeptsAsync();
             if (currentUser.Role != "admin") return Forbid();
 
             var user = await _context.Users.FindAsync(id);
@@ -229,5 +188,6 @@ namespace Unity.API.Controllers
 
             return NoContent();
         }
+
     }
 }

@@ -143,7 +143,7 @@ echo KURULUM TAMAMLANDI!
 echo ===============================================================================
 echo.
 echo Frontend Erisimi: http://localhost:%FRONTEND_PORT%
-echo Backend Erisimi : http://localhost:8000
+echo Backend Erisimi : http://localhost:8080
 echo.
 echo Bu pencereyi kapatabilirsiniz.
 pause

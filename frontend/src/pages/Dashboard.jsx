@@ -213,16 +213,17 @@ const Dashboard = () => {
                 const maxTasks = Math.max(...teamMembers.map(memberId => accessibleTasks.filter(t => t.assignees?.includes(memberId) && t.status !== 'done').length), 1);
 
                 return teamMembers.map((memberId, idx) => {
-                  const member = users.find(u => (u._id || u.id) == memberId);
+                  const member = users.find(u => u.id == memberId || u._id == memberId);
                   const memberTasks = accessibleTasks.filter(t => t.assignees?.includes(memberId) && t.status !== 'done');
                   const percentage = (memberTasks.length / maxTasks) * 100;
+                  const displayName = member?.fullName || member?.username || `Kullanıcı ${memberId}`;
 
                   return (
                     <motion.div key={memberId} initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: idx * 0.1 }}>
                       <div className="flex items-center gap-3 mb-2">
-                        <img src={member?.avatar ? (member.avatar.startsWith('http') ? member.avatar : `http://localhost:8080${member.avatar}`) : `https://api.dicebear.com/7.x/avataaars/svg?seed=${member?.fullName || memberId}`} alt={member?.fullName || 'User'} className="w-8 h-8 rounded-full border-2 border-gray-200 dark:border-gray-700" />
+                        <img src={member?.avatar ? (member.avatar.startsWith('http') ? member.avatar : `http://localhost:5052${member.avatar}`) : `https://api.dicebear.com/7.x/avataaars/svg?seed=${displayName}`} alt={displayName} className="w-8 h-8 rounded-full border-2 border-gray-200 dark:border-gray-700" />
                         <div className="flex-1 min-w-0">
-                          <div className="text-sm font-bold text-gray-900 dark:text-white truncate">{member?.fullName || 'Kullanıcı'}</div>
+                          <div className="text-sm font-bold text-gray-900 dark:text-white truncate">{displayName}</div>
                           <div className="text-[10px] text-gray-500 dark:text-gray-400">{memberTasks.length} aktif</div>
                         </div>
                         <div className="text-sm font-bold text-gray-900 dark:text-white">{memberTasks.length}</div>

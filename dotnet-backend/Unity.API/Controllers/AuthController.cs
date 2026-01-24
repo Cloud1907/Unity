@@ -3,6 +3,9 @@ using Unity.Infrastructure.Data;
 using Unity.Core.Models;
 using Unity.Core.DTOs;
 using Microsoft.EntityFrameworkCore;
+using System.Security.Claims;
+using Microsoft.AspNetCore.Authorization;
+using Unity.API;
 
 namespace Unity.API.Controllers
 {
@@ -17,44 +20,33 @@ namespace Unity.API.Controllers
             _context = context;
         }
 
-        private async Task<User> GetCurrentUserAsync()
+        private async Task<User> GetCurrentUserToUpdateAsync()
         {
-            Console.WriteLine($"DEBUG [AuthController.GetCurrentUserAsync]: Resolving current user...");
-            if (Request.Headers.TryGetValue("X-Test-User-Id", out var userId))
-            {
-                Console.WriteLine($"DEBUG [AuthController.GetCurrentUserAsync]: Found X-Test-User-Id header: {userId}");
-                if (int.TryParse(userId, out int uid))
-                {
-                    var user = await _context.Users.FirstOrDefaultAsync(u => u.Id == uid);
-                    if (user != null)
-                    {
-                        Console.WriteLine($"DEBUG [AuthController.GetCurrentUserAsync]: Resolved user from header: {user.FullName} ({user.Id})");
-                        return user;
-                    }
-                }
-            }
-            // Fallback for dev/offline: Default to Melih (Admin)
-            var melih = await _context.Users.FirstOrDefaultAsync(u => u.Username == "melih");
-            if (melih != null) return melih;
+            var claimId = User.FindFirst("id")?.Value 
+                          ?? User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 
-            return await _context.Users.FirstOrDefaultAsync() ?? new User { Id = 0, Departments = new List<int>() };
+            if (int.TryParse(claimId, out int userId))
+            {
+                var user = await _context.Users.FirstOrDefaultAsync(u => u.Id == userId);
+                if (user != null) return user;
+            }
+            throw new UnauthorizedAccessException("User not found.");
         }
 
         [HttpPost("login")]
         public async Task<IActionResult> Login([FromBody] LoginRequest request)
         {
-            Console.WriteLine($"DEBUG [AuthController.Login]: Login attempt with identifier: {request.Email ?? request.Username}");
             // Accept both email and username for login
             var loginIdentifier = request.Email ?? request.Username ?? "";
-            var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == loginIdentifier || u.Username == loginIdentifier);
+            
+            var user = await _context.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Email == loginIdentifier || u.Username == loginIdentifier);
 
             if (user == null || !BCrypt.Net.BCrypt.Verify(request.Password, user.PasswordHash))
             {
-                Console.WriteLine($"DEBUG [AuthController.Login]: User not found or password mismatch for identifier: {loginIdentifier}");
-                return Unauthorized(new { detail = "Incorrect username or password" });
+                // Enterprise Security: Don't reveal if user exists or password failed.
+                return Unauthorized(new { detail = "Kullanıcı adı veya şifre hatalı." });
             }
 
-            Console.WriteLine($"DEBUG [AuthController.Login]: Login successful for user: {user.FullName} ({user.Id}, {user.Email})");
             return Ok(new LoginResponse
             {
                 AccessToken = GenerateJwtToken(user),
@@ -74,14 +66,14 @@ namespace Unity.API.Controllers
         private string GenerateJwtToken(User user)
         {
             var tokenHandler = new System.IdentityModel.Tokens.Jwt.JwtSecurityTokenHandler();
-            var key = AppConfig.JwtKey; // Use the dynamic key from AppConfig
+            var key = AppConfig.JwtKey; 
             var tokenDescriptor = new Microsoft.IdentityModel.Tokens.SecurityTokenDescriptor
             {
-                Subject = new System.Security.Claims.ClaimsIdentity(new[]
+                Subject = new ClaimsIdentity(new[]
                 {
-                    new System.Security.Claims.Claim("id", user.Id.ToString()),
-                    new System.Security.Claims.Claim(System.Security.Claims.ClaimTypes.Name, user.Username ?? user.Email),
-                    new System.Security.Claims.Claim(System.Security.Claims.ClaimTypes.Role, user.Role ?? "user")
+                    new Claim("id", user.Id.ToString()),
+                    new Claim(ClaimTypes.Name, user.Username ?? user.Email),
+                    new Claim(ClaimTypes.Role, user.Role ?? "user")
                 }),
                 Expires = DateTime.UtcNow.AddDays(7),
                 SigningCredentials = new Microsoft.IdentityModel.Tokens.SigningCredentials(new Microsoft.IdentityModel.Tokens.SymmetricSecurityKey(key), Microsoft.IdentityModel.Tokens.SecurityAlgorithms.HmacSha256Signature)
@@ -91,32 +83,14 @@ namespace Unity.API.Controllers
         }
         
         [HttpPut("profile")]
-        [Microsoft.AspNetCore.Authorization.Authorize]
+        [Authorize]
         public async Task<IActionResult> UpdateProfile([FromBody] UpdateProfileRequest request)
         {
-            // Use shared user resolution helper
-            var user = await GetCurrentUserAsync();
-            
-            if (user == null || user.Id == 0)
-            {
-                return NotFound(new { detail = "User not found" });
-            }
+            var user = await GetCurrentUserToUpdateAsync(); 
 
-            // Update fields if provided
-            if (!string.IsNullOrEmpty(request.FullName))
-            {
-                user.FullName = request.FullName;
-            }
-            
-            if (!string.IsNullOrEmpty(request.Avatar))
-            {
-                user.Avatar = request.Avatar;
-            }
-            
-            if (!string.IsNullOrEmpty(request.Color))
-            {
-                user.Color = request.Color;
-            }
+            if (!string.IsNullOrEmpty(request.FullName)) user.FullName = request.FullName;
+            if (!string.IsNullOrEmpty(request.Avatar)) user.Avatar = request.Avatar;
+            if (!string.IsNullOrEmpty(request.Color)) user.Color = request.Color;
 
             user.UpdatedAt = DateTime.UtcNow;
             await _context.SaveChangesAsync();
@@ -134,11 +108,16 @@ namespace Unity.API.Controllers
         }
         
         [HttpGet("me")]
-        [Microsoft.AspNetCore.Authorization.Authorize]
+        [Authorize]
         public async Task<ActionResult<UserDto>> Me()
         {
-            var user = await GetCurrentUserAsync();
-            Console.WriteLine($"DEBUG [AuthController.Me]: Returning profile for {user.FullName} ({user.Id}). Avatar: {user.Avatar}");
+            var claimId = User.FindFirst("id")?.Value ?? User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (!int.TryParse(claimId, out int userId)) return Unauthorized();
+
+            // Read-Only optimization
+            var user = await _context.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == userId);
+            if (user == null) return Unauthorized();
+
             return Ok(new UserDto 
             { 
                 Id = user.Id,
@@ -150,29 +129,23 @@ namespace Unity.API.Controllers
                 Departments = user.Departments
             });
         }
+
         [HttpPost("change-password")]
-        [Microsoft.AspNetCore.Authorization.Authorize]
+        [Authorize]
         public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordRequest request)
         {
-            var user = await GetCurrentUserAsync();
-            if (user == null || user.Id == 0)
-            {
-                return NotFound(new { detail = "User not found" });
-            }
+            var user = await GetCurrentUserToUpdateAsync(); 
 
-            // Verify current password
             if (!BCrypt.Net.BCrypt.Verify(request.CurrentPassword, user.PasswordHash))
             {
                 return BadRequest(new { detail = "Mevcut şifre hatalı" });
             }
 
-            // Hash new password
             user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.NewPassword);
             user.UpdatedAt = DateTime.UtcNow;
 
             await _context.SaveChangesAsync();
             
-            Console.WriteLine($"DEBUG [AuthController.ChangePassword]: Password updated for user: {user.FullName}");
             return Ok(new { message = "Şifre başarıyla güncellendi" });
         }
     }

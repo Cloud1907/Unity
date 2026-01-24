@@ -178,3 +178,4 @@
 /Users/cloudsmac/Documents/GitHub/4Flow/dotnet-backend/Unity.API/bin/Release/net10.0/backend-publish/backend-publish/backend-publish/Unity.API.runtimeconfig.json
 /Users/cloudsmac/Documents/GitHub/4Flow/dotnet-backend/Unity.API/bin/Release/net10.0/backend-publish/backend-publish/backend-publish/Unity.API.staticwebassets.endpoints.json
 /Users/cloudsmac/Documents/GitHub/4Flow/dotnet-backend/Unity.API/bin/Release/net10.0/backend-publish/backend-publish/backend-publish/wwwroot/asset-manifest.json
+/Users/cloudsmac/Documents/GitHub/4Flow/dotnet-backend/Unity.API/obj/Release/net10.0/compressed/4kxh33r2j1-{0}-exg5moz2pg-exg5moz2pg.gz

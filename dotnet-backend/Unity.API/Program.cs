@@ -3,8 +3,7 @@ using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Windows Service support removed as per user request (IIS managed)
-// builder.Host.UseWindowsService();
+// Windows Service support removed (IIS managed)
 
 Console.WriteLine("🚀 STARTING UNITY API v1.10 (Controller Fixes)...");
 
