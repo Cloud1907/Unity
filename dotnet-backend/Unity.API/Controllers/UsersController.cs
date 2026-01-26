@@ -53,11 +53,8 @@ namespace Unity.API.Controllers
             
             var allUsers = await _context.Users.AsNoTracking().ToListAsync();
             
-            var visibleUsers = allUsers.Where(u => 
-                currentUser.Role == "admin" || 
-                u.Id == currentUser.Id ||
-                (u.Departments != null && u.Departments.Any(d => userDepts.Contains(d)))
-            ).Select(u => new UserDto
+            // Allow all authenticated users to see the full user directory (Collaboration requirement)
+            var visibleUsers = allUsers.Select(u => new UserDto
             {
                 Id = u.Id,
                 Username = u.Username,

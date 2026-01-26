@@ -8,7 +8,7 @@ export const getAvatarUrl = (avatarPath) => {
         return avatarPath;
     }
 
-    // Development: use localhost:8080
-    const baseUrl = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8080';
+    // Development: use localhost:7000
+    const baseUrl = process.env.REACT_APP_BACKEND_URL || 'http://localhost:7000';
     return `${baseUrl}${avatarPath}`;
 };

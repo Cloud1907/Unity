@@ -47,6 +47,11 @@ test_wheels/
 *.log
 backend_backup/
 
+# .NET
+**/bin/
+**/obj/
+.vs/
+
 # Deploy & Setup Artifacts
 pkg_v20/
 pkg_temp/
@@ -58,7 +63,7 @@ dotnet-update*/
 update-bundle*/
 migration-bundle/
 *.bat
-*.sh
+!scripts/*.bat
 !scripts/*.sh
 !prepare_setup_bundle.sh
 !prepare_final_bundle.sh

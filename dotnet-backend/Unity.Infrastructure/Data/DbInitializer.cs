@@ -27,14 +27,8 @@ namespace Unity.Infrastructure.Data
             if (context.Users.Any())
             {
                 // FORCE PASSWORD UPDATE FOR MELIH (Fix for SQL Script Hash issue)
-                var melih = context.Users.FirstOrDefault(u => u.Username == "melih");
-                if (melih != null)
-                {
-                    melih.PasswordHash = BCrypt.Net.BCrypt.HashPassword("test123");
-                    context.SaveChanges();
-                    Console.WriteLine("✅ PASSWORD FOR MELIH RESET TO 'test123'");
-                }
-                return; // DB has been seeded
+                // DB is already seeded. No further action needed.
+                return;
             }
 
             // Maps to track legacy String IDs to new Int IDs

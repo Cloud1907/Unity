@@ -30,7 +30,7 @@ set /p TARGET_DIR="Kurulum Dizini (Tam Yol) [Varsayilan: C:\inetpub\wwwroot\Unit
 if "%TARGET_DIR%"=="" set TARGET_DIR=C:\inetpub\wwwroot\Unity
 
 set /p FRONTEND_PORT="Frontend Portu (Web Arayuzu) [Varsayilan: 80]: "
-if "%FRONTEND_PORT%"=="" set FRONTEND_PORT=80
+if "%FRONTEND_PORT%"=="" set FRONTEND_PORT=8080
 
 echo.
 echo Kurulum Dizini: %TARGET_DIR%
@@ -82,7 +82,7 @@ echo -> Backend dosyalari kopyalaniyor...
 :: /MIR: Mirror (Eskileri sil, yenileri at)
 :: /R:3 : 3 kez dene
 :: /W:1 : 1 saniye bekle
-robocopy "backend" "%TARGET_DIR%\backend" /MIR /R:5 /W:2 /NP /NFL /NDL >nul
+robocopy "dotnet-backend" "%TARGET_DIR%\backend" /MIR /R:5 /W:2 /NP /NFL /NDL >nul
 :: Robocopy exit code 8'den kucukse basarili demektir (0-7 arasi degisiklik var/yok vs)
 if %ERRORLEVEL% GEQ 8 (
     echo [HATA] Backend dosyalari kopyalanamadi! (Hata Kodu: %ERRORLEVEL%)
@@ -112,7 +112,7 @@ if exist "%TARGET_DIR%\backend\unity.db" (
     copy /Y "%TARGET_DIR%\backend\unity.db" "%TARGET_DIR%\backend\unity.db.bak" >nul
 )
 echo -> Yeni veritabani kopyalaniyor...
-copy /Y "backend\unity.db" "%TARGET_DIR%\backend\unity.db" >nul
+copy /Y "dotnet-backend\unity.db" "%TARGET_DIR%\backend\unity.db" >nul
 
 :: Servisleri Tekrar Baslat (IIS) - Backend servisi en sonda baslayacak
 echo -> IIS servisleri tekrar baslatiliyor...
@@ -143,7 +143,7 @@ echo KURULUM TAMAMLANDI!
 echo ===============================================================================
 echo.
 echo Frontend Erisimi: http://localhost:%FRONTEND_PORT%
-echo Backend Erisimi : http://localhost:8080
+echo Backend Erisimi : (Ic Servis - Disaridan erisim kapali)
 echo.
 echo Bu pencereyi kapatabilirsiniz.
 pause

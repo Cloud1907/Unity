@@ -39,7 +39,7 @@ const Dashboard = () => {
       if (currentUserRole === 'admin') return true;
       if (p.owner === currentUserId || p.members?.includes(currentUserId)) return true;
       if (p.isPrivate) return false;
-      if (currentUserDepts.length > 0 && currentUserDepts.includes(p.department)) return true;
+      if (currentUserDepts.length > 0 && (currentUserDepts.includes(p.departmentId) || currentUserDepts.includes(p.department))) return true;
       return false;
     });
   }, [projects, currentUserId, currentUserDepts, currentUserRole]);

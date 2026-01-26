@@ -348,7 +348,7 @@ const GanttView = ({ boardId }) => {
                   {groupBy !== 'none' && (
                     <div className="sticky left-0 right-0 px-4 py-2 bg-gray-100 dark:bg-slate-800/90 border-b border-gray-200 dark:border-gray-700 font-bold text-sm text-gray-700 dark:text-gray-200 flex items-center gap-2 backdrop-blur z-10 shadow-sm">
                       {group.avatar && (
-                        <img src={group.avatar.startsWith('http') ? group.avatar : `http://localhost:8080${group.avatar}`} className="w-5 h-5 rounded-full" alt="" />
+                        <img src={group.avatar.startsWith('http') ? group.avatar : `http://localhost:7000${group.avatar}`} className="w-5 h-5 rounded-full" alt="" />
                       )}
                       {group.name}
                       <span className="text-xs font-normal text-gray-500 ml-2">({group.tasks.length} Görev)</span>
@@ -444,7 +444,7 @@ const GanttView = ({ boardId }) => {
                               >
                                 {task.assignees && task.assignees.length > 0 && (
                                   <img
-                                    src={assigneeAvatar ? (assigneeAvatar.startsWith('http') ? assigneeAvatar : `http://localhost:8080${assigneeAvatar}`) : `https://api.dicebear.com/7.x/avataaars/svg?seed=${task.assignees[0]}`}
+                                    src={assigneeAvatar ? (assigneeAvatar.startsWith('http') ? assigneeAvatar : `http://localhost:7000${assigneeAvatar}`) : `https://api.dicebear.com/7.x/avataaars/svg?seed=${task.assignees[0]}`}
                                     alt="Assignee"
                                     title={getUserName(task.assignees[0])}
                                     className="w-5 h-5 rounded-full border border-white/50 shrink-0"

@@ -9,7 +9,7 @@ const getBaseUrl = () => {
   const envUrl = process.env.REACT_APP_BACKEND_URL;
 
   if (process.env.NODE_ENV === 'development') {
-    return envUrl || 'http://localhost:8080';
+    return envUrl || 'http://localhost:7000';
   }
 
   // Production: Single Port (Frontend embedded in Backend)

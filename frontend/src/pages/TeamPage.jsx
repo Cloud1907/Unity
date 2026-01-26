@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useData } from '../contexts/DataContext';
 import { Avatar, AvatarFallback, AvatarImage } from '../components/ui/avatar';
+import { getAvatarUrl } from '../utils/avatarHelper';
 import { Users, Mail, Shield, CheckCircle, Clock } from 'lucide-react';
 
 const TeamPage = () => {
@@ -107,11 +108,7 @@ const TeamPage = () => {
                   <div className="flex items-start gap-3 mb-4">
                     <Avatar className="w-12 h-12">
                       <AvatarImage
-                        src={
-                          user.avatar?.startsWith('http')
-                            ? user.avatar
-                            : `http://localhost:8080${user.avatar || ''}`
-                        }
+                        src={getAvatarUrl(user.avatar)}
                         alt={user.fullName}
                       />
                       <AvatarFallback style={{ backgroundColor: user.color }}>

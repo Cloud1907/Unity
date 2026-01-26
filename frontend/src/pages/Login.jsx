@@ -88,6 +88,10 @@ const Login = () => {
             Manage the Future with <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-purple-400">Unity</span>.
           </h1>
 
+          <div className="mb-8 text-sm font-medium tracking-widest text-indigo-200/60 uppercase">
+            Univera Task Management
+          </div>
+
           {/* Carousel */}
           <div className="h-32 relative">
             <AnimatePresence mode="wait">

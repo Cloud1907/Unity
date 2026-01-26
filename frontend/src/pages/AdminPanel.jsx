@@ -188,7 +188,7 @@ const AdminPanel = () => {
                               src={
                                 user.avatar?.startsWith('http')
                                   ? user.avatar
-                                  : `http://localhost:8080${user.avatar || ''}`
+                                  : `http://localhost:7000${user.avatar || ''}`
                               }
                             />
                             <AvatarFallback className="bg-gradient-to-br from-blue-400 to-purple-500 text-white dark:text-gray-100 font-bold">

@@ -5,7 +5,7 @@ var builder = WebApplication.CreateBuilder(args);
 
 // Windows Service support removed (IIS managed)
 
-Console.WriteLine("🚀 STARTING UNITY API v1.10 (Controller Fixes)...");
+Console.WriteLine("🚀 STARTING UNITY API v1.11 (Debug Verification)...");
 
 // Add services to the container.
 builder.Services.AddControllers()

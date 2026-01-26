@@ -1,0 +1,16 @@
+C:\Users\univera\.gemini\antigravity\scratch\UnityAnalysis\dotnet-backend\Unity.Infrastructure\bin\Debug\net9.0\Unity.Infrastructure.deps.json
+C:\Users\univera\.gemini\antigravity\scratch\UnityAnalysis\dotnet-backend\Unity.Infrastructure\bin\Debug\net9.0\Unity.Infrastructure.dll
+C:\Users\univera\.gemini\antigravity\scratch\UnityAnalysis\dotnet-backend\Unity.Infrastructure\bin\Debug\net9.0\Unity.Infrastructure.pdb
+C:\Users\univera\.gemini\antigravity\scratch\UnityAnalysis\dotnet-backend\Unity.Infrastructure\bin\Debug\net9.0\Unity.Core.dll
+C:\Users\univera\.gemini\antigravity\scratch\UnityAnalysis\dotnet-backend\Unity.Infrastructure\bin\Debug\net9.0\Unity.Core.pdb
+C:\Users\univera\.gemini\antigravity\scratch\UnityAnalysis\dotnet-backend\Unity.Infrastructure\obj\Debug\net9.0\Unity.Infrastructure.csproj.AssemblyReference.cache
+C:\Users\univera\.gemini\antigravity\scratch\UnityAnalysis\dotnet-backend\Unity.Infrastructure\obj\Debug\net9.0\Unity.Infrastructure.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\univera\.gemini\antigravity\scratch\UnityAnalysis\dotnet-backend\Unity.Infrastructure\obj\Debug\net9.0\Unity.Infrastructure.AssemblyInfoInputs.cache
+C:\Users\univera\.gemini\antigravity\scratch\UnityAnalysis\dotnet-backend\Unity.Infrastructure\obj\Debug\net9.0\Unity.Infrastructure.AssemblyInfo.cs
+C:\Users\univera\.gemini\antigravity\scratch\UnityAnalysis\dotnet-backend\Unity.Infrastructure\obj\Debug\net9.0\Unity.Infrastructure.csproj.CoreCompileInputs.cache
+C:\Users\univera\.gemini\antigravity\scratch\UnityAnalysis\dotnet-backend\Unity.Infrastructure\obj\Debug\net9.0\Unity.Infrastructure.sourcelink.json
+C:\Users\univera\.gemini\antigravity\scratch\UnityAnalysis\dotnet-backend\Unity.Infrastructure\obj\Debug\net9.0\Unity.In.E268D142.Up2Date
+C:\Users\univera\.gemini\antigravity\scratch\UnityAnalysis\dotnet-backend\Unity.Infrastructure\obj\Debug\net9.0\Unity.Infrastructure.dll
+C:\Users\univera\.gemini\antigravity\scratch\UnityAnalysis\dotnet-backend\Unity.Infrastructure\obj\Debug\net9.0\refint\Unity.Infrastructure.dll
+C:\Users\univera\.gemini\antigravity\scratch\UnityAnalysis\dotnet-backend\Unity.Infrastructure\obj\Debug\net9.0\Unity.Infrastructure.pdb
+C:\Users\univera\.gemini\antigravity\scratch\UnityAnalysis\dotnet-backend\Unity.Infrastructure\obj\Debug\net9.0\ref\Unity.Infrastructure.dll

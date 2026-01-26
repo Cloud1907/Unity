@@ -1,0 +1,12 @@
+C:\Users\univera\.gemini\antigravity\scratch\UnityAnalysis\dotnet-backend\Unity.Core\bin\Release\net9.0\Unity.Core.deps.json
+C:\Users\univera\.gemini\antigravity\scratch\UnityAnalysis\dotnet-backend\Unity.Core\bin\Release\net9.0\Unity.Core.dll
+C:\Users\univera\.gemini\antigravity\scratch\UnityAnalysis\dotnet-backend\Unity.Core\bin\Release\net9.0\Unity.Core.pdb
+C:\Users\univera\.gemini\antigravity\scratch\UnityAnalysis\dotnet-backend\Unity.Core\obj\Release\net9.0\Unity.Core.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\univera\.gemini\antigravity\scratch\UnityAnalysis\dotnet-backend\Unity.Core\obj\Release\net9.0\Unity.Core.AssemblyInfoInputs.cache
+C:\Users\univera\.gemini\antigravity\scratch\UnityAnalysis\dotnet-backend\Unity.Core\obj\Release\net9.0\Unity.Core.AssemblyInfo.cs
+C:\Users\univera\.gemini\antigravity\scratch\UnityAnalysis\dotnet-backend\Unity.Core\obj\Release\net9.0\Unity.Core.csproj.CoreCompileInputs.cache
+C:\Users\univera\.gemini\antigravity\scratch\UnityAnalysis\dotnet-backend\Unity.Core\obj\Release\net9.0\Unity.Core.sourcelink.json
+C:\Users\univera\.gemini\antigravity\scratch\UnityAnalysis\dotnet-backend\Unity.Core\obj\Release\net9.0\Unity.Core.dll
+C:\Users\univera\.gemini\antigravity\scratch\UnityAnalysis\dotnet-backend\Unity.Core\obj\Release\net9.0\refint\Unity.Core.dll
+C:\Users\univera\.gemini\antigravity\scratch\UnityAnalysis\dotnet-backend\Unity.Core\obj\Release\net9.0\Unity.Core.pdb
+C:\Users\univera\.gemini\antigravity\scratch\UnityAnalysis\dotnet-backend\Unity.Core\obj\Release\net9.0\ref\Unity.Core.dll
