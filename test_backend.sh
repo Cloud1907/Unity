@@ -12,15 +12,9 @@ AUTH_RESPONSE=$(curl -s -X POST "$BASE_URL/auth/login" \
   -H "Content-Type: application/json" \
   -d '{"email": "melih.bulut@univera.com.tr", "password": "test123"}')
 
-TOKEN=$(echo $AUTH_RESPONSE | grep -o '"access_token":"[^"]*' | cut -d'"' -f3)
+TOKEN=$(echo $AUTH_RESPONSE | jq -r '.accessToken // .access_token')
 
-if [ -z "$TOKEN" ]; then
-    TOKEN=$(echo $AUTH_RESPONSE | grep -o '"accessToken":"[^"]*' | cut -d'"' -f3)
-fi
-
-
-
-if [ -z "$TOKEN" ]; then
+if [ "$TOKEN" == "null" ] || [ -z "$TOKEN" ]; then
     echo "Auth failed. Response: $AUTH_RESPONSE"
     exit 1
 fi
@@ -29,15 +23,15 @@ echo "   Token received."
 # 2. Get Project ID (needed for task)
 echo "2. Getting Projects..."
 PROJECTS_RES=$(curl -s -X GET "$BASE_URL/projects" -H "Authorization: Bearer $TOKEN")
-PROJECT_ID=$(echo $PROJECTS_RES | grep -o '"id":[0-9]*' | head -1 | cut -d':' -f2)
+PROJECT_ID=$(echo $PROJECTS_RES | jq -r '.[0].id // empty')
 
-if [ -z "$PROJECT_ID" ]; then
+if [ -z "$PROJECT_ID" ] || [ "$PROJECT_ID" == "null" ]; then
     echo "   No project found. Creating one..."
     PROJ_RES=$(curl -s -X POST "$BASE_URL/projects" \
       -H "Authorization: Bearer $TOKEN" \
       -H "Content-Type: application/json" \
       -d '{"name": "Curl Project", "description": "Test", "color": "#000000"}')
-    PROJECT_ID=$(echo $PROJ_RES | grep -o '"id":[0-9]*' | head -1 | cut -d':' -f2)
+    PROJECT_ID=$(echo $PROJ_RES | jq -r '.id')
 fi
 echo "   Project ID: $PROJECT_ID"
 
@@ -48,7 +42,7 @@ TASK_RES=$(curl -s -X POST "$BASE_URL/tasks" \
   -H "Content-Type: application/json" \
   -d "{\"projectId\": $PROJECT_ID, \"title\": \"Curl Task\", \"status\": \"todo\", \"priority\": \"medium\"}")
 
-TASK_ID=$(echo $TASK_RES | grep -o '"id":[0-9]*' | head -1 | cut -d':' -f2)
+TASK_ID=$(echo $TASK_RES | jq -r '.id')
 echo "   Task Created ID: $TASK_ID"
 
 # 4. Add Subtask
@@ -58,7 +52,7 @@ SUB_RES=$(curl -s -X POST "$BASE_URL/tasks/$TASK_ID/subtasks" \
   -H "Content-Type: application/json" \
   -d '{"title": "Curl Subtask", "isCompleted": false}')
 
-SUB_ID=$(echo $SUB_RES | grep -o '"id":[0-9]*' | head -1 | cut -d':' -f2)
+SUB_ID=$(echo $SUB_RES | jq -r '.id')
 echo "   Subtask Created ID: $SUB_ID"
 
 # 5. Verify Persistence Immediately
