@@ -56,7 +56,7 @@ const TestResults = () => {
                                     <div>
                                         <div className="font-medium text-gray-900 dark:text-gray-100 text-sm">{test.name}</div>
                                         <div className="flex items-center gap-3 mt-1">
-                                            <span className="flex items-center gap-1 text-[10px] text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                                            <span className="flex items-center gap-1 text-[10px] text-gray-500 dark:text-gray-400 capitalize tracking-wider">
                                                 <Clock size={10} /> {test.lastRun}
                                             </span>
                                             <span className="flex items-center gap-1 text-[10px] text-gray-500 dark:text-gray-400 uppercase tracking-wider">
@@ -65,7 +65,7 @@ const TestResults = () => {
                                         </div>
                                     </div>
                                 </div>
-                                <div className={`text-[10px] font-bold px-2 py-0.5 rounded border uppercase tracking-widest ${test.status === 'passed' ? 'bg-green-50 text-green-700 border-green-100' : 'bg-red-50 text-red-700 border-red-100'}`}>
+                                <div className={`text-[10px] font-bold px-2 py-0.5 rounded border capitalize tracking-widest ${test.status === 'passed' ? 'bg-green-50 text-green-700 border-green-100' : 'bg-red-50 text-red-700 border-red-100'}`}>
                                     {test.status === 'passed' ? 'Başarılı' : 'Hata'}
                                 </div>
                             </div>

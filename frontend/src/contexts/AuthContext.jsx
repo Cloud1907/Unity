@@ -29,7 +29,7 @@ export const AuthProvider = ({ children }) => {
       try {
         const u = JSON.parse(storedUser);
         if (u.fullName === 'Test User' || u.username === 'test' || u.email === 'test@example.com') {
-          console.log('Force clearing stale Test User data');
+          // Force clearing stale Test User data
           localStorage.removeItem('token');
           localStorage.removeItem('user');
           setUser(null);
@@ -82,14 +82,12 @@ export const AuthProvider = ({ children }) => {
       let errorMessage = 'Giriş başarısız';
 
       if (error.response) {
-        if (error.response.status === 401) {
+        // Check for backend-provided detail message first
+        if (error.response.data && error.response.data.detail) {
+          errorMessage = error.response.data.detail;
+        } else if (error.response.status === 401) {
+          // Fallback for 401 without detail
           errorMessage = 'E-posta veya şifre hatalı';
-        } else if (error.response.data && error.response.data.detail) {
-          // Backend might send English errors, map them if possible
-          const detail = error.response.data.detail;
-          if (detail.includes('Incorrect email or password')) errorMessage = 'E-posta veya şifre hatalı';
-          else if (detail.includes('User not found')) errorMessage = 'Kullanıcı bulunamadı';
-          else errorMessage = detail; // Fallback to backend message
         }
       }
 
@@ -122,6 +120,19 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  const forgotPassword = async (email) => {
+    try {
+      await authAPI.forgotPassword(email);
+      return { success: true };
+    } catch (error) {
+      console.error('Forgot password failed:', error);
+      return {
+        success: false,
+        error: error.response?.data?.message || 'Şifre sıfırlama işlemi başarısız.'
+      };
+    }
+  };
+
   const logout = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('refreshToken');
@@ -140,6 +151,7 @@ export const AuthProvider = ({ children }) => {
     loading,
     login,
     register,
+    forgotPassword,
     logout,
     updateUser,
     isAuthenticated: !!user,

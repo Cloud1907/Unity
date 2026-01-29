@@ -21,14 +21,13 @@ namespace Unity.API.Controllers
         // Helper: Get Current User ID
         private int GetCurrentUserId()
         {
+
+
             var claimId = User.FindFirst("id")?.Value 
                           ?? User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
             
             if (int.TryParse(claimId, out int uid)) return uid;
             
-            if (Request.Headers.TryGetValue("X-Test-User-Id", out var headerId) && int.TryParse(headerId, out int hid))
-                return hid;
-
             return 0;
         }
 

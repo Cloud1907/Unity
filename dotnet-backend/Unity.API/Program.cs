@@ -5,18 +5,20 @@ var builder = WebApplication.CreateBuilder(args);
 
 // Windows Service support removed (IIS managed)
 
-Console.WriteLine("🚀 STARTING UNITY API v1.11 (Debug Verification)...");
+
 
 // Add services to the container.
 builder.Services.AddControllers()
     .AddJsonOptions(options =>
     {
         options.JsonSerializerOptions.PropertyNameCaseInsensitive = true;
+        options.JsonSerializerOptions.ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles;
     });
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 // Services
+builder.Services.AddScoped<Unity.API.Services.IEmailService, Unity.API.Services.EmailService>();
 builder.Services.AddScoped<Unity.Infrastructure.Services.IAuditService, Unity.Infrastructure.Services.AuditService>();
 
 // CORS for local development
@@ -25,15 +27,26 @@ builder.Services.AddCors(options =>
     options.AddPolicy("AllowAll",
         builder =>
         {
-            builder.AllowAnyOrigin()
+            builder.WithOrigins("http://localhost:3000", "http://127.0.0.1:3000") // Explicit origin required for AllowCredentials
                    .AllowAnyMethod()
-                   .AllowAnyHeader();
+                   .AllowAnyHeader()
+                   .AllowCredentials();
         });
 });
 
 // Database Context (SQL Server)
-var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
-Console.WriteLine($"\n🔍 [DIAGNOSTIC] ACTIVE CONNECTION STRING: {connectionString}\n");
+// Priority: Environment Variable > appsettings.json
+var connectionString = Environment.GetEnvironmentVariable("UNITY_CONNECTION_STRING") 
+    ?? builder.Configuration.GetConnectionString("DefaultConnection");
+
+if (string.IsNullOrEmpty(connectionString))
+{
+    throw new InvalidOperationException(
+        "Connection string not found! Set UNITY_CONNECTION_STRING environment variable or configure DefaultConnection in appsettings.json"
+    );
+}
+
+
 
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlServer(connectionString));
@@ -62,6 +75,14 @@ builder.Services.AddDbContext<AppDbContext>(options =>
         };
     });
 
+// SignalR
+builder.Services.AddSignalR()
+    .AddJsonProtocol(options =>
+    {
+        options.PayloadSerializerOptions.ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles;
+        options.PayloadSerializerOptions.PropertyNameCaseInsensitive = true;
+    });
+
 var app = builder.Build();
 
 // ... existing code ...
@@ -70,17 +91,7 @@ var app = builder.Build();
 app.UseDefaultFiles();
 app.UseStaticFiles();
 
-// EXPLICIT UPLOADS SERVING (Fix for Avatar Issues)
-var uploadsPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads");
-if (!Directory.Exists(uploadsPath)) 
-{
-    Directory.CreateDirectory(uploadsPath);
-}
-app.UseStaticFiles(new StaticFileOptions
-{
-    FileProvider = new Microsoft.Extensions.FileProviders.PhysicalFileProvider(uploadsPath),
-    RequestPath = "/uploads"
-});
+// ... (uploads static files) ...
 
 app.UseCors("AllowAll");
 
@@ -88,6 +99,8 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
+// Register Hub
+app.MapHub<Unity.API.Hubs.AppHub>("/appHub");
 
 // SPA Fallback: Redirect 404s to index.html so React Router handles them
 app.MapFallbackToFile("index.html");

@@ -1,24 +1,18 @@
 import axios from 'axios';
 
 // API Base URL Configuration
-// 1. Check process.env
-// 2. If localhost or empty, use relative path (allows IIS/Nginx proxying)
-// 3. Otherwise use provided URL
+// ALWAYS use relative path for production deployment flexibility
+// This ensures the app works on any domain/protocol without hardcoded URLs
 
 const getBaseUrl = () => {
-  const envUrl = process.env.REACT_APP_BACKEND_URL;
-
-  if (process.env.NODE_ENV === 'development') {
-    return envUrl || 'http://localhost:7000';
-  }
-
-  // Production: Single Port (Frontend embedded in Backend)
-  // Use relative path - no cross-origin needed
+  // FORCE relative path - works with any domain/protocol
+  // Frontend and backend are served from the same origin in production
   return '';
 };
 
 const BASE_URL = getBaseUrl();
 const API_URL = `${BASE_URL}/api`;
+
 
 // Create axios instance
 const api = axios.create({
@@ -36,52 +30,14 @@ api.interceptors.request.use(
       config.headers.Authorization = `Bearer ${token}`;
     }
 
-    // For dev/testing: Add user ID header
-    const userJson = localStorage.getItem('user');
-    if (userJson) {
-      try {
-        const user = JSON.parse(userJson);
-        const userId = user?.id || user?._id; // Check both id and _id
-        if (userId) {
-          console.log(`[API DEBUG] Sending X-Test-User-Id: ${userId} (${user.fullName || user.email})`);
-          config.headers['X-Test-User-Id'] = userId;
-        }
-      } catch (e) {
-        console.error('Failed to parse user from localStorage:', e);
-      }
-    }
+
 
     return config;
   },
   (error) => Promise.reject(error)
 );
 
-// Helper to recursively map id to _id
-const mapIdToUnderscoreId = (data) => {
-  if (!data) return data;
 
-  if (Array.isArray(data)) {
-    return data.map(item => mapIdToUnderscoreId(item));
-  }
-
-  if (typeof data === 'object') {
-    const newData = { ...data };
-    if (newData.id && !newData._id) {
-      newData._id = newData.id;
-    }
-
-    // Process nested objects
-    Object.keys(newData).forEach(key => {
-      if (typeof newData[key] === 'object' && newData[key] !== null) {
-        newData[key] = mapIdToUnderscoreId(newData[key]);
-      }
-    });
-
-    return newData;
-  }
-
-  return data;
-};
 
 let isRefreshing = false;
 let failedQueue = [];
@@ -98,19 +54,20 @@ const processQueue = (error, token = null) => {
   failedQueue = [];
 };
 
-// Handle 401 errors and data mapping
+// Response interceptor
 api.interceptors.response.use(
   (response) => {
-    // Automatically map id to _id for frontend compatibility
-    if (response.data) {
-      response.data = mapIdToUnderscoreId(response.data);
-    }
     return response;
   },
   async (error) => {
     const originalRequest = error.config;
 
     if (error.response?.status === 401 && !originalRequest._retry) {
+      // Do NOT refresh or redirect if the 401 comes from the login endpoint itself
+      if (originalRequest.url.includes('/auth/login')) {
+        return Promise.reject(error);
+      }
+
       if (isRefreshing) {
         return new Promise(function (resolve, reject) {
           failedQueue.push({ resolve, reject });
@@ -168,6 +125,7 @@ export const authAPI = {
   getMe: () => api.get('/auth/me'),
   updateProfile: (data) => api.put('/auth/profile', data),
   changePassword: (data) => api.post('/auth/change-password', data),
+  forgotPassword: (email) => api.post('/auth/forgot-password', { email }),
   refresh: (data) => api.post('/auth/refresh', data),
 };
 

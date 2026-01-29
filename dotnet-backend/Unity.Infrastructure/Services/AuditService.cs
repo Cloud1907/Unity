@@ -1,4 +1,5 @@
 using System;
+using Unity.Core.Helpers;
 using System.Text.Json;
 using System.Threading.Tasks;
 using Unity.Core.Models;
@@ -22,18 +23,24 @@ namespace Unity.Infrastructure.Services
 
         public async Task LogAsync(string userId, string action, string entity, string entityId, object? oldVal, object? newVal, string description)
         {
+            string userName = "System";
+            if (int.TryParse(userId, out int uid) && uid > 0)
+            {
+                var user = await _context.Users.FindAsync(uid);
+                if (user != null) userName = user.FullName;
+            }
+
             var log = new AuditLog
             {
                 UserId = userId,
-                // In a real app, we'd fetch the user's name or cache it. For now leaving empty or "Unknown"
-                UserName = "System", // TODO: Fetch name
+                UserName = userName,
                 Action = action,
                 EntityName = entity,
                 EntityId = entityId,
                 Description = description,
                 OldValues = oldVal != null ? JsonSerializer.Serialize(oldVal) : null,
                 NewValues = newVal != null ? JsonSerializer.Serialize(newVal) : null,
-                Timestamp = DateTime.UtcNow
+                Timestamp = TimeHelper.Now
             };
 
             _context.AuditLogs.Add(log);

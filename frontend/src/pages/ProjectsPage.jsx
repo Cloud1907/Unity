@@ -95,7 +95,7 @@ const ProjectsPage = () => {
             <div key={department} className="space-y-6">
               <div className="flex items-center gap-3 border-b border-gray-200 dark:border-gray-800 pb-2">
                 <div className="w-2 h-6 bg-blue-600 dark:bg-blue-500 rounded-full" />
-                <h2 className="text-xl font-bold text-gray-800 dark:text-gray-200 uppercase tracking-wider">
+                <h2 className="text-xl font-bold text-gray-800 dark:text-gray-200 capitalize tracking-wider">
                   {department}
                 </h2>
                 <span className="px-2 py-0.5 bg-gray-100 dark:bg-gray-800 text-gray-500 rounded text-sm font-medium">

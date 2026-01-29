@@ -1,6 +1,14 @@
 import React, { useState } from 'react';
 import { Check, X } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
+import { getAvatarUrl } from '../utils/avatarHelper';
+
+const getUserColor = (user) => {
+  if (user?.color) return user.color;
+  const colors = ['#e2445c', '#00c875', '#fdab3d', '#579bfc', '#a25ddc', '#784bd1', '#ff642e', '#F59E0B'];
+  const index = (user?.fullName?.length || 0) % colors.length;
+  return colors[index];
+};
 
 // Status Column Inline Editor
 export const InlineStatusCell = ({ value, options, onChange, colors }) => {
@@ -128,9 +136,14 @@ export const InlinePersonCell = ({ value, users, onChange }) => {
               }}
               className="w-full text-left px-2 py-2 rounded text-xs hover:bg-gray-100 transition-colors flex items-center gap-2"
             >
-              <Avatar className="w-5 h-5">
-                <AvatarImage src={user.avatar} />
-                <AvatarFallback className="text-xs">{user.fullName?.charAt(0)}</AvatarFallback>
+              <Avatar className="w-5 h-5 border border-white">
+                <AvatarImage src={user.avatar ? getAvatarUrl(user.avatar) : ''} />
+                <AvatarFallback
+                  className="text-[10px] text-white font-bold"
+                  style={{ backgroundColor: getUserColor(user) }}
+                >
+                  {user.fullName?.charAt(0).toUpperCase()}
+                </AvatarFallback>
               </Avatar>
               <span className="flex-1">{user.fullName}</span>
               {value?.includes(user._id) && <Check size={14} className="text-green-500" />}
@@ -160,9 +173,12 @@ export const InlinePersonCell = ({ value, users, onChange }) => {
     >
       {assignees.map(assignee => (
         <Avatar key={assignee._id} className="w-5 h-5 border border-white">
-          <AvatarImage src={assignee.avatar} />
-          <AvatarFallback className="text-xs">
-            {assignee.fullName?.charAt(0) || 'U'}
+          <AvatarImage src={assignee.avatar ? getAvatarUrl(assignee.avatar) : ''} />
+          <AvatarFallback
+            className="text-[10px] text-white font-bold"
+            style={{ backgroundColor: getUserColor(assignee) }}
+          >
+            {assignee.fullName?.charAt(0).toUpperCase() || 'U'}
           </AvatarFallback>
         </Avatar>
       ))}
@@ -211,9 +227,8 @@ export const InlineDateCell = ({ value, onChange }) => {
         e.stopPropagation();
         setIsEditing(true);
       }}
-      className={`text-xs px-2 py-1 rounded hover:bg-gray-100 transition-colors ${
-        isOverdue ? 'text-red-600 font-semibold' : isUpcoming ? 'text-orange-600' : 'text-gray-600'
-      }`}
+      className={`text-xs px-2 py-1 rounded hover:bg-gray-100 transition-colors ${isOverdue ? 'text-red-600 font-semibold' : isUpcoming ? 'text-orange-600' : 'text-gray-600'
+        }`}
     >
       {formatDate(value)}
     </button>

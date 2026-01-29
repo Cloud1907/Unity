@@ -108,7 +108,7 @@ const TeamPage = () => {
                   <div className="flex items-start gap-3 mb-4">
                     <Avatar className="w-12 h-12">
                       <AvatarImage
-                        src={getAvatarUrl(user.avatar)}
+                        src={getAvatarUrl(user.avatar, user.gender, user.fullName, user.color)}
                         alt={user.fullName}
                       />
                       <AvatarFallback style={{ backgroundColor: user.color }}>

@@ -4,7 +4,8 @@ import ModernTaskModal from './ModernTaskModal';
 import { User, Calendar, Layers, ChevronDown, ChevronRight, Download, MessageSquare, Paperclip } from 'lucide-react';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
-import { toast } from 'react-hot-toast';
+import { toast } from 'sonner';
+import { getAvatarUrl } from '../utils/avatarHelper';
 
 // Minimalist 2-color scheme
 const getStatusColor = (statusId) => {
@@ -14,7 +15,7 @@ const getStatusColor = (statusId) => {
   return '#cbd5e1'; // Soft Gray (not completed)
 };
 
-const GanttView = ({ boardId }) => {
+const GanttView = ({ boardId, filters, searchQuery }) => {
   const { tasks, fetchTasks, users, projects } = useData();
   const [selectedTask, setSelectedTask] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -43,9 +44,39 @@ const GanttView = ({ boardId }) => {
     }
   }, [boardId]);
 
-  const boardTasks = useMemo(() =>
-    tasks.filter(t => t.projectId === Number(boardId)),
-    [tasks, boardId]);
+  const boardTasks = useMemo(() => {
+    let filtered = tasks.filter(t => t.projectId === Number(boardId));
+
+    // Apply Search
+    if (searchQuery) {
+      const lowerQuery = searchQuery.toLowerCase();
+      filtered = filtered.filter(task =>
+        task.title?.toLowerCase().includes(lowerQuery) ||
+        users.find(u => task.assignees?.includes(u._id || u.id))?.fullName?.toLowerCase().includes(lowerQuery)
+      );
+    }
+
+    // Apply Filters
+    if (filters) {
+      if (filters.status?.length > 0) {
+        filtered = filtered.filter(task => filters.status.includes(task.status));
+      }
+      if (filters.priority?.length > 0) {
+        filtered = filtered.filter(task => filters.priority.includes(task.priority));
+      }
+      if (filters.assignee?.length > 0) {
+        filtered = filtered.filter(task =>
+          task.assignees?.some(assigneeId => filters.assignee.includes(assigneeId))
+        );
+      }
+      if (filters.labels?.length > 0) {
+        filtered = filtered.filter(task =>
+          task.labels?.some(labelId => filters.labels.includes(labelId))
+        );
+      }
+    }
+    return filtered;
+  }, [tasks, boardId, searchQuery, filters, users]);
 
   React.useEffect(() => {
     if (boardTasks.length > 0) {
@@ -105,12 +136,10 @@ const GanttView = ({ boardId }) => {
       const dateRangeText = `${dateRange.start.toLocaleDateString('tr-TR')} - ${dateRange.end.toLocaleDateString('tr-TR')}`;
 
       const canvas = await html2canvas(element, {
-        scale: 1.5,
+        scale: 2, // Higher quality
         useCORS: true,
         logging: false,
-        backgroundColor: '#ffffff',
-        windowWidth: element.scrollWidth,
-        windowHeight: element.scrollHeight
+        backgroundColor: '#ffffff'
       });
 
       const pdf = new jsPDF({
@@ -183,6 +212,7 @@ const GanttView = ({ boardId }) => {
               id: userId,
               name: user?.fullName || 'Bilinmeyen',
               avatar: user?.avatar,
+              gender: user?.gender,
               tasks: []
             };
           }
@@ -209,6 +239,11 @@ const GanttView = ({ boardId }) => {
   const getUserName = (userId) => {
     const user = getUser(userId);
     return user?.fullName || 'Bilinmeyen Kullanıcı';
+  };
+
+  const getUserGender = (userId) => {
+    const user = getUser(userId);
+    return user?.gender || null;
   };
 
   return (
@@ -278,8 +313,8 @@ const GanttView = ({ boardId }) => {
           </div>
         </div>
 
-        <div className="flex-1 overflow-auto" ref={ganttRef}>
-          <div className="min-w-max">
+        <div className="flex-1 overflow-auto">
+          <div className="min-w-max" ref={ganttRef}>
             {/* Timeline Header */}
             <div className="sticky top-0 bg-white dark:bg-slate-900 border-b border-gray-200 dark:border-gray-700 z-20 shadow-sm">
               {/* Months */}
@@ -347,8 +382,15 @@ const GanttView = ({ boardId }) => {
                 <React.Fragment key={group.id}>
                   {groupBy !== 'none' && (
                     <div className="sticky left-0 right-0 px-4 py-2 bg-gray-100 dark:bg-slate-800/90 border-b border-gray-200 dark:border-gray-700 font-bold text-sm text-gray-700 dark:text-gray-200 flex items-center gap-2 backdrop-blur z-10 shadow-sm">
-                      {group.avatar && (
-                        <img src={group.avatar.startsWith('http') ? group.avatar : `http://localhost:7000${group.avatar}`} className="w-5 h-5 rounded-full" alt="" />
+                      {group.avatar && getAvatarUrl(group.avatar) ? (
+                        <img src={getAvatarUrl(group.avatar)} className="w-5 h-5 rounded-full object-cover" alt="" />
+                      ) : (
+                        <div
+                          className="w-5 h-5 rounded-full flex items-center justify-center text-[10px] text-white font-bold"
+                          style={{ backgroundColor: users.find(u => u._id == group.id || u.id == group.id)?.color || '#6366f1' }}
+                        >
+                          {group.name?.charAt(0)}
+                        </div>
                       )}
                       {group.name}
                       <span className="text-xs font-normal text-gray-500 ml-2">({group.tasks.length} Görev)</span>
@@ -442,14 +484,30 @@ const GanttView = ({ boardId }) => {
                                   backgroundColor: getStatusColor(task.status),
                                 }}
                               >
-                                {task.assignees && task.assignees.length > 0 && (
-                                  <img
-                                    src={assigneeAvatar ? (assigneeAvatar.startsWith('http') ? assigneeAvatar : `http://localhost:7000${assigneeAvatar}`) : `https://api.dicebear.com/7.x/avataaars/svg?seed=${task.assignees[0]}`}
-                                    alt="Assignee"
-                                    title={getUserName(task.assignees[0])}
-                                    className="w-5 h-5 rounded-full border border-white/50 shrink-0"
-                                  />
-                                )}
+                                {task.assignees && task.assignees.length > 0 && (() => {
+                                  const avatarUrl = assigneeAvatar ? getAvatarUrl(assigneeAvatar) : '';
+                                  const user = getUser(task.assignees[0]);
+                                  if (avatarUrl) {
+                                    return (
+                                      <img
+                                        src={avatarUrl}
+                                        alt="Assignee"
+                                        title={getUserName(task.assignees[0])}
+                                        className="w-5 h-5 rounded-full border border-white/50 shrink-0 object-cover"
+                                      />
+                                    );
+                                  } else {
+                                    return (
+                                      <div
+                                        className="w-5 h-5 rounded-full border border-white/50 shrink-0 flex items-center justify-center text-[9px] font-bold text-white uppercase"
+                                        style={{ backgroundColor: user?.color || '#6366f1' }}
+                                        title={getUserName(task.assignees[0])}
+                                      >
+                                        {getUserName(task.assignees[0])?.charAt(0)}
+                                      </div>
+                                    );
+                                  }
+                                })()}
 
                                 {duration > 2 && (
                                   <span className="text-[10px] font-bold text-white truncate flex-1">

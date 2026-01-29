@@ -8,6 +8,7 @@ import { getAvatarUrl } from '../utils/avatarHelper';
 import NewProjectModal from './NewProjectModal';
 import WorkspaceSettingsModal from './WorkspaceSettingsModal';
 import NewWorkspaceModal from './NewWorkspaceModal';
+import { DynamicIcon } from './IconPicker';
 import pkg from '../../package.json';
 
 // User Profile Component
@@ -21,15 +22,18 @@ const UserProfile = () => {
     <div className="relative">
       <button
         onClick={() => setShowMenu(!showMenu)}
+        aria-label="Kullanıcı Menüsü"
+        aria-expanded={showMenu}
         className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-all duration-200 group border border-transparent hover:border-slate-200 dark:hover:border-slate-700"
       >
+
         <Avatar className="w-9 h-9 border-2 border-white dark:border-slate-800 shadow-sm group-hover:border-indigo-100 transition-colors">
           <AvatarImage
-            src={getAvatarUrl(user.avatar)}
+            src={getAvatarUrl(user.avatar, user.gender, user.fullName, user.color)}
             alt={user.fullName}
           />
-          <AvatarFallback style={{ backgroundColor: user.color }} className="text-white font-medium">
-            {user.fullName?.charAt(0)}
+          <AvatarFallback style={{ backgroundColor: user.color }} className="text-white font-medium text-xs">
+            {user.fullName?.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2)}
           </AvatarFallback>
         </Avatar>
         <div className="flex-1 text-left overflow-hidden">
@@ -161,8 +165,10 @@ const Sidebar = ({ currentBoard, onBoardChange, onNewBoard }) => {
       <div className="md:hidden fixed bottom-6 left-6 z-30">
         <button
           onClick={() => setIsMobileOpen(true)}
+          aria-label="Menüyü Aç"
           className="w-12 h-12 bg-indigo-600 text-white rounded-full shadow-lg shadow-indigo-200 dark:shadow-none flex items-center justify-center active:scale-95 transition-transform"
         >
+
           <Menu size={20} />
         </button>
       </div>
@@ -187,9 +193,14 @@ const Sidebar = ({ currentBoard, onBoardChange, onNewBoard }) => {
 
         {/* Mobile Close Button */}
         <div className="md:hidden absolute top-4 right-4">
-          <button onClick={() => setIsMobileOpen(false)} className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800">
+          <button
+            onClick={() => setIsMobileOpen(false)}
+            aria-label="Menüyü Kapat"
+            className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800"
+          >
             <X size={20} />
           </button>
+
         </div>
 
         {/* Navigation */}
@@ -214,7 +225,7 @@ const Sidebar = ({ currentBoard, onBoardChange, onNewBoard }) => {
 
           {/* Workspaces (Formerly Boards grouped by Department) */}
           <div className="space-y-1">
-            <div className="px-3 py-1 flex items-center justify-between text-xs font-semibold text-slate-400 uppercase tracking-wider group">
+            <div className="px-3 py-1 flex items-center justify-between text-xs font-semibold text-slate-400 capitalize tracking-wider group">
               <button
                 onClick={() => toggleSection('boards')}
                 className="flex items-center gap-1 hover:text-slate-600 dark:hover:text-slate-300 transition-colors"
@@ -278,19 +289,19 @@ const Sidebar = ({ currentBoard, onBoardChange, onNewBoard }) => {
                         <Link
                           key={board._id}
                           to={`/board/${board._id}`}
-                          className={`group w-full flex items-center gap-1.5 px-3 py-1 rounded-md transition-all text-[13px] ${currentBoard === board._id
-                            ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 font-medium border-r-2 border-blue-600'
-                            : 'text-gray-600 dark:text-slate-400 hover:bg-gray-50 dark:hover:bg-slate-800 font-normal'
+                          className={`group w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-all text-sm font-medium relative overflow-hidden ${currentBoard === board._id
+                            ? 'bg-indigo-50 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-300'
+                            : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'
                             }`}
                         >
+                          {/* Elegant Color Line */}
                           <div
-                            className="w-1 rounded-full h-6 transition-all"
-                            style={{ backgroundColor: board.color }}
+                            className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-3/5 rounded-r-full transition-opacity"
+                            style={{ backgroundColor: board.color || '#4F46E5', opacity: currentBoard === board._id ? 1 : 0.6 }}
                           />
-                          <span className="flex-1 text-left truncate flex items-center gap-1.5">
-                            {board.name}
-                            {board.isPrivate && <Lock size={12} className="text-slate-400" />}
-                          </span>
+
+                          <span className="flex-1 truncate pl-2">{board.name}</span>
+                          {board.isPrivate && <Lock size={12} className="text-slate-400 flex-shrink-0" />}
                         </Link>
                       ))
                       }
@@ -325,15 +336,15 @@ const Sidebar = ({ currentBoard, onBoardChange, onNewBoard }) => {
           </div>
         </div>
 
-      </div>
+      </div >
 
       {/* New Project Modal - Moved outside to escape sidebar constraints */}
-      <NewProjectModal
+      < NewProjectModal
         isOpen={showNewProjectModal}
         onClose={() => setShowNewProjectModal(false)}
       />
 
-      <WorkspaceSettingsModal
+      < WorkspaceSettingsModal
         isOpen={showWorkspaceSettings}
         onClose={() => setShowWorkspaceSettings(false)}
         initialWorkspace={selectedWorkspace}

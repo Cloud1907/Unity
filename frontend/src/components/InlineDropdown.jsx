@@ -76,9 +76,10 @@ const InlineDropdown = ({ value, options, onChange, colorKey = 'color', labelKey
                     className="w-full flex items-center gap-2 px-3 py-2 text-xs font-semibold hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors"
                 >
                     <div
-                        className="w-3 h-3 rounded-full"
+                        className="w-3 h-3 rounded-full shrink-0"
                         style={{ backgroundColor: option[colorKey] }}
                     />
+                    {option.icon && <span className="shrink-0 opacity-70">{option.icon}</span>}
                     <span className="text-gray-900 dark:text-gray-200">{option[labelKey]}</span>
                     {value === option.id && (
                         <span className="ml-auto text-[#6366f1] dark:text-[#818cf8]">✓</span>
@@ -101,6 +102,7 @@ const InlineDropdown = ({ value, options, onChange, colorKey = 'color', labelKey
                     }}
                     className={`group inline-flex items-center gap-2 px-3 py-1.5 rounded-md text-xs font-medium transition-all ${colors.bg} ${colors.text} border ${colors.border} hover:shadow-sm`}
                 >
+                    {currentOption.icon && <span className="shrink-0">{currentOption.icon}</span>}
                     <span className="truncate whitespace-nowrap flex-1 text-left">{currentOption[labelKey]}</span>
                     <ChevronDown size={12} className="opacity-50 group-hover:opacity-100 transition-opacity" />
                 </button>

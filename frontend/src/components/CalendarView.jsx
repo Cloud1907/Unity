@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useData } from '../contexts/DataContext';
 import ModernTaskModal from './ModernTaskModal';
@@ -12,8 +12,8 @@ const statuses = [
   { id: 'review', label: 'İncelemede', color: '#579bfc' }
 ];
 
-const CalendarView = ({ boardId }) => {
-  const { tasks, fetchTasks } = useData();
+const CalendarView = ({ boardId, filters, searchQuery }) => {
+  const { tasks, fetchTasks, users } = useData();
   const [selectedTask, setSelectedTask] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -25,7 +25,39 @@ const CalendarView = ({ boardId }) => {
     }
   }, [boardId]);
 
-  const boardTasks = tasks.filter(t => t.projectId === Number(boardId));
+  const boardTasks = useMemo(() => {
+    let filtered = tasks.filter(t => t.projectId === Number(boardId));
+
+    // Apply Search
+    if (searchQuery) {
+      const lowerQuery = searchQuery.toLowerCase();
+      filtered = filtered.filter(task =>
+        task.title?.toLowerCase().includes(lowerQuery) ||
+        users.find(u => task.assignees?.includes(u._id || u.id))?.fullName?.toLowerCase().includes(lowerQuery)
+      );
+    }
+
+    // Apply Filters
+    if (filters) {
+      if (filters.status?.length > 0) {
+        filtered = filtered.filter(task => filters.status.includes(task.status));
+      }
+      if (filters.priority?.length > 0) {
+        filtered = filtered.filter(task => filters.priority.includes(task.priority));
+      }
+      if (filters.assignee?.length > 0) {
+        filtered = filtered.filter(task =>
+          task.assignees?.some(assigneeId => filters.assignee.includes(assigneeId))
+        );
+      }
+      if (filters.labels?.length > 0) {
+        filtered = filtered.filter(task =>
+          task.labels?.some(labelId => filters.labels.includes(labelId))
+        );
+      }
+    }
+    return filtered;
+  }, [tasks, boardId, searchQuery, filters, users]);
 
   const getStatusColor = (statusId) => {
     return statuses.find(s => s.id === statusId)?.color || '#c4c4c4';

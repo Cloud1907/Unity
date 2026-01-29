@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Authorization;
+using Unity.Core.Helpers;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
@@ -35,6 +36,7 @@ namespace Unity.API.Controllers
         {
             var userId = GetCurrentUserId();
             var user = await _context.Users.AsNoTracking()
+                .Include(u => u.Departments)
                 .FirstOrDefaultAsync(u => u.Id == userId);
             
             return user ?? throw new UnauthorizedAccessException("User not found.");
@@ -45,13 +47,15 @@ namespace Unity.API.Controllers
         public async Task<ActionResult<IEnumerable<UserDto>>> GetUsers()
         {
             var currentUser = await GetCurrentUserWithDeptsAsync();
-            var userDepts = currentUser.Departments ?? new List<int>();
+            var userDepts = currentUser.Departments?.Select(d => d.DepartmentId).ToList() ?? new List<int>();
 
             // Optimization warning: Fetching all users is okay for small companies (<1000 users), 
             // but for Enterprise scaling (>10k), this should be paginated (skip/take).
             // Keeping list for now to satisfy current frontend requirements.
             
-            var allUsers = await _context.Users.AsNoTracking().ToListAsync();
+            var allUsers = await _context.Users.AsNoTracking()
+                .Include(u => u.Departments)
+                .ToListAsync();
             
             // Allow all authenticated users to see the full user directory (Collaboration requirement)
             var visibleUsers = allUsers.Select(u => new UserDto
@@ -63,8 +67,8 @@ namespace Unity.API.Controllers
                 Role = u.Role,
                 Avatar = u.Avatar,
                 Color = u.Color,
-                Department = u.Departments.FirstOrDefault(),
-                Departments = u.Departments,
+                Department = u.Departments.Select(d => d.DepartmentId).FirstOrDefault(),
+                Departments = u.Departments.Select(d => d.DepartmentId).ToList(),
                 JobTitle = u.JobTitle
             }).ToList();
 
@@ -96,11 +100,11 @@ namespace Unity.API.Controllers
                 FullName = request.FullName,
                 Email = request.Email,
                 Role = request.Role,
-                Departments = request.Departments,
+                Departments = request.Departments?.Select(id => new UserDepartment { DepartmentId = id }).ToList() ?? new List<UserDepartment>(),
                 JobTitle = request.JobTitle,
                 PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password),
-                CreatedAt = DateTime.UtcNow,
-                UpdatedAt = DateTime.UtcNow,
+                CreatedAt = TimeHelper.Now,
+                UpdatedAt = TimeHelper.Now,
                 Username = string.IsNullOrEmpty(request.Username) ? request.Email.Split('@')[0] : request.Username
             };
 
@@ -114,8 +118,11 @@ namespace Unity.API.Controllers
                 Email = user.Email,
                 FullName = user.FullName,
                 Role = user.Role,
-                Departments = user.Departments,
-                JobTitle = user.JobTitle
+                Departments = user.Departments.Select(d => d.DepartmentId).ToList(),
+                JobTitle = user.JobTitle,
+                Avatar = user.Avatar,
+                Color = user.Color,
+                Gender = user.Gender
             });
         }
 
@@ -130,7 +137,9 @@ namespace Unity.API.Controllers
             // Only allow self-update or admin
             if (currentUser.Id != id && currentUser.Role != "admin") return Forbid();
 
-            var existingUser = await _context.Users.FirstOrDefaultAsync(u => u.Id == id);
+            var existingUser = await _context.Users
+                .Include(u => u.Departments)
+                .FirstOrDefaultAsync(u => u.Id == id);
             if (existingUser == null) return NotFound();
 
             // Update allowed fields
@@ -140,7 +149,7 @@ namespace Unity.API.Controllers
             existingUser.Avatar = user.Avatar; 
             existingUser.Color = user.Color ?? existingUser.Color;
             existingUser.JobTitle = user.JobTitle ?? existingUser.JobTitle;
-            existingUser.UpdatedAt = DateTime.UtcNow;
+            existingUser.UpdatedAt = TimeHelper.Now;
 
             if (!string.IsNullOrEmpty(user.Password))
             {
@@ -151,9 +160,17 @@ namespace Unity.API.Controllers
             if (currentUser.Role == "admin")
             {
                 existingUser.Role = user.Role ?? existingUser.Role;
-                if (user.Departments != null && user.Departments.Count > 0)
+                
+                // Safe Update for Departments
+                if (user.Departments != null)
                 {
-                    existingUser.Departments = user.Departments;
+                    existingUser.Departments.Clear();
+                    foreach (var dept in user.Departments)
+                    {
+                        // Ensure UserId is set correctly (though EF might handle it via nav prop)
+                        dept.UserId = existingUser.Id; 
+                        existingUser.Departments.Add(dept);
+                    }
                 }
             }
 

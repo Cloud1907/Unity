@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useData } from '../contexts/DataContext';
 import { useTheme } from '../contexts/ThemeContext';
-import { Camera, User, Mail, Lock, Save, X, Upload, Settings as SettingsIcon, Bell, Shield, Palette } from 'lucide-react';
+import { Camera, User, Mail, Lock, Save, X, Upload, Settings as SettingsIcon, Bell, Shield, Palette, Venus, Mars, RefreshCw } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '../components/ui/avatar';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
@@ -13,6 +14,7 @@ import api, { authAPI } from '../services/api';
 import { getAvatarUrl } from '../utils/avatarHelper';
 
 const Settings = () => {
+  const navigate = useNavigate();
   const { user, updateUser } = useAuth();
   const { users } = useData();
   const { theme, setThemeMode } = useTheme();
@@ -26,6 +28,7 @@ const Settings = () => {
     bio: user?.bio || '',
     phone: user?.phone || '',
     location: user?.location || '',
+    gender: user?.gender || '',
     currentPassword: '',
     newPassword: '',
     confirmPassword: ''
@@ -39,17 +42,31 @@ const Settings = () => {
     { id: 'appearance', label: 'Görünüm', icon: Palette }
   ];
 
-  // Avatar seçimi için color palette
+  // Avatar seçimi için color palette (Hex codes to avoid backend length issues)
   const avatarColors = [
-    { bg: 'from-blue-500 to-indigo-600', name: 'Mavi' },
-    { bg: 'from-purple-500 to-pink-600', name: 'Mor' },
-    { bg: 'from-green-500 to-teal-600', name: 'Yeşil' },
-    { bg: 'from-orange-500 to-red-600', name: 'Turuncu' },
-    { bg: 'from-yellow-500 to-orange-600', name: 'Sarı' },
-    { bg: 'from-pink-500 to-rose-600', name: 'Pembe' },
-    { bg: 'from-gray-600 to-gray-800', name: 'Gri' },
-    { bg: 'from-cyan-500 to-blue-600', name: 'Cyan' }
+    { bg: '#3b82f6', name: 'Mavi', class: 'bg-blue-500' },
+    { bg: '#8b5cf6', name: 'Mor', class: 'bg-purple-500' },
+    { bg: '#10b981', name: 'Yeşil', class: 'bg-emerald-500' },
+    { bg: '#f97316', name: 'Turuncu', class: 'bg-orange-500' },
+    { bg: '#eab308', name: 'Sarı', class: 'bg-yellow-500' },
+    { bg: '#ef4444', name: 'Kırmızı', class: 'bg-red-500' },
+    { bg: '#6b7280', name: 'Gri', class: 'bg-gray-500' },
+    { bg: '#06b6d4', name: 'Cyan', class: 'bg-cyan-500' }
   ];
+
+  const handleColorSelect = (color) => {
+    setFormData({ ...formData, color: color.bg });
+
+    // Immediate Preview Update
+    // We explicitly regenerate the URL with the NEW color to show it immediately
+    // Remove # for Dicebear API
+    const cleanColor = color.bg.replace('#', '');
+    const seed = formData.fullName || user?.fullName || 'User';
+    const newAvatarUrl = `https://api.dicebear.com/9.x/initials/svg?seed=${seed}&backgroundColor=${cleanColor}`;
+    setAvatarPreview(newAvatarUrl);
+
+    toast.info(`${color.name} renk seçildi`);
+  };
 
   const handleInputChange = (e) => {
     setFormData({
@@ -94,10 +111,11 @@ const Settings = () => {
       const updateData = {
         fullName: formData.fullName,
         avatar: formData.avatar || avatarPreview || user?.avatar,
-        color: formData.color || user?.color
+        color: formData.color || user?.color,
+        gender: formData.gender
       };
 
-      console.log('DEBUG [Settings.handleSaveProfile]: Sending update:', updateData);
+      // DEBUG: Sending profile update
       const response = await authAPI.updateProfile(updateData);
 
       if (response.data) {
@@ -113,6 +131,16 @@ const Settings = () => {
       console.error('Profile update error:', error);
       toast.error('Profil güncellenemedi: ' + (error.response?.data?.detail || error.message));
     }
+  };
+
+  const generateNewAvatar = () => {
+    // Standard professional seeds for a "Global Site" look
+    // Using Initials collection for a clean, corporate style
+    let seed = user?.fullName || 'User';
+    const newAvatar = `https://api.dicebear.com/9.x/initials/svg?seed=${seed}&backgroundColor=b6e3f4,c0aede,d1d4f9`;
+    setAvatarPreview(newAvatar);
+    setFormData({ ...formData, avatar: newAvatar });
+    toast.success('Profesyonel avatar oluşturuldu! Kaydetmeyi unutmayın.');
   };
 
   const handleChangePassword = async () => {
@@ -148,7 +176,7 @@ const Settings = () => {
               <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Ayarlar</h1>
               <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Profil ve hesap ayarlarını yönetin</p>
             </div>
-            <Button variant="outline" onClick={() => window.history.back()}>
+            <Button variant="outline" onClick={() => navigate('/dashboard')}>
               <X size={16} className="mr-2" />
               Kapat
             </Button>
@@ -203,10 +231,10 @@ const Settings = () => {
                       <div className="relative">
                         <Avatar className="w-24 h-24 border-4 border-white shadow-lg">
                           <AvatarImage
-                            src={getAvatarUrl(avatarPreview || user?.avatar)}
+                            src={getAvatarUrl(avatarPreview || user?.avatar, user?.gender, user?.fullName, user?.color)}
                           />
-                          <AvatarFallback className="text-2xl">
-                            {user?.fullName?.charAt(0) || 'K'}
+                          <AvatarFallback className="text-2xl font-bold bg-slate-100 text-slate-400">
+                            {user?.fullName?.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2) || 'UN'}
                           </AvatarFallback>
                         </Avatar>
                         {isEditing && (
@@ -225,24 +253,35 @@ const Settings = () => {
                       <div className="flex-1">
                         <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{user?.fullName}</h3>
                         <p className="text-sm text-gray-500 dark:text-gray-400">{user?.email}</p>
-                        <p className="text-xs text-gray-400 dark:text-gray-500 mt-2">Üye olma tarihi: {new Date(user?.createdAt).toLocaleDateString('tr-TR')}</p>
+                        <p className="text-xs text-gray-400 dark:text-gray-500 mt-2">
+                          Üye olma tarihi: {user?.createdAt && user.createdAt !== '0001-01-01T00:00:00' && !isNaN(new Date(user.createdAt).getTime()) ? new Date(user.createdAt).toLocaleDateString('tr-TR') : 'Bilinmiyor'}
+                        </p>
 
                         {isEditing && (
-                          <div className="mt-4">
-                            <p className="text-xs font-semibold text-gray-700 dark:text-gray-300 mb-2">Avatar Rengi Seç:</p>
-                            <div className="flex gap-2 flex-wrap">
-                              {avatarColors.map((color, idx) => (
-                                <button
-                                  key={idx}
-                                  onClick={() => {
-                                    setFormData({ ...formData, color: color.bg });
-                                    toast.info(`${color.name} renk seçildi`);
-                                  }}
-                                  className={`w-10 h-10 rounded-full bg-gradient-to-br ${color.bg} hover:scale-110 transition-transform border-2 ${formData.color === color.bg ? 'border-blue-500 scale-110 shadow-lg' : 'border-white shadow-md'}`}
-                                  title={color.name}
-                                />
-                              ))}
+                          <div className="mt-4 space-y-4">
+                            <div>
+                              <p className="text-xs font-semibold text-gray-700 dark:text-gray-300 mb-2">Avatar Rengi Seç:</p>
+                              <div className="flex gap-2 flex-wrap">
+                                {avatarColors.map((color, idx) => (
+                                  <button
+                                    key={idx}
+                                    onClick={() => handleColorSelect(color)}
+                                    className={`w-10 h-10 rounded-full ${color.class} hover:scale-110 transition-transform border-2 ${formData.color === color.bg ? 'border-blue-500 scale-110 shadow-lg' : 'border-white shadow-md'}`}
+                                    title={color.name}
+                                  />
+                                ))}
+                              </div>
                             </div>
+
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={generateNewAvatar}
+                              className="text-xs h-8"
+                            >
+                              <RefreshCw size={14} className="mr-2" />
+                              Yerele Göre Avatar Yenile
+                            </Button>
                           </div>
                         )}
                       </div>
@@ -251,6 +290,8 @@ const Settings = () => {
 
                   {/* Profile Form */}
                   <div className="space-y-6">
+                    {/* Gender Selection Removed per User Request */}
+
                     <div className="grid grid-cols-2 gap-6">
                       <div>
                         <Label htmlFor="fullName">Ad Soyad</Label>

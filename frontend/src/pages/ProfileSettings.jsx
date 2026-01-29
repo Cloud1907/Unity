@@ -4,6 +4,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { authAPI } from '../services/api';
 import { toast } from '../components/ui/sonner';
 import { Avatar, AvatarFallback, AvatarImage } from '../components/ui/avatar';
+import { getAvatarUrl } from '../utils/avatarHelper';
 
 const ProfileSettings = () => {
   const { user, updateUser } = useAuth();
@@ -134,8 +135,11 @@ const ProfileSettings = () => {
                   <div className="flex items-center gap-6 mb-8 pb-8 border-b border-gray-200 dark:border-gray-800">
                     <div className="relative">
                       <Avatar className="w-24 h-24">
-                        <AvatarImage src={profileForm.avatar} />
-                        <AvatarFallback className="bg-gradient-to-br from-blue-400 to-purple-500 text-white text-2xl font-bold">
+                        <AvatarImage src={getAvatarUrl(profileForm.avatar, null, profileForm.fullName, profileForm.color)} />
+                        <AvatarFallback
+                          className="text-white text-2xl font-bold"
+                          style={{ backgroundColor: profileForm.color || '#6366f1' }}
+                        >
                           {profileForm.fullName?.charAt(0) || 'U'}
                         </AvatarFallback>
                       </Avatar>

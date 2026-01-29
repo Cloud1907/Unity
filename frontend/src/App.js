@@ -15,7 +15,7 @@ function App() {
 
     if (!isPreviewEnv) return;
 
-    console.log('🛡️ Emergent Preview body lock protection enabled');
+    // Body lock protection enabled
 
     const unlockBody = () => {
       if (document.body) {
@@ -51,7 +51,7 @@ function App() {
     return () => {
       observer.disconnect();
       clearInterval(intervalId);
-      console.log('🛡️ Body lock protection cleaned up');
+      // Body lock protection cleaned up
     };
   }, []);
 

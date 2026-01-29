@@ -5,13 +5,15 @@ import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { toast } from '../components/ui/sonner';
+import { User, UserRound } from 'lucide-react';
 
 const Register = () => {
   const [formData, setFormData] = useState({
     fullName: '',
     email: '',
     password: '',
-    confirmPassword: ''
+    confirmPassword: '',
+    gender: ''
   });
   const [loading, setLoading] = useState(false);
   const { register } = useAuth();
@@ -21,6 +23,13 @@ const Register = () => {
     setFormData({
       ...formData,
       [e.target.name]: e.target.value
+    });
+  };
+
+  const handleGenderSelect = (gender) => {
+    setFormData({
+      ...formData,
+      gender: gender
     });
   };
 
@@ -37,22 +46,28 @@ const Register = () => {
       return;
     }
 
+    if (!formData.gender) {
+      toast.error('Lütfen cinsiyet seçiniz!');
+      return;
+    }
+
     setLoading(true);
 
     const result = await register({
       fullName: formData.fullName,
       email: formData.email,
       password: formData.password,
+      gender: formData.gender,
       role: 'member'
     });
-    
+
     if (result.success) {
       toast.success('Kayıt başarılı!');
       navigate('/');
     } else {
       toast.error(result.error);
     }
-    
+
     setLoading(false);
   };
 
@@ -71,7 +86,7 @@ const Register = () => {
         {/* Register Form */}
         <div className="bg-white rounded-lg shadow-lg p-8">
           <h2 className="text-2xl font-semibold text-gray-900 mb-6">Kayıt Ol</h2>
-          
+
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <Label htmlFor="fullName">Ad Soyad</Label>
@@ -99,6 +114,42 @@ const Register = () => {
                 required
                 className="mt-1"
               />
+            </div>
+
+            {/* Gender Selection */}
+            <div>
+              <Label>Cinsiyet</Label>
+              <div className="mt-2 flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => handleGenderSelect('male')}
+                  className={`flex-1 flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all duration-200 ${formData.gender === 'male'
+                      ? 'border-blue-500 bg-blue-50 text-blue-600'
+                      : 'border-gray-200 hover:border-gray-300 text-gray-500 hover:bg-gray-50'
+                    }`}
+                >
+                  <div className={`p-3 rounded-full ${formData.gender === 'male' ? 'bg-blue-100' : 'bg-gray-100'
+                    }`}>
+                    <User size={24} />
+                  </div>
+                  <span className="text-sm font-medium">Erkek</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => handleGenderSelect('female')}
+                  className={`flex-1 flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all duration-200 ${formData.gender === 'female'
+                      ? 'border-pink-500 bg-pink-50 text-pink-600'
+                      : 'border-gray-200 hover:border-gray-300 text-gray-500 hover:bg-gray-50'
+                    }`}
+                >
+                  <div className={`p-3 rounded-full ${formData.gender === 'female' ? 'bg-pink-100' : 'bg-gray-100'
+                    }`}>
+                    <UserRound size={24} />
+                  </div>
+                  <span className="text-sm font-medium">Kadın</span>
+                </button>
+              </div>
             </div>
 
             <div>

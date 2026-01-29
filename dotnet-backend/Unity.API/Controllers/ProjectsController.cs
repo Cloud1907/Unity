@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Authorization;
+using Unity.Core.Helpers;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
@@ -22,6 +23,8 @@ namespace Unity.API.Controllers
 
         private int GetCurrentUserId()
         {
+
+
             var claimId = User.FindFirst("id")?.Value 
                           ?? User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 
@@ -36,6 +39,7 @@ namespace Unity.API.Controllers
         {
             var userId = GetCurrentUserId();
             var user = await _context.Users.AsNoTracking()
+                .Include(u => u.Departments)
                 .FirstOrDefaultAsync(u => u.Id == userId);
                 
             return user ?? throw new UnauthorizedAccessException("User not found.");
@@ -45,19 +49,22 @@ namespace Unity.API.Controllers
         public async Task<ActionResult<IEnumerable<Project>>> GetProjects()
         {
             var currentUser = await GetCurrentUserWithDeptsAsync();
-            var userDepts = currentUser.Departments ?? new List<int>();
+            var userDepts = currentUser.Departments?.Select(d => d.DepartmentId).ToList() ?? new List<int>();
 
             // Enterprise Optimization: 
             // Fetching as NoTracking for read performance.
             // Note: 'Members' is stored as JSON, preventing full SQL-side filtering for that field without schema changes.
             // We filter strictly on SQL-compatible fields first to minimize memory footprint.
             
-            var allProjects = await _context.Projects.AsNoTracking().ToListAsync();
+            var allProjects = await _context.Projects.AsNoTracking()
+                .Include(p => p.Members)
+                .ToListAsync();
 
             var visibleProjects = allProjects.Where(p => 
                 currentUser.Role == "admin" ||
                 p.Owner == currentUser.Id || 
-                p.Members.Contains(currentUser.Id) || 
+                p.Owner == currentUser.Id || 
+                p.Members.Any(PM => PM.UserId == currentUser.Id) || 
                 (userDepts.Contains(p.DepartmentId) && !p.IsPrivate)
             ).ToList();
 
@@ -67,7 +74,9 @@ namespace Unity.API.Controllers
         [HttpGet("{id}")]
         public async Task<ActionResult<Project>> GetProject(int id)
         {
-            var project = await _context.Projects.AsNoTracking().FirstOrDefaultAsync(p => p.Id == id);
+            var project = await _context.Projects.AsNoTracking()
+                .Include(p => p.Members)
+                .FirstOrDefaultAsync(p => p.Id == id);
             
             if (project == null) 
                 return NotFound();
@@ -76,8 +85,9 @@ namespace Unity.API.Controllers
             
             bool hasAccess = currentUser.Role == "admin" ||
                              project.Owner == currentUser.Id ||
-                             project.Members.Contains(currentUser.Id) ||
-                             (currentUser.Departments.Contains(project.DepartmentId) && !project.IsPrivate);
+                             project.Owner == currentUser.Id ||
+                             project.Members.Any(PM => PM.UserId == currentUser.Id) ||
+                             (currentUser.Departments.Any(d => d.DepartmentId == project.DepartmentId) && !project.IsPrivate);
 
             if (!hasAccess) 
                 return Forbid();
@@ -93,14 +103,14 @@ namespace Unity.API.Controllers
             // Department Validation
             if (project.DepartmentId > 0 && currentUser.Role != "admin")
             {
-                if (!currentUser.Departments.Contains(project.DepartmentId))
+                if (!currentUser.Departments.Any(d => d.DepartmentId == project.DepartmentId))
                 {
                     return BadRequest("Seçilen departmanda proje oluşturma yetkiniz yok.");
                 }
             }
             else if (currentUser.Departments.Count == 1)
             {
-                project.DepartmentId = currentUser.Departments[0];
+                project.DepartmentId = currentUser.Departments[0].DepartmentId;
             }
             else if (currentUser.Departments.Count > 1 && project.DepartmentId == 0 && currentUser.Role != "admin")
             {
@@ -110,9 +120,9 @@ namespace Unity.API.Controllers
             // Defaults
             project.CreatedBy = currentUser.Id;
             project.Owner = currentUser.Id;
-            project.MembersJson = JsonSerializer.Serialize(new List<int> { currentUser.Id });
-            project.CreatedAt = DateTime.UtcNow;
-            project.UpdatedAt = DateTime.UtcNow;
+            project.Members = new List<ProjectMember> { new ProjectMember { UserId = currentUser.Id } };
+            project.CreatedAt = TimeHelper.Now;
+            project.UpdatedAt = TimeHelper.Now;
             
             _context.Projects.Add(project);
             await _context.SaveChangesAsync();
@@ -127,7 +137,9 @@ namespace Unity.API.Controllers
                 return BadRequest("ID mismatch.");
 
             var currentUser = await GetCurrentUserWithDeptsAsync();
-            var existingProject = await _context.Projects.AsNoTracking().FirstOrDefaultAsync(p => p.Id == id);
+            var existingProject = await _context.Projects.AsNoTracking()
+                .Include(p => p.Members)
+                .FirstOrDefaultAsync(p => p.Id == id);
 
             if (existingProject == null) 
                 return NotFound();
@@ -135,12 +147,12 @@ namespace Unity.API.Controllers
             // Permission Check: Owner, Member, or Admin
             bool canEdit = currentUser.Role == "admin" ||
                            existingProject.Owner == currentUser.Id ||
-                           existingProject.Members.Contains(currentUser.Id);
+                           existingProject.Members.Any(PM => PM.UserId == currentUser.Id);
 
             if (!canEdit) 
                 return Forbid();
 
-            project.UpdatedAt = DateTime.UtcNow;
+            project.UpdatedAt = TimeHelper.Now;
             _context.Entry(project).State = EntityState.Modified;
 
             try
@@ -206,8 +218,8 @@ namespace Unity.API.Controllers
             
             bool hasAccess = currentUser.Role == "admin" ||
                              project.Owner == currentUser.Id ||
-                             project.Members.Contains(currentUser.Id) ||
-                             (currentUser.Departments.Contains(project.DepartmentId) && !project.IsPrivate);
+                             project.Members.Any(PM => PM.UserId == currentUser.Id) ||
+                             (currentUser.Departments.Any(d => d.DepartmentId == project.DepartmentId) && !project.IsPrivate);
 
             if (!hasAccess) 
                 return Forbid();

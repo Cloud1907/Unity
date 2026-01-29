@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import ReactDOM from 'react-dom';
-import { X, Calendar, User as UserIcon, MessageSquare, Paperclip, Clock, Plus, CheckCircle2, ListTodo, Trash2, History, ChevronDown, Layout } from 'lucide-react';
+import { X, Calendar, User as UserIcon, MessageSquare, Paperclip, Clock, Plus, CheckCircle2, Check, ListTodo, Trash2, History, ChevronDown, Layout, Upload, File, FileText, Image as ImageIcon, Download } from 'lucide-react';
 import { format } from 'date-fns';
 import { tr } from 'date-fns/locale';
 import { cn } from '../lib/utils';
@@ -10,10 +10,11 @@ import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
 import { useData } from '../contexts/DataContext';
 import { useAuth } from '../contexts/AuthContext';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
+import { getAvatarUrl } from '../utils/avatarHelper';
 import { Button } from './ui/button';
 import { Textarea } from './ui/textarea';
 import { Input } from './ui/input';
-import { toast } from 'react-hot-toast';
+import { toast } from 'sonner';
 import api, { auditAPI } from '../services/api';
 import ConfirmModal from './ui/ConfirmModal';
 
@@ -33,25 +34,39 @@ const priorities = [
 ];
 
 const ModernTaskModal = ({ task, isOpen, onClose, initialSection = 'subtasks' }) => {
-  const { updateTask, users, projects } = useData();
+  const { updateTask, deleteTask, createSubtask, users, projects, refreshTask } = useData();
   const { user: currentUser } = useAuth();
 
-  // Helper to parse JSON safely
-  const safeParse = (jsonString, fallback = []) => {
-    if (!jsonString) return fallback;
-    if (typeof jsonString === 'object') return jsonString; // Already parsed
-    try {
-      return JSON.parse(jsonString);
-    } catch (e) {
-      console.error('JSON parse error:', e);
-      return fallback;
-    }
+  // Helper to normalize IDs from object arrays (Backend sends {userId: 1} objects, UI wants [1])
+  const getIds = (list, key = 'userId') => {
+    if (!list) return [];
+    return list.map(item => {
+      if (typeof item === 'object' && item !== null) {
+        return item[key] || item.id || item._id || item.labelId;
+      }
+      return item;
+    });
   };
 
-  const [taskData, setTaskData] = useState(task);
-  const [subtasks, setSubtasks] = useState(() => safeParse(task.subtasksJson, task.subtasks || []));
-  const [comments, setComments] = useState(() => safeParse(task.commentsJson, task.comments || []));
-  const [attachments, setAttachments] = useState(() => safeParse(task.attachmentsJson, task.attachments || []));
+  // Helper to normalize subtasks (Backend: assigneeId, Frontend: assignee)
+  const normalizeSubtasks = (list) => {
+    if (!list) return [];
+    return list.map(s => ({
+      ...s,
+      assignee: s.assignee || s.assigneeId
+    }));
+  };
+
+
+
+  const [taskData, setTaskData] = useState(() => ({
+    ...task,
+    assignees: getIds(task.assignees, 'userId'),
+    labels: getIds(task.labels, 'labelId')
+  }));
+  const [subtasks, setSubtasks] = useState(normalizeSubtasks(task.subtasks || []));
+  const [comments, setComments] = useState(task.comments || []);
+  const [attachments, setAttachments] = useState(task.attachments || []);
   const [activeSection, setActiveSection] = useState(initialSection);
 
   const [newSubtask, setNewSubtask] = useState('');
@@ -66,6 +81,69 @@ const ModernTaskModal = ({ task, isOpen, onClose, initialSection = 'subtasks' })
   const [activityLogs, setActivityLogs] = useState([]);
   const [loadingLogs, setLoadingLogs] = useState(false);
 
+  // Filter users based on search and workspace/department context
+  const filteredUsers = React.useMemo(() => {
+    // 1. Determine Project Department
+    const currentProject = projects.find(p => p._id === task.projectId || p.id === task.projectId);
+    const projectDeptId = currentProject?.departmentId || currentProject?.department;
+
+    // 2. Filter by search query first
+    let result = users.filter(u =>
+      u.fullName.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+
+    // 3. Filter by Department (if applicable)
+    if (projectDeptId) {
+      result = result.filter(u => {
+        const userDepts = u.departments || (u.department ? [u.department] : []);
+        return userDepts.some(d => d == projectDeptId);
+      });
+    }
+
+    return result;
+  }, [users, searchQuery, task.projectId, projects]);
+
+  const [isDragging, setIsDragging] = useState(false);
+
+  // Fetch activity logs when section becomes 'activity'
+  useEffect(() => {
+    if (activeSection === 'activity' && (task.id || task._id)) {
+      loadActivityLogs();
+    }
+  }, [activeSection, task]);
+
+  const loadActivityLogs = async () => {
+    setLoadingLogs(true);
+    try {
+      const taskId = task.id || task._id;
+      const response = await auditAPI.getTaskLogs(taskId);
+      setActivityLogs(response.data);
+    } catch (error) {
+      console.error("Failed to load audit logs", error);
+    } finally {
+      setLoadingLogs(false);
+    }
+  };
+
+  const handleDragOver = (e) => {
+    e.preventDefault();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e) => {
+    e.preventDefault();
+    setIsDragging(false);
+  };
+
+  const handleDrop = async (e) => {
+    e.preventDefault();
+    setIsDragging(false);
+    const files = e.dataTransfer.files;
+    if (files.length > 0) {
+      await handleFileUpload({ target: { files: [files[0]] } });
+    }
+  };
+
   const statusMenuRef = useRef(null);
   const assigneeMenuRef = useRef(null);
 
@@ -77,10 +155,14 @@ const ModernTaskModal = ({ task, isOpen, onClose, initialSection = 'subtasks' })
 
   // Sync state with task prop when it changes
   useEffect(() => {
-    setTaskData(task);
-    setSubtasks(safeParse(task.subtasksJson, task.subtasks || []));
-    setComments(safeParse(task.commentsJson, task.comments || []));
-    setAttachments(safeParse(task.attachmentsJson, task.attachments || []));
+    setTaskData({
+      ...task,
+      assignees: getIds(task.assignees, 'userId'),
+      labels: getIds(task.labels, 'labelId')
+    });
+    setSubtasks(normalizeSubtasks(task.subtasks || []));
+    setComments(task.comments || []);
+    setAttachments(task.attachments || []);
   }, [task]);
 
   // Click outside listener for menus
@@ -102,10 +184,13 @@ const ModernTaskModal = ({ task, isOpen, onClose, initialSection = 'subtasks' })
   }, [openSubtaskAssignee]);
 
   // Track if fields are dirty
-  const isDirty = JSON.stringify(taskData) !== JSON.stringify(task) ||
-    JSON.stringify(subtasks) !== JSON.stringify(safeParse(task.subtasksJson, task.subtasks || [])) ||
-    JSON.stringify(comments) !== JSON.stringify(safeParse(task.commentsJson, task.comments || [])) ||
-    JSON.stringify(attachments) !== JSON.stringify(safeParse(task.attachmentsJson, task.attachments || []));
+  const isDirty = (
+    JSON.stringify(taskData.assignees) !== JSON.stringify(getIds(task.assignees, 'userId')) ||
+    JSON.stringify(taskData.labels) !== JSON.stringify(getIds(task.labels, 'labelId')) ||
+    JSON.stringify(subtasks) !== JSON.stringify(normalizeSubtasks(task.subtasks || [])) ||
+    JSON.stringify(comments) !== JSON.stringify(task.comments || []) ||
+    JSON.stringify(attachments) !== JSON.stringify(task.attachments || [])
+  );
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -138,65 +223,109 @@ const ModernTaskModal = ({ task, isOpen, onClose, initialSection = 'subtasks' })
     onClose();
   };
 
-  const handleSave = () => {
-    updateTask(task._id, {
-      ...taskData,
-      subtasks,
-      attachments,
-      comments
-    });
-    onClose();
+  const handleSave = async () => {
+    try {
+      // 1. Prepare CLEAN Payload with PascalCase Keys matches C# Model
+      // Using PascalCase avoids issues if the backend JSON deserializer is case-sensitive.
+      // e.g. "id" (from js) -> might not map to "Id" (C#) if strict, defaulting Id to 0.
+      // Then "if (id != task.Id)" check fails (400 Bad Request).
+
+      const payload = {
+        Id: task.id || task._id,
+        ProjectId: task.projectId,
+        Title: taskData.title,
+        Description: taskData.description,
+        Status: taskData.status,
+        Priority: taskData.priority,
+        TShirtSize: taskData.tShirtSize,
+        StartDate: taskData.startDate,
+        DueDate: taskData.dueDate,
+        Progress: taskData.progress,
+        IsPrivate: taskData.isPrivate,
+
+        // Use PascalCase for Nested Objects too
+        Assignees: (taskData.assignees || []).map(uid => ({ UserId: uid })),
+        Labels: (taskData.labels || []).map(lid => ({ LabelId: lid }))
+      };
+
+      // Send Clean Payload
+      // Note: URL ID is also used by backend controller check.
+      const taskId = task.id || task._id;
+      await updateTask(taskId, payload);
+
+      // 3. UI Feedback
+      toast.success('Görev başarıyla güncellendi');
+      onClose();
+    } catch (error) {
+      console.error("Save failed:", error);
+      const msg = error.response?.data?.title || error.message;
+      toast.error('Görev güncellenemedi: ' + msg);
+
+      if (error.response?.status === 400) {
+        console.error("400 Bad Request Details:", error.response.data);
+      }
+    }
   };
 
   const currentStatus = statuses.find(s => s.id === taskData.status) || statuses[0];
 
-  const handleAddSubtask = () => {
+  const handleAddSubtask = async () => {
     if (!newSubtask.trim()) return;
-    const subtask = {
-      id: Date.now(),
-      title: newSubtask,
-      completed: false,
-      startDate: null,
-      dueDate: null,
-      createdAt: new Date().toISOString()
-    };
-    const newSubtasks = [...subtasks, subtask];
-    setSubtasks(newSubtasks);
-    setTaskData(prev => ({ ...prev, subtasks: newSubtasks }));
-    setNewSubtask('');
+
+    const titleToAdd = newSubtask;
+    setNewSubtask(''); // Clear immediately for better UX
+
+    // Use Context Action
+    const result = await createSubtask(task.id || task._id, {
+      title: titleToAdd,
+      isCompleted: false,
+      assigneeId: currentUser?.id // Default assign to current user
+    });
+
+    if (result.success) {
+      const createdSubtask = result.data;
+      // Normalize immediately for UI consistency (assignee vs assigneeId)
+      const normalizedForUI = {
+        ...createdSubtask,
+        assignee: createdSubtask.assignee || createdSubtask.assigneeId
+      };
+
+      const newSubtasks = [...subtasks, normalizedForUI];
+      setSubtasks(newSubtasks);
+      setTaskData(prev => ({ ...prev, subtasks: newSubtasks }));
+
+      // No need to refreshTask heavily if context is updated correctly, 
+      // but keeping it for safety/deep sync if needed.
+    } else {
+      // Validation/Error fallback: restore text if failed
+      setNewSubtask(titleToAdd);
+    }
   };
 
   const handleAddComment = async () => {
     if (!newComment.trim()) return;
-    const comment = {
-      id: Date.now(),
-      text: newComment,
-      author: currentUser?.fullName || 'Kullanıcı',
-      createdAt: new Date().toISOString()
-    };
-    const updatedComments = [...comments, comment];
-    setComments(updatedComments);
-    setTaskData(prev => ({ ...prev, comments: updatedComments }));
-    setNewComment('');
 
-    // Immediately save to backend
     try {
-      const result = await updateTask(task._id, {
-        ...taskData,
-        comments: updatedComments,
-        subtasks,
-        attachments
+      const response = await api.post(`/tasks/${task.id}/comments`, {
+        text: newComment
       });
 
-      if (!result.success) {
-        throw new Error('Update failed');
-      }
+      const createdComment = response.data;
+      // Ensure frontend model structure matches
+      const commentForUI = {
+        ...createdComment,
+        userAvatar: currentUser?.avatar,
+        userName: currentUser?.fullName
+      };
+
+      const updatedComments = [...comments, commentForUI];
+      setComments(updatedComments);
+      setTaskData(prev => ({ ...prev, comments: updatedComments }));
+      setNewComment('');
+      await refreshTask(task.id || task._id);
     } catch (error) {
-      // Revert on error
-      setComments(comments);
-      setTaskData(prev => ({ ...prev, comments }));
-      // Toast is already shown by DataContext if it fails, but we can verify
-      if (!toast.success) toast.error('Yorum eklenemedi');
+      console.error(error);
+      toast.error('Yorum eklenemedi');
     }
   };
 
@@ -233,18 +362,19 @@ const ModernTaskModal = ({ task, isOpen, onClose, initialSection = 'subtasks' })
       setAttachments(newAttachments);
       setTaskData(prev => ({ ...prev, attachments: newAttachments }));
 
-      // Immediately save to backend
-      const result = await updateTask(task._id, {
-        ...taskData,
-        attachments: newAttachments,
-        subtasks,
-        comments
-      });
+      // Immediately save attachments to backend using PATCH - format for backend
+      const taskId = task.id || task._id;
+      const attachmentPayload = newAttachments.map(att => ({
+        name: att.name,
+        url: att.url,
+        type: att.type || 'unknown',
+        size: att.size || 0
+      }));
 
-      if (!result.success) {
-        throw new Error('Update failed');
-      }
+      // Use direct PATCH to save only attachments 
+      await api.patch(`/tasks/${taskId}`, { attachments: attachmentPayload });
 
+      await refreshTask(taskId);
       toast.success('Dosya başarıyla yüklendi');
     } catch (error) {
       console.error('File upload error:', error);
@@ -331,219 +461,284 @@ const ModernTaskModal = ({ task, isOpen, onClose, initialSection = 'subtasks' })
             <div className="max-w-3xl mx-auto">
               {activeSection === 'subtasks' && (
                 <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
-                  <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-4 flex items-center gap-2">
+                  <h3 className="text-sm font-bold text-slate-400 mb-4 flex items-center gap-2">
                     <ListTodo size={16} /> Alt Görevler
                   </h3>
 
                   <div className="space-y-2 mb-6">
                     {subtasks.map(subtask => (
-                      <div key={subtask.id} className="group flex items-start gap-3 p-3 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-900/50 border border-transparent hover:border-slate-100 dark:hover:border-slate-800 transition-all">
-                        <button
-                          onClick={() => {
-                            const updated = subtasks.map(s => s.id === subtask.id ? { ...s, completed: !s.completed } : s);
-                            setSubtasks(updated);
-                            setTaskData(prev => ({ ...prev, subtasks: updated }));
-                          }}
-                          className={`mt-0.5 w-5 h-5 rounded-md border flex items-center justify-center transition-colors ${subtask.completed
-                            ? 'bg-indigo-500 border-indigo-500 text-white'
-                            : 'border-slate-300 dark:border-slate-600 text-transparent hover:border-indigo-400'
-                            }`}
-                        >
-                          <CheckCircle2 size={14} />
-                        </button>
-                        <span className={`flex-1 text-sm ${subtask.completed ? 'text-slate-400 line-through' : 'text-slate-700 dark:text-slate-200'}`}>
-                          {subtask.title}
-                        </span>
+                      <div key={subtask.id} className="group flex items-center gap-3 p-2.5 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-900/50 border border-transparent hover:border-slate-100 dark:hover:border-slate-800 transition-all">
 
-                        {/* Assignee Selector */}
-                        <div className="relative">
-                          {subtask.assignee ? (
-                            <div className="flex items-center gap-1">
-                              <Avatar
-                                className="w-6 h-6 cursor-pointer hover:ring-2 hover:ring-indigo-100 transition-all"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  if (openSubtaskAssignee === subtask.id) {
-                                    setOpenSubtaskAssignee(null);
-                                  } else {
-                                    const rect = e.currentTarget.getBoundingClientRect();
-                                    // Calculate position: open DOWNWARDS (top = bottom + gap)
-                                    setSubtaskDropdownPos({
-                                      top: rect.bottom + 8,
-                                      left: rect.left - 200 // Shift left to keep in screen
-                                    });
-                                    setOpenSubtaskAssignee(subtask.id);
-                                  }
-                                }}
-                              >
-                                <AvatarImage src={users.find(u => u._id === subtask.assignee)?.avatar} />
-                                <AvatarFallback className="text-[10px] bg-indigo-100 text-indigo-600">
-                                  {users.find(u => u._id === subtask.assignee)?.fullName?.[0]}
-                                </AvatarFallback>
-                              </Avatar>
+                        {/* Checkbox */}
+                        <div className={`relative flex-shrink-0 flex items-center justify-center w-5 h-5 rounded-full border transition-all cursor-pointer ${subtask.isCompleted
+                          ? 'bg-indigo-600 border-indigo-600'
+                          : 'border-slate-300 dark:border-slate-600 hover:border-indigo-500'
+                          }`}>
+                          <input
+                            type="checkbox"
+                            checked={subtask.isCompleted || false}
+                            onChange={async (e) => {
+                              const newStatus = e.target.checked;
+                              const updated = subtasks.map(s => s.id === subtask.id ? { ...s, isCompleted: newStatus } : s);
+                              setSubtasks(updated);
+                              setTaskData(prev => ({ ...prev, subtasks: updated }));
+                              try {
+                                await api.put(`/tasks/subtasks/${subtask.id}`, {
+                                  title: subtask.title,
+                                  isCompleted: newStatus,
+                                  assigneeId: subtask.assigneeId,
+                                  startDate: subtask.startDate,
+                                  dueDate: subtask.dueDate
+                                });
+                              } catch (error) {
+                                console.error("Subtask update failed", error);
+                                toast.error("Güncelleme başarısız");
+                                setSubtasks(subtasks);
+                              }
+                            }}
+                            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                          />
+                          {subtask.isCompleted && <Check size={12} className="text-white" />}
+                        </div>
+
+                        {/* Title */}
+                        <input
+                          value={subtask.title}
+                          onChange={(e) => {
+                            const updated = subtasks.map(s => s.id === subtask.id ? { ...s, title: e.target.value } : s);
+                            setSubtasks(updated);
+                          }}
+                          onBlur={async () => {
+                            try {
+                              await api.put(`/tasks/subtasks/${subtask.id}`, {
+                                title: subtask.title,
+                                isCompleted: subtask.isCompleted,
+                                assigneeId: subtask.assigneeId,
+                                startDate: subtask.startDate,
+                                dueDate: subtask.dueDate
+                              });
+                            } catch (e) { console.error(e); }
+                          }}
+                          className={`flex-1 bg-transparent border-none text-sm outline-none focus:ring-0 px-2 ${subtask.isCompleted ? 'text-slate-400 line-through' : 'text-slate-700 dark:text-slate-200'}`}
+                        />
+
+                        {/* Actions Container */}
+                        <div className="flex items-center gap-1.5 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
+
+                          {/* Assignee */}
+                          <div className={`relative ${subtask.isCompleted ? 'opacity-50 grayscale pointer-events-none' : ''}`}>
+                            {subtask.assignee ? (
+                              <div className="relative group/avatar">
+                                <Avatar
+                                  className="w-6 h-6 cursor-pointer hover:ring-2 hover:ring-indigo-100 transition-all"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    if (openSubtaskAssignee === subtask.id) setOpenSubtaskAssignee(null);
+                                    else {
+                                      const rect = e.currentTarget.getBoundingClientRect();
+                                      setSubtaskDropdownPos({ top: rect.bottom + 8, left: rect.left - 200 });
+                                      setOpenSubtaskAssignee(subtask.id);
+                                    }
+                                  }}
+                                >
+                                  <AvatarImage src={users.find(u => u._id == subtask.assignee)?.avatar ? getAvatarUrl(users.find(u => u._id == subtask.assignee)?.avatar) : ''} />
+                                  <AvatarFallback
+                                    className="text-[10px] font-bold text-white"
+                                    style={{ backgroundColor: users.find(u => u._id == subtask.assignee)?.color || '#6366f1' }}
+                                  >
+                                    {users.find(u => u._id == subtask.assignee)?.fullName?.charAt(0).toUpperCase()}
+                                  </AvatarFallback>
+                                </Avatar>
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    const updated = subtasks.map(s => s.id === subtask.id ? { ...s, assignee: null } : s);
+                                    setSubtasks(updated);
+                                    setTaskData(prev => ({ ...prev, subtasks: updated }));
+                                    api.put(`/tasks/subtasks/${subtask.id}`, {
+                                      title: subtask.title,
+                                      isCompleted: subtask.isCompleted,
+                                      assigneeId: null, // Robust null assignment
+                                      startDate: subtask.startDate,
+                                      dueDate: subtask.dueDate
+                                    }).catch(console.error);
+                                  }}
+                                  className="absolute -top-1 -right-1 bg-white dark:bg-slate-900 rounded-full shadow border border-slate-200 p-0.5 text-slate-400 hover:text-red-500 opacity-0 group-hover/avatar:opacity-100 transition-opacity"
+                                >
+                                  <X size={8} />
+                                </button>
+                              </div>
+                            ) : (
                               <button
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  const updated = subtasks.map(s => s.id === subtask.id ? { ...s, assignee: null } : s);
+                                  if (openSubtaskAssignee === subtask.id) setOpenSubtaskAssignee(null);
+                                  else {
+                                    const rect = e.currentTarget.getBoundingClientRect();
+                                    setSubtaskDropdownPos({ top: rect.bottom + 8, left: rect.left - 200 });
+                                    setOpenSubtaskAssignee(subtask.id);
+                                  }
+                                }}
+                                className="w-6 h-6 rounded-full border border-dashed border-slate-300 dark:border-slate-600 flex items-center justify-center text-slate-400 hover:border-indigo-400 hover:text-indigo-600 transition-colors"
+                                title="Kişi Ata"
+                              >
+                                <UserIcon size={12} />
+                              </button>
+                            )}
+
+                            {/* Assignee Dropdown Portal */}
+                            {openSubtaskAssignee === subtask.id && ReactDOM.createPortal(
+                              <div
+                                className="fixed z-[99999] bg-white dark:bg-slate-900 rounded-xl shadow-2xl border border-slate-100 dark:border-slate-800 p-2 animate-in zoom-in-95 duration-150 subtask-assignee-dropdown"
+                                style={{
+                                  top: subtaskDropdownPos.top,
+                                  left: subtaskDropdownPos.left,
+                                  width: '16rem'
+                                }}
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                <Input
+                                  placeholder="Kullanıcı ara..."
+                                  value={searchQuery}
+                                  onChange={e => setSearchQuery(e.target.value)}
+                                  className="mb-2 h-9 text-sm"
+                                  autoFocus
+                                  onClick={(e) => e.stopPropagation()}
+                                />
+                                <div className="max-h-48 overflow-y-auto space-y-1">
+                                  {filteredUsers.length > 0 ? (
+                                    filteredUsers.map(user => (
+                                      <button
+                                        key={user._id}
+                                        onClick={(e) => {
+                                          e.preventDefault();
+                                          e.stopPropagation();
+                                          const updated = subtasks.map(s => s.id === subtask.id ? { ...s, assignee: user._id } : s);
+                                          setSubtasks(updated);
+                                          setTaskData(prev => ({ ...prev, subtasks: updated }));
+                                          setOpenSubtaskAssignee(null);
+                                          setSearchQuery('');
+                                          api.put(`/tasks/subtasks/${subtask.id}`, {
+                                            title: subtask.title,
+                                            isCompleted: subtask.isCompleted,
+                                            assigneeId: user._id,
+                                            startDate: subtask.startDate,
+                                            dueDate: subtask.dueDate
+                                          }).catch(console.error);
+                                        }}
+                                        className="flex items-center gap-2 w-full p-2 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg text-sm text-left transition-colors"
+                                      >
+                                        <Avatar className="w-5 h-5">
+                                          <AvatarImage src={user.avatar ? getAvatarUrl(user.avatar) : ''} />
+                                          <AvatarFallback
+                                            className="text-[10px] font-bold text-white"
+                                            style={{ backgroundColor: user.color || '#6366f1' }}
+                                          >
+                                            {user.fullName?.charAt(0).toUpperCase()}
+                                          </AvatarFallback>
+                                        </Avatar>
+                                        <span className="truncate text-slate-700 dark:text-slate-200">{user.fullName}</span>
+                                        {subtask.assignee == user._id && <CheckCircle2 size={14} className="ml-auto text-indigo-600" />}
+                                      </button>
+                                    ))
+                                  ) : (
+                                    <div className="p-2 text-xs text-slate-400 text-center">Kullanıcı bulunamadı</div>
+                                  )}
+                                </div>
+                              </div>,
+                              document.body
+                            )}
+                          </div>
+
+                          {/* Start Date */}
+                          <Popover>
+                            <PopoverTrigger asChild>
+                              <button
+                                className={`flex items-center gap-1.5 px-2 py-1 rounded text-[10px] font-medium transition-all ${subtask.startDate
+                                  ? 'bg-blue-50 text-blue-600 hover:bg-blue-100 dark:bg-blue-900/20 dark:hover:bg-blue-900/30'
+                                  : 'text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
+                                  } ${subtask.isCompleted ? 'opacity-50 pointer-events-none line-through decoration-slate-400' : ''}`}
+                                onClick={(e) => e.stopPropagation()}
+                                title="Başlangıç Tarihi"
+                              >
+                                {subtask.startDate ? (
+                                  format(new Date(subtask.startDate), 'd MMM', { locale: tr })
+                                ) : (
+                                  <Calendar size={12} />
+                                )}
+                              </button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-0 z-[99999]" align="end">
+                              <CalendarComponent
+                                mode="single"
+                                selected={subtask.startDate ? new Date(subtask.startDate) : undefined}
+                                onSelect={(date) => {
+                                  const updated = subtasks.map(s => s.id === subtask.id ? { ...s, startDate: date ? date.toISOString() : null } : s);
                                   setSubtasks(updated);
                                   setTaskData(prev => ({ ...prev, subtasks: updated }));
+                                  api.put(`/tasks/subtasks/${subtask.id}`, { ...subtask, startDate: date ? date.toISOString() : null }).catch(console.error);
                                 }}
-                                className="opacity-0 group-hover:opacity-100 text-slate-400 hover:text-red-500 transition-all"
-                              >
-                                <X size={12} />
-                              </button>
-                            </div>
-                          ) : (
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                if (openSubtaskAssignee === subtask.id) {
-                                  setOpenSubtaskAssignee(null);
-                                } else {
-                                  const rect = e.currentTarget.getBoundingClientRect();
-                                  setSubtaskDropdownPos({
-                                    top: rect.bottom + 8,
-                                    left: rect.left - 200
-                                  });
-                                  setOpenSubtaskAssignee(subtask.id);
-                                }
-                              }}
-                              className="w-6 h-6 rounded-full border border-dashed border-slate-300 dark:border-slate-600 flex items-center justify-center text-slate-400 hover:border-indigo-400 hover:text-indigo-600 transition-colors opacity-0 group-hover:opacity-100"
-                            >
-                              <UserIcon size={12} />
-                            </button>
-                          )}
-
-                          {/* Date Pickers for Subtask */}
-                          <div className="flex items-center gap-2 ml-2">
-                            {/* Start Date */}
-                            <Popover>
-                              <PopoverTrigger asChild>
-                                <button
-                                  className={`flex items-center gap-1.5 px-2 py-1.5 rounded-md text-xs font-medium transition-all border ${subtask.startDate
-                                    ? 'bg-blue-50 text-blue-600 border-blue-200 dark:bg-blue-900/20 dark:border-blue-800'
-                                    : 'text-slate-400 border-transparent hover:bg-slate-100 hover:text-slate-600 dark:hover:bg-slate-800'
-                                    }`}
-                                  title="Başlangıç Tarihi"
-                                  onClick={(e) => e.stopPropagation()}
-                                >
-                                  <Calendar size={13} />
-                                  {subtask.startDate && (
-                                    <span>{new Date(subtask.startDate).toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' })}</span>
-                                  )}
-                                </button>
-                              </PopoverTrigger>
-                              <PopoverContent className="w-auto p-0 z-[99999]" align="end" onClick={(e) => e.stopPropagation()}>
-                                <CalendarComponent
-                                  mode="single"
-                                  selected={subtask.startDate ? new Date(subtask.startDate) : undefined}
-                                  onSelect={(date) => {
-                                    const updated = subtasks.map(s => s.id === subtask.id ? { ...s, startDate: date ? date.toISOString() : null } : s);
-                                    setSubtasks(updated);
-                                    setTaskData(prev => ({ ...prev, subtasks: updated }));
-                                  }}
-                                  initialFocus
-                                  locale={tr}
-                                />
-                              </PopoverContent>
-                            </Popover>
-
-                            {/* Due Date Only - As per user request "No need for clock/start" */}
-                            <Popover>
-                              <PopoverTrigger asChild>
-                                <button
-                                  className={`flex items-center gap-1.5 px-2 py-1.5 rounded-md text-xs font-medium transition-all border ${subtask.dueDate
-                                    ? (new Date(subtask.dueDate) < new Date() && !subtask.completed
-                                      ? 'bg-red-50 text-red-600 border-red-200 dark:bg-red-900/20 dark:border-red-800' // Overdue
-                                      : 'bg-slate-50 text-slate-600 border-slate-200 dark:bg-slate-800 dark:border-slate-700') // Normal
-                                    : 'text-slate-400 border-transparent hover:bg-slate-100 hover:text-slate-600 dark:hover:bg-slate-800' // Empty
-                                    }`}
-                                  title="Son Tarih"
-                                  onClick={(e) => e.stopPropagation()}
-                                >
-                                  <Calendar size={13} />
-                                  {subtask.dueDate && (
-                                    <span>{new Date(subtask.dueDate).toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' })}</span>
-                                  )}
-                                </button>
-                              </PopoverTrigger>
-                              <PopoverContent className="w-auto p-0 z-[99999]" align="end" onClick={(e) => e.stopPropagation()}>
-                                <CalendarComponent
-                                  mode="single"
-                                  selected={subtask.dueDate ? new Date(subtask.dueDate) : undefined}
-                                  onSelect={(date) => {
-                                    const updated = subtasks.map(s => s.id === subtask.id ? { ...s, dueDate: date ? date.toISOString() : null } : s);
-                                    setSubtasks(updated);
-                                    setTaskData(prev => ({ ...prev, subtasks: updated }));
-                                  }}
-                                  initialFocus
-                                  locale={tr}
-                                />
-                              </PopoverContent>
-                            </Popover>
-                          </div>
-                          {/* Dropdown - Using Portal to escape modal overflow */}
-                          {openSubtaskAssignee === subtask.id && ReactDOM.createPortal(
-                            <div
-                              className="fixed z-[99999] bg-white dark:bg-slate-900 rounded-xl shadow-2xl border border-slate-100 dark:border-slate-800 p-2 animate-in zoom-in-95 duration-150 subtask-assignee-dropdown"
-                              style={{
-                                top: subtaskDropdownPos.top,
-                                left: subtaskDropdownPos.left,
-                                width: '16rem'
-                              }}
-                              onClick={(e) => e.stopPropagation()}
-                            >
-                              <Input
-                                placeholder="Kullanıcı ara..."
-                                value={searchQuery}
-                                onChange={e => setSearchQuery(e.target.value)}
-                                className="mb-2 h-9 text-sm"
-                                autoFocus
-                                onClick={(e) => e.stopPropagation()}
+                                initialFocus
+                                locale={tr}
                               />
-                              <div className="max-h-48 overflow-y-auto space-y-1">
-                                {filteredUsers.length > 0 ? (
-                                  filteredUsers.map(user => (
-                                    <button
-                                      key={user._id}
-                                      onClick={(e) => {
-                                        e.preventDefault();
-                                        e.stopPropagation();
-                                        const updated = subtasks.map(s => s.id === subtask.id ? { ...s, assignee: user._id } : s);
-                                        setSubtasks(updated);
-                                        setTaskData(prev => ({ ...prev, subtasks: updated }));
-                                        setOpenSubtaskAssignee(null);
-                                        setSearchQuery('');
-                                      }}
-                                      className="flex items-center gap-2 w-full p-2 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg text-sm text-left transition-colors"
-                                    >
-                                      <Avatar className="w-5 h-5">
-                                        <AvatarImage src={user.avatar} />
-                                        <AvatarFallback className="text-[10px]">{user.fullName?.[0]}</AvatarFallback>
-                                      </Avatar>
-                                      <span className="truncate text-slate-700 dark:text-slate-200">{user.fullName}</span>
-                                      {subtask.assignee === user._id && <CheckCircle2 size={14} className="ml-auto text-indigo-600" />}
-                                    </button>
-                                  ))
-                                ) : (
-                                  <div className="p-2 text-xs text-slate-400 text-center">Kullanıcı bulunamadı</div>
-                                )}
-                              </div>
-                            </div>,
-                            document.body
-                          )}
-                        </div>
+                            </PopoverContent>
+                          </Popover>
 
-                        <button
-                          onClick={() => {
-                            const filtered = subtasks.filter(s => s.id !== subtask.id);
-                            setSubtasks(filtered);
-                            setTaskData(prev => ({ ...prev, subtasks: filtered }));
-                          }}
-                          className="opacity-0 group-hover:opacity-100 p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-all"
-                        >
-                          <Trash2 size={14} />
-                        </button>
+                          {/* Due Date */}
+                          <Popover>
+                            <PopoverTrigger asChild>
+                              <button
+                                className={`flex items-center gap-1.5 px-2 py-1 rounded text-[10px] font-medium transition-all ${subtask.dueDate
+                                  ? (new Date(subtask.dueDate) < new Date() && !subtask.isCompleted
+                                    ? 'bg-red-50 text-red-600 hover:bg-red-100 dark:bg-red-900/20'
+                                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-800')
+                                  : 'text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
+                                  } ${subtask.isCompleted ? 'opacity-50 pointer-events-none line-through decoration-slate-400' : ''}`}
+                                onClick={(e) => e.stopPropagation()}
+                                title="Son Tarih"
+                              >
+                                {subtask.dueDate ? (
+                                  format(new Date(subtask.dueDate), 'd MMM', { locale: tr })
+                                ) : (
+                                  <Calendar size={12} />
+                                )}
+                              </button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-0 z-[99999]" align="end">
+                              <CalendarComponent
+                                mode="single"
+                                selected={subtask.dueDate ? new Date(subtask.dueDate) : undefined}
+                                onSelect={(date) => {
+                                  const updated = subtasks.map(s => s.id === subtask.id ? { ...s, dueDate: date ? date.toISOString() : null } : s);
+                                  setSubtasks(updated);
+                                  setTaskData(prev => ({ ...prev, subtasks: updated }));
+                                  api.put(`/tasks/subtasks/${subtask.id}`, { ...subtask, dueDate: date ? date.toISOString() : null }).catch(console.error);
+                                }}
+                                initialFocus
+                                locale={tr}
+                              />
+                            </PopoverContent>
+                          </Popover>
+
+                          {/* Delete */}
+                          <button
+                            onClick={async () => {
+                              if (!window.confirm("Alt görevi silmek istediğinize emin misiniz?")) return;
+                              const filtered = subtasks.filter(s => s.id !== subtask.id);
+                              setSubtasks(filtered);
+                              try {
+                                await api.delete(`/tasks/subtasks/${subtask.id}`);
+                                toast.success('Alt görev silindi');
+                              } catch (e) {
+                                toast.error('Silme başarısız');
+                                setSubtasks(subtasks);
+                              }
+                            }}
+                            className="p-1 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-all"
+                          >
+                            <Trash2 size={12} />
+                          </button>
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -564,14 +759,19 @@ const ModernTaskModal = ({ task, isOpen, onClose, initialSection = 'subtasks' })
 
               {activeSection === 'comments' && (
                 <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
-                  <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-6 flex items-center gap-2">
+                  <h3 className="text-sm font-bold text-slate-400 mb-6 flex items-center gap-2">
                     <MessageSquare size={16} /> Yorumlar
                   </h3>
 
                   <div className="flex gap-4 mb-8">
                     <Avatar className="w-10 h-10 border-2 border-white shadow-sm">
-                      <AvatarImage src={currentUser?.avatar} />
-                      <AvatarFallback>{currentUser?.fullName?.[0]}</AvatarFallback>
+                      <AvatarImage src={currentUser?.avatar ? getAvatarUrl(currentUser?.avatar) : ''} />
+                      <AvatarFallback
+                        className="font-bold text-xs text-white"
+                        style={{ backgroundColor: currentUser?.color || '#6366f1' }}
+                      >
+                        {currentUser?.fullName?.charAt(0).toUpperCase()}
+                      </AvatarFallback>
                     </Avatar>
                     <div className="flex-1 relative">
                       <Textarea
@@ -590,13 +790,42 @@ const ModernTaskModal = ({ task, isOpen, onClose, initialSection = 'subtasks' })
                     {comments.map(comment => (
                       <div key={comment.id} className="flex gap-4 group">
                         <Avatar className="w-8 h-8 mt-1 border border-slate-100">
-                          <AvatarImage src={comment.userAvatar} />
-                          <AvatarFallback>{comment.userName?.[0]}</AvatarFallback>
+                          <AvatarImage src={(comment.user?.avatar || comment.userAvatar) ? getAvatarUrl(comment.user?.avatar || comment.userAvatar) : ''} />
+                          <AvatarFallback
+                            className="font-bold text-[10px] text-white"
+                            style={{ backgroundColor: comment.user?.color || '#6366f1' }}
+                          >
+                            {(comment.user?.fullName || comment.userName)?.charAt(0).toUpperCase()}
+                          </AvatarFallback>
                         </Avatar>
-                        <div className="flex-1">
+                        <div className="flex-1 group/comment relative">
                           <div className="flex items-center justify-between mb-1">
-                            <span className="font-semibold text-sm text-slate-900 dark:text-white">{comment.userName}</span>
-                            <span className="text-xs text-slate-400">{new Date(comment.createdAt).toLocaleDateString()}</span>
+                            <span className="font-semibold text-sm text-slate-900 dark:text-white">{comment.user?.fullName || comment.userName}</span>
+                            <div className="flex items-center gap-2">
+                              <span className="text-xs text-slate-400">{new Date(comment.createdAt).toLocaleDateString()}</span>
+                              {(currentUser?.role === 'admin' || comment.createdBy === currentUser?.id || taskData.assignedBy === currentUser?.id) && (
+                                <button
+                                  onClick={async () => {
+                                    if (window.confirm('Yorumu silmek istediğinize emin misiniz?')) {
+                                      const filtered = comments.filter(c => c.id !== comment.id);
+                                      setComments(filtered); // Optimistic
+                                      try {
+                                        await api.delete(`/tasks/comments/${comment.id}`);
+                                        toast.success('Yorum silindi');
+                                      } catch (e) {
+                                        console.error(e);
+                                        toast.error('Silme başarısız');
+                                        setComments(comments); // Revert
+                                      }
+                                    }
+                                  }}
+                                  className="opacity-0 group-hover/comment:opacity-100 p-1 text-slate-400 hover:text-red-500 transition-all"
+                                  title="Yorumu sil"
+                                >
+                                  <Trash2 size={12} />
+                                </button>
+                              )}
+                            </div>
                           </div>
                           <div className="bg-slate-50 dark:bg-slate-900/50 p-3 rounded-xl rounded-tl-none text-sm text-slate-700 dark:text-slate-300 leading-relaxed">
                             {comment.text}
@@ -610,41 +839,100 @@ const ModernTaskModal = ({ task, isOpen, onClose, initialSection = 'subtasks' })
 
               {activeSection === 'files' && (
                 <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
-                  {/* File Implement similar to subtasks but for files */}
-                  <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-4 flex items-center gap-2">
+                  <h3 className="text-sm font-bold text-slate-400 mb-4 flex items-center gap-2">
                     <Paperclip size={16} /> Dosyalar
                   </h3>
 
-                  <div className="grid grid-cols-2 gap-4">
-                    <label className={`border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-xl p-6 flex flex-col items-center justify-center gap-2 hover:border-indigo-400 hover:bg-indigo-50/10 cursor-pointer transition-all group ${isUploading ? 'opacity-50' : ''}`}>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <label
+                      onDragOver={handleDragOver}
+                      onDragLeave={handleDragLeave}
+                      onDrop={handleDrop}
+                      className={`relative border-2 border-dashed rounded-xl p-8 flex flex-col items-center justify-center gap-3 cursor-pointer transition-all group overflow-hidden
+                        ${isDragging
+                          ? 'border-indigo-500 bg-indigo-50/50 dark:bg-indigo-900/20 scale-[1.02]'
+                          : 'border-slate-200 dark:border-slate-800 hover:border-indigo-400 hover:bg-slate-50 dark:hover:bg-slate-900/50'
+                        }
+                        ${isUploading ? 'pointer-events-none opacity-80' : ''}
+                      `}
+                    >
                       <input type="file" className="hidden" onChange={handleFileUpload} disabled={isUploading} />
-                      <div className="w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-900 flex items-center justify-center group-hover:scale-110 transition-transform text-slate-500 group-hover:text-indigo-600">
-                        <Plus size={20} />
-                      </div>
-                      <span className="text-sm font-medium text-slate-600 dark:text-slate-400 group-hover:text-indigo-600">Dosya Yükle</span>
+
+                      {isUploading ? (
+                        <div className="flex flex-col items-center gap-2">
+                          <div className="w-10 h-10 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin"></div>
+                          <span className="text-sm font-medium text-indigo-600">Yükleniyor...</span>
+                        </div>
+                      ) : (
+                        <>
+                          <div className={`w-12 h-12 rounded-full flex items-center justify-center transition-all duration-300
+                            ${isDragging ? 'bg-indigo-100 text-indigo-600 scale-110' : 'bg-slate-100 dark:bg-slate-800 text-slate-400 group-hover:bg-indigo-50 group-hover:text-indigo-600 dark:group-hover:bg-slate-800 dark:group-hover:text-indigo-400'}
+                          `}>
+                            <Upload size={24} />
+                          </div>
+                          <div className="text-center">
+                            <span className="text-sm font-medium text-slate-700 dark:text-slate-200 group-hover:text-indigo-600 transition-colors">
+                              Dosya Seç veya Sürükle
+                            </span>
+                            <p className="text-xs text-slate-400 mt-1">
+                              Max 10MB (PNG, JPG, PDF)
+                            </p>
+                          </div>
+                        </>
+                      )}
                     </label>
 
                     {attachments.map(file => (
-                      <div key={file.id} className="relative group p-4 border border-slate-200 dark:border-slate-800 rounded-xl flex items-center gap-3 hover:shadow-md transition-all bg-white dark:bg-slate-900">
-                        <div className="w-10 h-10 rounded-lg bg-indigo-50 dark:bg-indigo-900/20 flex items-center justify-center text-indigo-600">
-                          {file.type?.includes('image') ? '🖼️' : '📄'}
+                      <div key={file.id} className="relative group p-4 border border-slate-200 dark:border-slate-800 rounded-xl flex items-center gap-3 hover:shadow-md transition-all bg-white dark:bg-slate-900 overflow-hidden">
+                        <div className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0
+                          ${file.type?.includes('image') ? 'bg-purple-50 text-purple-600 dark:bg-purple-900/20' : 'bg-blue-50 text-blue-600 dark:bg-blue-900/20'}
+                        `}>
+                          {file.type?.includes('image') ? <ImageIcon size={20} /> : <FileText size={20} />}
                         </div>
+
                         <div className="flex-1 min-w-0">
-                          <a href={file.url} target="_blank" rel="noopener noreferrer" className="block text-sm font-medium text-slate-900 dark:text-white truncate hover:underline">
+                          <a href={file.url?.startsWith('http') ? file.url : `${process.env.REACT_APP_BACKEND_URL || ''}${file.url}`} target="_blank" rel="noopener noreferrer" className="block text-sm font-medium text-slate-900 dark:text-white truncate hover:text-indigo-600 transition-colors">
                             {file.name}
                           </a>
-                          <span className="text-xs text-slate-500">{(file.size / 1024).toFixed(1)} KB</span>
+                          <div className="flex items-center gap-2 mt-0.5">
+                            <span className="text-[10px] text-slate-500 bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded">
+                              {(file.size / 1024).toFixed(1)} KB
+                            </span>
+                            <span className="text-[10px] text-slate-400">
+                              {new Date(file.uploadedAt || Date.now()).toLocaleDateString()}
+                            </span>
+                          </div>
                         </div>
-                        <button
-                          onClick={() => {
-                            const filtered = attachments.filter(a => a.id !== file.id);
-                            setAttachments(filtered);
-                            setTaskData(prev => ({ ...prev, attachments: filtered }));
-                          }}
-                          className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 p-1 text-slate-400 hover:text-red-500 transition-all"
-                        >
-                          <X size={14} />
-                        </button>
+
+                        <div className="flex flex-col gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <a
+                            href={file.url?.startsWith('http') ? file.url : `${process.env.REACT_APP_BACKEND_URL || ''}${file.url}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 rounded-lg transition-colors"
+                            title="İndir"
+                          >
+                            <Download size={14} />
+                          </a>
+                          <button
+                            onClick={async () => {
+                              if (!window.confirm('Dosyayı silmek istediğinize emin misiniz?')) return;
+                              try {
+                                await api.delete(`/tasks/attachments/${file.id}`);
+                                const filtered = attachments.filter(a => a.id !== file.id);
+                                setAttachments(filtered);
+                                setTaskData(prev => ({ ...prev, attachments: filtered }));
+                                toast.success('Dosya silindi');
+                              } catch (error) {
+                                console.error(error);
+                                toast.error('Dosya silinemedi');
+                              }
+                            }}
+                            className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 p-1 text-slate-400 hover:text-red-500 transition-all"
+                          >
+                            <X size={14} />
+                          </button>
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -653,7 +941,7 @@ const ModernTaskModal = ({ task, isOpen, onClose, initialSection = 'subtasks' })
 
               {activeSection === 'activity' && (
                 <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
-                  <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-6 flex items-center gap-2">
+                  <h3 className="text-sm font-bold text-slate-400 mb-6 flex items-center gap-2">
                     <History size={16} /> Görev Geçmişi
                   </h3>
 
@@ -787,7 +1075,7 @@ const ModernTaskModal = ({ task, isOpen, onClose, initialSection = 'subtasks' })
 
             {/* Status Dropdown */}
             <div className="space-y-3 relative" ref={statusMenuRef}>
-              <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Durum</label>
+              <label className="text-xs font-bold text-slate-400">Durum</label>
               <button
                 onClick={() => setShowStatusMenu(!showStatusMenu)}
                 className="w-full flex items-center justify-between p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 hover:border-indigo-300 transition-colors shadow-sm"
@@ -821,7 +1109,7 @@ const ModernTaskModal = ({ task, isOpen, onClose, initialSection = 'subtasks' })
 
             {/* Priority */}
             <div className="space-y-3">
-              <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Öncelik</label>
+              <label className="text-xs font-bold text-slate-400">Öncelik</label>
               <div className="grid grid-cols-2 gap-2">
                 {priorities.map(p => (
                   <button
@@ -841,7 +1129,7 @@ const ModernTaskModal = ({ task, isOpen, onClose, initialSection = 'subtasks' })
 
             {/* Progress - Manual Slider */}
             <div className="space-y-3">
-              <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">İlerleme</label>
+              <label className="text-xs font-bold text-slate-400">İlerleme</label>
               <div className="space-y-3">
                 <div className="flex items-center justify-between text-sm">
                   <span className="text-slate-600 dark:text-slate-400">Tamamlanma</span>
@@ -869,16 +1157,21 @@ const ModernTaskModal = ({ task, isOpen, onClose, initialSection = 'subtasks' })
 
             {/* Assignees */}
             <div className="space-y-3">
-              <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Atananlar</label>
+              <label className="text-xs font-bold text-slate-400">Atananlar</label>
               <div className="flex flex-wrap gap-2">
                 {(taskData.assignees || []).map(id => {
-                  const user = users.find(u => u._id === id);
+                  const user = users.find(u => (u._id || u.id) == id);
                   if (!user) return null;
                   return (
-                    <div key={id} className="flex items-center gap-2 pl-1 pr-2 py-1 bg-white border border-slate-200 rounded-full shadow-sm">
+                    <div key={id} className="flex items-center gap-2 pl-1 pr-2 py-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-full shadow-sm">
                       <Avatar className="w-5 h-5">
-                        <AvatarImage src={user.avatar} />
-                        <AvatarFallback className="text-[10px] bg-slate-100">{user.fullName?.[0]}</AvatarFallback>
+                        <AvatarImage src={user.avatar ? getAvatarUrl(user.avatar) : ''} />
+                        <AvatarFallback
+                          className="text-[10px] font-bold text-white"
+                          style={{ backgroundColor: user.color || '#6366f1' }}
+                        >
+                          {user.fullName?.charAt(0).toUpperCase()}
+                        </AvatarFallback>
                       </Avatar>
                       <span className="text-xs font-medium text-slate-700">{user.fullName}</span>
                       <button onClick={() => setTaskData({ ...taskData, assignees: taskData.assignees.filter(uid => uid !== id) })} className="hover:text-red-500"><X size={12} /></button>
@@ -925,12 +1218,12 @@ const ModernTaskModal = ({ task, isOpen, onClose, initialSection = 'subtasks' })
                       />
                       <div className="max-h-60 overflow-y-auto space-y-1">
                         {filteredUsers.length > 0 ? (
-                          filteredUsers.filter(u => !taskData.assignees?.includes(u._id)).length > 0 ? (
-                            filteredUsers.filter(u => !taskData.assignees?.includes(u._id)).map(user => (
+                          filteredUsers.filter(u => !taskData.assignees?.includes(u._id || u.id)).length > 0 ? (
+                            filteredUsers.filter(u => !taskData.assignees?.includes(u._id || u.id)).map(user => (
                               <button
                                 key={user._id}
                                 onClick={() => {
-                                  setTaskData({ ...taskData, assignees: [...(taskData.assignees || []), user._id] });
+                                  setTaskData({ ...taskData, assignees: [...(taskData.assignees || []), user._id || user.id] });
                                   setShowAssigneeMenu(false);
                                   setSearchQuery('');
                                 }}
@@ -962,8 +1255,8 @@ const ModernTaskModal = ({ task, isOpen, onClose, initialSection = 'subtasks' })
 
             {/* Labels */}
             <div className="space-y-3">
-              <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Etiketler</label>
-              <div className="bg-white border border-slate-200 dark:border-slate-700 rounded-lg p-2 min-h-[42px] flex items-center">
+              <label className="text-xs font-bold text-slate-400">Etiketler</label>
+              <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg p-2 min-h-[42px] flex items-center">
                 <InlineLabelPicker
                   taskId={taskData._id}
                   projectId={taskData.projectId}
@@ -988,14 +1281,14 @@ const ModernTaskModal = ({ task, isOpen, onClose, initialSection = 'subtasks' })
 
             {/* Start Date */}
             <div className="space-y-3">
-              <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Başlangıç Tarihi</label>
+              <label className="text-xs font-bold text-slate-400">Başlangıç Tarihi</label>
               <div className="relative">
                 <Popover>
                   <PopoverTrigger asChild>
                     <Button
                       variant={"outline"}
                       className={cn(
-                        "w-full justify-start text-left font-medium bg-white border-slate-200 dark:border-slate-700 hover:bg-slate-50",
+                        "w-full justify-start text-left font-medium bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800",
                         !taskData.startDate && "text-slate-400"
                       )}
                     >
@@ -1024,14 +1317,14 @@ const ModernTaskModal = ({ task, isOpen, onClose, initialSection = 'subtasks' })
 
             {/* Due Date */}
             <div className="space-y-3">
-              <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Son Tarih</label>
+              <label className="text-xs font-bold text-slate-400">Son Tarih</label>
               <div className="relative">
                 <Popover>
                   <PopoverTrigger asChild>
                     <Button
                       variant={"outline"}
                       className={cn(
-                        "w-full justify-start text-left font-medium bg-white border-slate-200 dark:border-slate-700 hover:bg-slate-50",
+                        "w-full justify-start text-left font-medium bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800",
                         !taskData.dueDate && "text-slate-400"
                       )}
                     >
@@ -1056,6 +1349,26 @@ const ModernTaskModal = ({ task, isOpen, onClose, initialSection = 'subtasks' })
               </div>
             </div>
 
+
+
+            {/* Delete Button (Owner Only) */}
+            {(currentUser?.role === 'admin' || taskData.createdBy === currentUser?.id || (!taskData.createdBy && taskData.assignedBy === currentUser?.id)) && (
+              <div className="pt-6 mt-auto border-t border-slate-100 dark:border-slate-800">
+                <button
+                  onClick={async () => {
+                    if (window.confirm('Bu görevi silmek istediğinize emin misiniz?')) {
+                      await deleteTask(task._id);
+                      onClose();
+                      toast.success('Görev silindi');
+                    }
+                  }}
+                  className="w-full flex items-center justify-center gap-2 p-2 rounded-lg text-red-600 bg-red-50 hover:bg-red-100 dark:bg-red-900/20 dark:hover:bg-red-900/40 transition-colors text-sm font-medium"
+                >
+                  <Trash2 size={16} />
+                  Görevi Sil
+                </button>
+              </div>
+            )}
           </div>
         </div>
       </div>

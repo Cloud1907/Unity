@@ -26,6 +26,8 @@ namespace Unity.Core.DTOs
         public int? Department { get; set; }
         public List<int>? Departments { get; set; }
         public string? JobTitle { get; set; }
+        public string? Gender { get; set; }
+        public DateTime CreatedAt { get; set; }
     }
 
     public class UpdateProfileRequest
@@ -33,6 +35,7 @@ namespace Unity.Core.DTOs
         public string? FullName { get; set; }
         public string? Avatar { get; set; }
         public string? Color { get; set; }
+        public string? Gender { get; set; }
     }
 
     public class CreateUserRequest

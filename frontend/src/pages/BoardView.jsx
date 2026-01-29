@@ -26,7 +26,7 @@ const BoardView = () => {
         assignee: [],
         labels: []
     });
-    const [groupBy, setGroupBy] = useState(null); // 'status', 'priority', 'labels', 'tShirtSize'
+    const [groupBy, setGroupBy] = useState('status'); // 'status', 'priority', 'labels', 'tShirtSize'
 
     // Sync state with URL params
     useEffect(() => {
@@ -46,7 +46,7 @@ const BoardView = () => {
     };
 
     const handleNewBoard = () => {
-        console.log('Creating new board...');
+        // Creating new board
         // Mock new board creation
     };
 
@@ -68,9 +68,9 @@ const BoardView = () => {
             case 'kanban':
                 return <KanbanView {...viewProps} />;
             case 'calendar':
-                return <CalendarView boardId={currentBoard} />;
+                return <CalendarView {...viewProps} />;
             case 'gantt':
-                return <GanttView boardId={currentBoard} />;
+                return <GanttView {...viewProps} />;
             case 'workload':
                 return <WorkloadView boardId={currentBoard} />;
             default:

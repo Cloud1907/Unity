@@ -2,6 +2,14 @@ import React, { useState, useRef, useEffect } from 'react';
 import ReactDOM from 'react-dom';
 import { Plus } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
+import { getAvatarUrl } from '../utils/avatarHelper';
+
+const getUserColor = (user) => {
+    if (user?.color) return user.color;
+    const colors = ['#e2445c', '#00c875', '#fdab3d', '#579bfc', '#a25ddc', '#784bd1', '#ff642e', '#F59E0B'];
+    const index = (user?.fullName?.length || 0) % colors.length;
+    return colors[index];
+};
 
 const InlineAssigneePicker = ({ assigneeIds, allUsers, onChange }) => {
     const [isOpen, setIsOpen] = useState(false);
@@ -36,11 +44,16 @@ const InlineAssigneePicker = ({ assigneeIds, allUsers, onChange }) => {
         };
     }, [isOpen]);
 
-    const assignees = allUsers.filter(u => assigneeIds?.includes(u._id));
+    const assignees = allUsers.filter(u => {
+        const uid = u.id || u._id;
+        return assigneeIds?.some(aid => String(aid) === String(uid));
+    });
 
     const toggleAssignee = (userId) => {
-        const newAssignees = assigneeIds?.includes(userId)
-            ? assigneeIds.filter(id => id !== userId)
+        const isSelected = assignees.some(u => String(u.id || u._id) === String(userId));
+
+        const newAssignees = isSelected
+            ? assigneeIds.filter(id => String(id) !== String(userId))
             : [...(assigneeIds || []), userId];
         onChange(newAssignees);
     };
@@ -65,14 +78,17 @@ const InlineAssigneePicker = ({ assigneeIds, allUsers, onChange }) => {
                         onClick={() => toggleAssignee(user.id || user._id)}
                         className="w-full flex items-center gap-2 px-3 py-2 text-xs hover:bg-gray-50 transition-colors"
                     >
-                        <Avatar className="w-6 h-6">
-                            <AvatarImage src={user.avatar} />
-                            <AvatarFallback className="text-[10px]">
-                                {user.fullName?.charAt(0)}
+                        <Avatar className="w-6 h-6 border border-white">
+                            <AvatarImage src={user.avatar ? getAvatarUrl(user.avatar) : ''} />
+                            <AvatarFallback
+                                className="text-[10px] text-white font-bold"
+                                style={{ backgroundColor: getUserColor(user) }}
+                            >
+                                {user.fullName?.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase()}
                             </AvatarFallback>
                         </Avatar>
                         <span className="flex-1 text-left text-gray-900">{user.fullName}</span>
-                        {assigneeIds?.includes(user.id || user._id) && (
+                        {assigneeIds?.some(aid => String(aid) === String(user.id || user._id)) && (
                             <span className="text-[#6366f1]">✓</span>
                         )}
                     </button>
@@ -92,10 +108,13 @@ const InlineAssigneePicker = ({ assigneeIds, allUsers, onChange }) => {
                 className="flex items-center -space-x-1.5 hover:scale-105 transition-transform"
             >
                 {assignees.slice(0, 3).map(assignee => (
-                    <Avatar key={assignee.id || assignee._id} className="w-5 h-5 border border-white ring-1 ring-gray-200 hover:z-10" title={assignee.fullName}>
-                        <AvatarImage src={assignee.avatar} alt={assignee.fullName} />
-                        <AvatarFallback className="text-[10px]">
-                            {assignee.fullName?.charAt(0) || 'U'}
+                    <Avatar key={assignee.id || assignee._id} className="w-5 h-5 border border-white ring-1 ring-gray-200 hover:z-10 transition-transform" title={assignee.fullName}>
+                        <AvatarImage src={assignee.avatar ? getAvatarUrl(assignee.avatar) : ''} />
+                        <AvatarFallback
+                            className="text-[10px] text-white font-bold"
+                            style={{ backgroundColor: getUserColor(assignee) }}
+                        >
+                            {assignee.fullName?.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase() || 'U'}
                         </AvatarFallback>
                     </Avatar>
                 ))}

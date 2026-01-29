@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using Unity.Core.Helpers;
 using Microsoft.EntityFrameworkCore;
 using Unity.Infrastructure.Data;
 using Unity.Core.Models;
@@ -67,7 +68,7 @@ namespace Unity.API.Controllers
             if (string.IsNullOrEmpty(label.Color))
                 label.Color = "#cccccc";
 
-            label.CreatedAt = DateTime.UtcNow;
+            label.CreatedAt = TimeHelper.Now;
 
             _context.Labels.Add(label);
             await _context.SaveChangesAsync();

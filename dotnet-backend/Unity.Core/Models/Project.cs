@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Text.Json;
+using Unity.Core.Helpers;
 
 namespace Unity.Core.Models
 {
@@ -19,15 +20,8 @@ namespace Unity.Core.Models
         public string Color { get; set; } = "#0086c0";
         public int Owner { get; set; } // UserId
         
-        // Stored as JSON
-        public string MembersJson { get; set; } = "[]";
-
-        [NotMapped]
-        public List<int> Members 
-        { 
-            get => JsonSerializer.Deserialize<List<int>>(MembersJson ?? "[]") ?? new List<int>();
-            set => MembersJson = JsonSerializer.Serialize(value);
-        }
+        
+        public List<ProjectMember> Members { get; set; } = new List<ProjectMember>();
 
         public int DepartmentId { get; set; } // Changed from string Department name
         public DateTime? StartDate { get; set; }
@@ -41,7 +35,7 @@ namespace Unity.Core.Models
         public bool IsPrivate { get; set; } = false;
 
         public int CreatedBy { get; set; }
-        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
-        public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
+        public DateTime CreatedAt { get; set; } = TimeHelper.Now;
+        public DateTime UpdatedAt { get; set; } = TimeHelper.Now;
     }
 }

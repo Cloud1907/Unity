@@ -1,10 +1,10 @@
 using System;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using Unity.Core.Helpers;
 
 namespace Unity.Core.Models
 {
-    [Table("Labels")]
     public class Label
     {
         [Key]
@@ -13,10 +13,12 @@ namespace Unity.Core.Models
         [Required]
         public string Name { get; set; }
 
-        public string Color { get; set; } = "#cccccc";
+        [Required]
+        public string Color { get; set; }
+        
 
-        public int ProjectId { get; set; }
+        public int? ProjectId { get; set; } 
 
-        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+        public DateTime CreatedAt { get; set; } = TimeHelper.Now;
     }
 }

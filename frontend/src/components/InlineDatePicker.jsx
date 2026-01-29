@@ -13,9 +13,19 @@ const InlineDatePicker = ({ value, onChange }) => {
     useEffect(() => {
         if (isOpen && buttonRef.current) {
             const rect = buttonRef.current.getBoundingClientRect();
+            const PICKER_WIDTH = 300; // Approximate width of the calendar + padding
+            const viewportWidth = window.innerWidth;
+
+            let left = rect.left + window.scrollX;
+
+            // If the picker would go off-screen to the right, align it to the right
+            if (rect.left + PICKER_WIDTH > viewportWidth) {
+                left = (rect.right + window.scrollX) - PICKER_WIDTH;
+            }
+
             setPosition({
                 top: rect.bottom + window.scrollY + 4,
-                left: rect.left + window.scrollX
+                left: left
             });
         }
     }, [isOpen]);

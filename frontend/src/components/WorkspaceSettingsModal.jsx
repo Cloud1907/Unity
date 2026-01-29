@@ -7,6 +7,7 @@ import { Search, UserPlus, Trash2, Users, Loader2 } from 'lucide-react';
 import { useData } from '../contexts/DataContext';
 import { departmentsAPI } from '../services/api';
 import { toast } from 'sonner';
+import { getAvatarUrl } from '../utils/avatarHelper';
 
 const WorkspaceSettingsModal = ({ isOpen, onClose, initialWorkspace }) => {
     const { users, refreshData } = useData();
@@ -21,25 +22,24 @@ const WorkspaceSettingsModal = ({ isOpen, onClose, initialWorkspace }) => {
 
     if (!workspace || !isOpen) return null;
 
-    // Filter existing members
-    // In our model: User.departments (list of IDs).
-    // We need to find users who have this workspace ID in their departments list.
-    const members = users.filter(u =>
-        u.departments?.includes(workspace.id) ||
-        u.departments?.includes(typeof workspace.id === 'string' ? parseInt(workspace.id) : workspace.id)
-    );
+    // Safe member check helper
+    const isMember = (user) => {
+        if (!user.departments || !Array.isArray(user.departments)) return false;
+        const wId = parseInt(workspace.id);
+        return user.departments.some(d => parseInt(d) === wId);
+    };
+
+    const members = users.filter(isMember);
 
     const nonMembers = users.filter(u =>
-        !members.find(m => m._id === u._id) &&
-        (u.fullName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        !isMember(u) &&
+        (u.fullName.toLocaleLowerCase('tr').includes(searchQuery.toLocaleLowerCase('tr')) ||
             u.email.toLowerCase().includes(searchQuery.toLowerCase()))
-    ).slice(0, 5); // Limit suggestions
+    ).slice(0, 20); // Increased limit
 
     const handleAddMember = async (userId) => {
         setLoading(true);
         try {
-            // Backend expects simple int ID in body? 
-            // Our controller: [FromBody] int targetUserId
             await departmentsAPI.addMember(workspace.id, userId);
             toast.success("Kullanıcı eklendi");
             await refreshData();
@@ -99,7 +99,7 @@ const WorkspaceSettingsModal = ({ isOpen, onClose, initialWorkspace }) => {
 
                         {/* Search Results */}
                         {searchQuery && (
-                            <div className="border border-slate-200 dark:border-slate-700 rounded-lg overflow-hidden">
+                            <div className="border border-slate-200 dark:border-slate-700 rounded-lg overflow-hidden max-h-60 overflow-y-auto">
                                 {nonMembers.length === 0 ? (
                                     <div className="p-3 text-sm text-slate-500 text-center">Sonuç bulunamadı</div>
                                 ) : (
@@ -107,8 +107,10 @@ const WorkspaceSettingsModal = ({ isOpen, onClose, initialWorkspace }) => {
                                         <div key={user._id} className="flex items-center justify-between p-3 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
                                             <div className="flex items-center gap-3">
                                                 <Avatar className="h-8 w-8">
-                                                    <AvatarImage src={user.avatar} />
-                                                    <AvatarFallback>{user.fullName?.[0]}</AvatarFallback>
+                                                    <AvatarImage src={getAvatarUrl(user.avatar)} />
+                                                    <AvatarFallback style={{ backgroundColor: user.color || '#6366f1' }} className="text-white text-xs">
+                                                        {user.fullName?.[0]}
+                                                    </AvatarFallback>
                                                 </Avatar>
                                                 <div className="text-sm">
                                                     <div className="font-medium text-slate-900 dark:text-slate-100">{user.fullName}</div>
@@ -142,8 +144,10 @@ const WorkspaceSettingsModal = ({ isOpen, onClose, initialWorkspace }) => {
                                 <div key={member._id} className="group flex items-center justify-between p-2 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors border border-transparent hover:border-slate-200 dark:hover:border-slate-800">
                                     <div className="flex items-center gap-3">
                                         <Avatar className="h-9 w-9 border border-white dark:border-slate-700 shadow-sm">
-                                            <AvatarImage src={member.avatar} />
-                                            <AvatarFallback className="bg-slate-100 text-slate-600">{member.fullName?.[0]}</AvatarFallback>
+                                            <AvatarImage src={getAvatarUrl(member.avatar)} />
+                                            <AvatarFallback style={{ backgroundColor: member.color || '#6366f1' }} className="text-white text-xs">
+                                                {member.fullName?.[0]}
+                                            </AvatarFallback>
                                         </Avatar>
                                         <div>
                                             <div className="font-medium text-sm text-slate-900 dark:text-slate-100">{member.fullName}</div>

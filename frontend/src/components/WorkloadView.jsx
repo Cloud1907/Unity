@@ -1,6 +1,7 @@
 import React from 'react';
 import { useData } from '../contexts/DataContext';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
+import { getAvatarUrl } from '../utils/avatarHelper';
 
 const statuses = [
   { id: 'todo', label: 'Yapılacak', color: '#c4c4c4' },
@@ -66,8 +67,8 @@ const WorkloadView = ({ boardId }) => {
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center gap-4">
                     <Avatar className="w-12 h-12">
-                      <AvatarImage src={user.avatar} alt={user.fullName} />
-                      <AvatarFallback style={{ backgroundColor: user.color }}>
+                      <AvatarImage src={getAvatarUrl(user.avatar, user.gender, user.fullName, user.color)} alt={user.fullName} />
+                      <AvatarFallback style={{ backgroundColor: user.color }} className="text-white font-bold">
                         {user.fullName?.charAt(0)}
                       </AvatarFallback>
                     </Avatar>
@@ -108,7 +109,7 @@ const WorkloadView = ({ boardId }) => {
                 {/* Task List */}
                 {userTasks.length > 0 && (
                   <div className="space-y-2">
-                    <div className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
+                    <div className="text-xs font-semibold text-gray-500 capitalize tracking-wider mb-2">
                       Görevler
                     </div>
                     <div className="space-y-2 max-h-40 overflow-y-auto">

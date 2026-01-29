@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { Plus, MoreHorizontal, User, Calendar, GitMerge, MessageSquare, Trash2, TrendingUp } from 'lucide-react';
 import { useDataState, useDataActions } from '../contexts/DataContext';
+import { useAuth } from '../contexts/AuthContext';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
 import ModernTaskModal from './ModernTaskModal';
 import NewTaskModal from './NewTaskModal';
@@ -9,7 +10,6 @@ import InlineLabelPicker from './InlineLabelPicker';
 import InlineTextEdit from './InlineTextEdit';
 import ConfirmModal from './ui/ConfirmModal';
 import confetti from 'canvas-confetti';
-
 import { KanbanSkeleton } from './skeletons/KanbanSkeleton';
 import EmptyState from './ui/EmptyState';
 
@@ -56,6 +56,14 @@ const celebrateTask = () => {
   } catch (error) {
     console.error('Confetti error:', error);
   }
+};
+
+const getUserColor = (user) => {
+  if (user?.color) return user.color;
+  // Fallback: Generate consistent color from name
+  const colors = ['#e2445c', '#00c875', '#fdab3d', '#579bfc', '#a25ddc', '#784bd1', '#ff642e', '#F59E0B']; // Added #F59E0B (Yellow)
+  const index = (user?.fullName?.length || 0) % colors.length;
+  return colors[index];
 };
 
 // Inline Status Dropdown Component with Portal
@@ -466,9 +474,12 @@ const CompactTaskCard = React.memo(({
   onDelete,
   activeMenuTaskId, // Prop to know if this card's menu should be open
   onToggleMenu, // Handler to toggle this card's menu
-  autoFocus // NEW: Prop to auto-focus the title
+  autoFocus, // NEW: Prop to auto-focus the title
+  currentUser // Passed from parent for permission checks
 }) => {
-  const assignees = users.filter(u => task.assignees?.includes(u.id || u._id));
+  // Normalize assignees to IDs
+  const assigneeIds = (task.assignees || []).map(a => a.userId || a.id || a);
+  const assignees = users.filter(u => assigneeIds.includes(u.id || u._id));
   const [isHovered, setIsHovered] = useState(false);
   const [showAssigneeMenu, setShowAssigneeMenu] = useState(false);
   const [assigneeMenuPosition, setAssigneeMenuPosition] = useState({ top: 0, left: 0 });
@@ -514,10 +525,12 @@ const CompactTaskCard = React.memo(({
   }, [showAssigneeMenu, showMenu, onToggleMenu]);
 
   const toggleAssignee = (userId) => {
-    const currentAssignees = task.assignees || [];
-    const newAssignees = currentAssignees.includes(userId)
-      ? currentAssignees.filter(id => id !== userId)
-      : [...currentAssignees, userId];
+    // Normalize current assignees to IDs
+    const currentAssigneeIds = (task.assignees || []).map(a => a.userId || a.id || a);
+
+    const newAssignees = currentAssigneeIds.includes(userId)
+      ? currentAssigneeIds.filter(id => id !== userId)
+      : [...currentAssigneeIds, userId];
     onUpdate(task._id, { assignees: newAssignees });
   };
 
@@ -533,7 +546,7 @@ const CompactTaskCard = React.memo(({
         if (e.target.closest('button') || e.target.closest('[role="menu"]')) return;
         onTaskClick(task);
       }}
-      className={`bg-white dark:bg-slate-800 rounded-xl p-3 border transition-all duration-300 cursor-pointer group ${isDragging
+      className={`bg-white dark:bg-slate-800 rounded-xl p-3 border transition-all duration-300 cursor-pointer group relative ${isDragging
         ? 'opacity-80 scale-105 shadow-2xl rotate-2 z-50'
         : 'opacity-100 shadow-sm hover:shadow-lg dark:hover:shadow-[0_8px_30px_rgba(0,0,0,0.4)] hover:-translate-y-1 border-gray-100 dark:border-slate-700 hover:border-blue-300 dark:hover:border-blue-500'
         } ${autoFocus ? 'animate-in fade-in slide-in-from-top-2 duration-300' : ''}`}
@@ -548,7 +561,7 @@ const CompactTaskCard = React.memo(({
             value={task.title}
             onSave={(newTitle) => onUpdate(task._id, { title: newTitle })}
             startEditing={autoFocus}
-            className="text-sm font-semibold text-gray-900 dark:text-gray-100 leading-tight !p-0 hover:!bg-transparent truncate block"
+            className="text-sm font-medium text-gray-900 dark:text-gray-100 leading-tight !p-0 hover:!bg-transparent truncate block"
             inputClassName="w-full bg-white dark:bg-slate-800 border border-indigo-500 rounded px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500 resize-none overflow-hidden leading-normal min-h-[24px]"
           />
         </div>
@@ -572,16 +585,18 @@ const CompactTaskCard = React.memo(({
             className="absolute right-0 top-6 w-32 bg-white dark:bg-slate-800 rounded-lg shadow-xl border border-gray-200 dark:border-slate-700 z-50 py-1"
             onClick={(e) => e.stopPropagation()}
           >
-            <button
-              onClick={() => {
-                onToggleMenu(null); // Close menu
-                onDelete(task._id);
-              }}
-              className="w-full text-left px-3 py-2 text-xs text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center gap-2"
-            >
-              <Trash2 size={12} />
-              Görevi Sil
-            </button>
+            {(currentUser?.role === 'admin' || task.createdBy === currentUser?.id || (!task.createdBy && task.assignedBy === currentUser?.id)) && (
+              <button
+                onClick={() => {
+                  onToggleMenu(null); // Close menu
+                  onDelete(task._id);
+                }}
+                className="w-full text-left px-3 py-2 text-xs text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center gap-2"
+              >
+                <Trash2 size={12} />
+                Görevi Sil
+              </button>
+            )}
           </div>
         )}
 
@@ -657,53 +672,47 @@ const CompactTaskCard = React.memo(({
           >
             <GitMerge size={10} className="rotate-90 text-[#6366f1] dark:text-[#818cf8]" />
             <span className="text-[9px] font-bold">
-              {task.subtasks.filter(st => st.completed).length}/{task.subtasks.length}
+              {task.subtasks.filter(st => st.isCompleted).length}/{task.subtasks.length}
             </span>
           </div>
         )}
 
         {/* Attachments */}
-        {(() => {
-          const attachmentsJson = task.attachmentsJson || '[]';
-          const attachmentsCount = (typeof attachmentsJson === 'string' ? JSON.parse(attachmentsJson).length : task.attachments?.length) || 0;
-          if (attachmentsCount > 0) return (
-            <div
-              className="flex items-center gap-1 px-1.5 py-0.5 bg-gray-50 dark:bg-slate-700/50 rounded border border-gray-100 dark:border-slate-700 text-gray-500 dark:text-gray-400 hover:border-[#6366f1] transition-colors cursor-pointer"
-              title={`${attachmentsCount} dosya`}
-              onClick={(e) => {
-                e.stopPropagation();
-                onTaskClick(task, 'files');
-              }}
-            >
-              <TrendingUp size={10} className="rotate-90 text-[#6366f1]" />
-              <span className="text-[9px] font-bold">{attachmentsCount}</span>
-            </div>
-          );
-        })()}
-        {(() => {
-          const commentsJson = task.commentsJson || '[]';
-          const commentsCount = (typeof commentsJson === 'string' ? JSON.parse(commentsJson).length : task.comments?.length) || 0;
-          if (commentsCount > 0) return (
-            <div
-              className="flex items-center gap-1 px-1.5 py-0.5 bg-gray-50 dark:bg-slate-700/50 rounded border border-gray-100 dark:border-slate-700 text-gray-500 dark:text-gray-400 hover:border-[#00c875] transition-colors cursor-pointer"
-              title={`${commentsCount} yorum`}
-              onClick={(e) => {
-                e.stopPropagation();
-                onTaskClick(task, 'comments');
-              }}
-            >
-              <MessageSquare size={10} className="text-[#00c875]" />
-              <span className="text-[9px] font-bold">{commentsCount}</span>
-            </div>
-          );
-        })()}
+        {task.attachments?.length > 0 && (
+          <div
+            className="flex items-center gap-1 px-1.5 py-0.5 bg-gray-50 dark:bg-slate-700/50 rounded border border-gray-100 dark:border-slate-700 text-gray-500 dark:text-gray-400 hover:border-[#6366f1] transition-colors cursor-pointer"
+            title={`${task.attachments.length} dosya`}
+            onClick={(e) => {
+              e.stopPropagation();
+              onTaskClick(task, 'files');
+            }}
+          >
+            <TrendingUp size={10} className="rotate-90 text-[#6366f1]" />
+            <span className="text-[9px] font-bold">{task.attachments.length}</span>
+          </div>
+        )}
+
+        {/* Comments */}
+        {task.comments?.length > 0 && (
+          <div
+            className="flex items-center gap-1 px-1.5 py-0.5 bg-gray-50 dark:bg-slate-700/50 rounded border border-gray-100 dark:border-slate-700 text-gray-500 dark:text-gray-400 hover:border-[#00c875] transition-colors cursor-pointer"
+            title={`${task.comments.length} yorum`}
+            onClick={(e) => {
+              e.stopPropagation();
+              onTaskClick(task, 'comments');
+            }}
+          >
+            <MessageSquare size={10} className="text-[#00c875]" />
+            <span className="text-[9px] font-bold">{task.comments.length}</span>
+          </div>
+        )}
       </div>
 
       {/* Labels Row */}
       <div className="mb-2">
         <InlineLabelPicker
           taskId={task._id}
-          currentLabels={task.labels || []}
+          currentLabels={(task.labels || []).map(l => l.labelId || l.id || l)}
           projectId={projectId}
           onUpdate={(taskId, newLabels) => onUpdate(taskId, { labels: newLabels })}
         />
@@ -720,19 +729,27 @@ const CompactTaskCard = React.memo(({
           }}
           className="flex items-center -space-x-1.5 hover:scale-105 transition-transform"
         >
-          {assignees.slice(0, 2).map((assignee, idx) => (
-            <Avatar
-              key={assignee.id || assignee._id}
-              className="w-6 h-6 border-2 border-white dark:border-slate-700 ring-1 ring-gray-200 dark:ring-slate-600 hover:ring-blue-400 transition-all hover:z-10"
-              style={{ zIndex: 2 - idx }}
-              title={assignee.fullName}
-            >
-              <AvatarImage src={assignee.avatar} />
-              <AvatarFallback className="text-[10px] font-bold bg-gradient-to-br from-blue-400 to-purple-500 text-white">
-                {assignee.fullName?.charAt(0)}
-              </AvatarFallback>
-            </Avatar>
-          ))}
+          {assignees.slice(0, 2).map((assignee, idx) => {
+            // Find full user details to get correct color
+            const fullUser = users?.find(u => (u.id === assignee.id || u._id === assignee._id) || (u.id === assignee.userId)) || assignee;
+
+            return (
+              <Avatar
+                key={assignee.id || assignee._id}
+                className="w-6 h-6 border-2 border-white dark:border-slate-700 ring-1 ring-gray-200 dark:ring-slate-600 hover:ring-blue-400 transition-all hover:z-10"
+                style={{ zIndex: 2 - idx }}
+                title={fullUser.fullName || assignee.fullName}
+              >
+                {/* AvatarImage removed as per user request */}
+                <AvatarFallback
+                  className="text-[10px] font-bold text-white border-2 border-white"
+                  style={{ backgroundColor: getUserColor(fullUser) }}
+                >
+                  {(fullUser.fullName || assignee.fullName)?.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase()}
+                </AvatarFallback>
+              </Avatar>
+            );
+          })}
           {assignees.length > 2 && (
             <div className="w-6 h-6 rounded-full bg-gradient-to-br from-gray-200 to-gray-300 border-2 border-white flex items-center justify-center text-[9px] font-bold text-gray-700">
               +{assignees.length - 2}
@@ -779,7 +796,7 @@ const CompactTaskCard = React.memo(({
                     </AvatarFallback>
                   </Avatar>
                   <span className="flex-1 text-left text-gray-900 dark:text-gray-200">{user.fullName}</span>
-                  {(task.assignees || []).includes(user.id || user._id) && (
+                  {(assigneeIds || []).includes(user.id || user._id) && (
                     <span className="text-blue-600 text-sm">✓</span>
                   )}
                 </button>
@@ -788,14 +805,26 @@ const CompactTaskCard = React.memo(({
           </div>,
           document.body
         )}
+        {/* Creator Info - Moved to Right of Assignees */}
+        {!!task.createdBy && task.createdBy > 0 && (
+          <div className="ml-auto flex items-center h-6">
+            <p className="text-[9px] text-gray-400 dark:text-gray-500 flex items-center gap-1 opacity-70 hover:opacity-100 transition-opacity whitespace-nowrap">
+              <span className="font-light">Oluşturan:</span>
+              <span className="font-normal text-gray-500 dark:text-gray-400">
+                {users.find(u => u.id === task.createdBy || u._id === task.createdBy)?.fullName || 'Bilinmeyen'}
+              </span>
+            </p>
+          </div>
+        )}
       </div>
-    </div>
+    </div >
   );
 });
 
 const KanbanViewV2 = ({ boardId, searchQuery, filters }) => {
   const { tasks, users, loading } = useDataState();
   const { fetchTasks, fetchLabels, updateTaskStatus, updateTask, deleteTask } = useDataActions();
+  const { user: currentUser } = useAuth();
 
   const [draggedTask, setDraggedTask] = useState(null);
   const [dragOverColumn, setDragOverColumn] = useState(null);
@@ -980,11 +1009,8 @@ const KanbanViewV2 = ({ boardId, searchQuery, filters }) => {
     try {
       // Use same base URL logic as api.js
       const getBaseUrl = () => {
-        const envUrl = process.env.REACT_APP_BACKEND_URL;
-        if (process.env.NODE_ENV === 'development') {
-          return envUrl || 'http://localhost:7000';
-        }
-        return ''; // Production: relative path
+        // Always use relative path - works in all environments
+        return '';
       };
 
       const API_URL = getBaseUrl();
@@ -1050,8 +1076,11 @@ const KanbanViewV2 = ({ boardId, searchQuery, filters }) => {
                 key={column.id}
                 className={`flex flex-col w-[270px] rounded-2xl ${isDropTarget
                   ? 'bg-blue-50 dark:bg-blue-900/30 border-blue-200 dark:border-blue-800'
-                  : 'bg-gray-100 dark:bg-slate-900/50 border-gray-200 dark:border-slate-800'
-                  } border h-full overflow-hidden`}
+                  : 'bg-transparent border-transparent'
+                  } border h-full overflow-hidden transition-colors duration-300`}
+                style={{
+                  backgroundColor: isDropTarget ? undefined : `${column.color}0D` // ~5% opacity for premium transparent feel
+                }}
                 onDragOver={(e) => handleDragOver(e, column.id)}
                 onDragLeave={handleDragLeave}
                 onDrop={(e) => handleDrop(e, column.id)}
@@ -1097,6 +1126,7 @@ const KanbanViewV2 = ({ boardId, searchQuery, filters }) => {
                         onDragStart={(e) => handleDragStart(e, task)}
                         onDragEnd={handleDragEnd}
                         isDragging={draggedTask?._id === task._id}
+
                         users={users}
                         projectId={boardId}
                         onStatusChange={handleStatusChange}
@@ -1106,7 +1136,9 @@ const KanbanViewV2 = ({ boardId, searchQuery, filters }) => {
                         activeMenuTaskId={activeMenuTaskId}
                         onToggleMenu={setActiveMenuTaskId}
                         autoFocus={task._id === justCreatedTaskId}
+                        currentUser={currentUser}
                       />
+
                     ))}
                   </div>
 
@@ -1116,7 +1148,7 @@ const KanbanViewV2 = ({ boardId, searchQuery, filters }) => {
                       <div className="w-12 h-12 mx-auto mb-3 rounded-full bg-gray-100 dark:bg-slate-800 flex items-center justify-center">
                         <Plus size={24} className="text-gray-300 dark:text-gray-600" strokeWidth={1.5} />
                       </div>
-                      <p className="text-[11px] text-gray-400 font-medium uppercase tracking-wide">Görev Ekle</p>
+                      <p className="text-[11px] text-gray-400 font-medium capitalize tracking-wide">Görev Ekle</p>
                     </div>
                   )}
 

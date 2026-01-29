@@ -18,5 +18,7 @@ namespace Unity.Core.Models
         public string? Color { get; set; } // Hex color code
         
         public bool IsMaster { get; set; } = false; // Master workspaces created by Admin
+
+        public int CreatedBy { get; set; } // User ID of the creator
     }
 }

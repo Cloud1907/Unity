@@ -1,6 +1,7 @@
 using System;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using Unity.Core.Helpers;
 
 namespace Unity.Core.Models
 {
@@ -29,6 +30,6 @@ namespace Unity.Core.Models
         public string? OldValues { get; set; } // JSON
         public string? NewValues { get; set; } // JSON
 
-        public DateTime Timestamp { get; set; } = DateTime.UtcNow;
+        public DateTime Timestamp { get; set; } = TimeHelper.Now;
     }
 }

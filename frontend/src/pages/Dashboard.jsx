@@ -5,22 +5,43 @@ import { useAuth } from '../contexts/AuthContext';
 import { motion } from 'framer-motion';
 import {
   ChevronRight, CheckCircle, Clock, AlertCircle,
-  Calendar, Plus, Target, Zap, Activity, ArrowUpRight, TrendingUp, Users,
-  Filter, Search
+  Calendar, Plus, Target, Zap, ArrowUpRight, TrendingUp, Users,
+  Filter, Search, MoreHorizontal
 } from 'lucide-react';
 import { DashboardSkeleton } from '../components/skeletons/DashboardSkeleton';
 import NewTaskModal from '../components/NewTaskModal';
 import ModernTaskModal from '../components/ModernTaskModal';
 import { Badge } from '../components/ui/badge';
+import { getAvatarUrl } from '../utils/avatarHelper';
+import { DynamicIcon } from '../components/IconPicker';
+import WeeklyProgress from '../components/WeeklyProgress';
 
 const Dashboard = () => {
-  const { projects, tasks, users, loading } = useData();
+  const { projects: rawProjects, tasks: rawTasks, users, loading } = useData();
   const { user } = useAuth();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
 
+  // Normalize tasks (Backend returns objects, Frontend expects IDs)
+  const tasks = useMemo(() => {
+    return rawTasks.map(t => ({
+      ...t,
+      assignees: Array.isArray(t.assignees) ? t.assignees.map(a => (typeof a === 'object' ? (a.userId || a.id) : a)) : [],
+      labels: Array.isArray(t.labels) ? t.labels.map(l => (typeof l === 'object' ? (l.labelId || l.id) : l)) : []
+    }));
+  }, [rawTasks]);
+
+  // Normalize projects
+  const projects = useMemo(() => {
+    return rawProjects.map(p => ({
+      ...p,
+      members: Array.isArray(p.members) ? p.members.map(m => (typeof m === 'object' ? (m.userId || m.id) : m)) : []
+    }));
+  }, [rawProjects]);
+
   // Dashboard State
   const [showNewTaskModal, setShowNewTaskModal] = useState(false);
+  const [dateFilter, setDateFilter] = useState('week'); // 'week', 'month', 'year'
 
   // My Tasks State
   const [filter, setFilter] = useState(searchParams.get('filter') || 'all');
@@ -32,12 +53,34 @@ const Dashboard = () => {
   const currentUserDepts = user?.departments || (user?.department ? [user.department] : []);
   const currentUserRole = user?.role;
 
+  // Date range calculation based on filter
+  const dateRange = useMemo(() => {
+    const now = new Date();
+    let startDate = new Date();
+
+    if (dateFilter === 'week') {
+      // This week (Monday to Sunday)
+      const dayOfWeek = now.getDay();
+      const diff = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+      startDate.setDate(now.getDate() - diff);
+      startDate.setHours(0, 0, 0, 0);
+    } else if (dateFilter === 'month') {
+      // This month
+      startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+    } else if (dateFilter === 'year') {
+      // Last 1 year
+      startDate = new Date(now.getFullYear() - 1, now.getMonth(), now.getDate());
+    }
+
+    return { start: startDate, end: now };
+  }, [dateFilter]);
+
   // --- Dashboard Logic ---
 
   const accessibleProjects = useMemo(() => {
     return projects.filter(p => {
       if (currentUserRole === 'admin') return true;
-      if (p.owner === currentUserId || p.members?.includes(currentUserId)) return true;
+      if (p.owner === currentUserId || p.members?.includes(currentUserId) || p.members?.includes(Number(currentUserId))) return true;
       if (p.isPrivate) return false;
       if (currentUserDepts.length > 0 && (currentUserDepts.includes(p.departmentId) || currentUserDepts.includes(p.department))) return true;
       return false;
@@ -48,12 +91,32 @@ const Dashboard = () => {
   const accessibleTasks = useMemo(() => tasks.filter(t => accessibleProjectIds.includes(t.projectId)), [tasks, accessibleProjectIds]);
 
   const stats = useMemo(() => {
-    const myTasks = accessibleTasks.filter(t => t.assignees?.includes(currentUserId));
-    const myCompletedTasks = myTasks.filter(t => t.status === 'done');
-    const workingStatuses = ['working', 'in_progress', 'review', 'stuck'];
-    const myInProgressTasks = myTasks.filter(t => workingStatuses.includes(t.status));
-    const pendingStatuses = ['todo', 'backlog', 'planning'];
-    const myPendingTasks = myTasks.filter(t => pendingStatuses.includes(t.status));
+    let myTasks = accessibleTasks.filter(t => {
+      const assigneeIds = t.assignees || [];
+      return assigneeIds.includes(currentUserId) || assigneeIds.includes(Number(currentUserId));
+    });
+
+    // Filter by date range based on createdAt or updatedAt
+    myTasks = myTasks.filter(t => {
+      const taskDate = new Date(t.updatedAt || t.createdAt);
+      return taskDate >= dateRange.start && taskDate <= dateRange.end;
+    });
+
+    // Status breakdowns
+    const myTodoTasks = myTasks.filter(t => t.status === 'todo'); // Yapılacak
+    const myWorkingTasks = myTasks.filter(t => t.status === 'working' || t.status === 'in_progress'); // Devam Ediyor
+    const myStuckTasks = myTasks.filter(t => t.status === 'stuck'); // Takıldı
+    const myReviewTasks = myTasks.filter(t => t.status === 'review'); // İncelemede
+    const myDoneTasks = myTasks.filter(t => t.status === 'done'); // Tamamlandı
+
+    // Grouping for progress calculation (Open tasks)
+    const openTasks = myTasks.filter(t => t.status !== 'done');
+    const totalProgress = openTasks.reduce((acc, t) => acc + (t.progress || 0), 0);
+    const averageProgress = openTasks.length > 0 ? Math.round(totalProgress / openTasks.length) : 0;
+
+    // Legacy groupings for charts if needed
+    const myInProgressTasks = [...myWorkingTasks, ...myStuckTasks, ...myReviewTasks];
+    const myPendingTasks = [...myTodoTasks];
 
     const todayStart = new Date();
     todayStart.setHours(0, 0, 0, 0);
@@ -62,18 +125,27 @@ const Dashboard = () => {
       return new Date(t.dueDate) < todayStart;
     });
 
-    const openTasks = myTasks.filter(t => t.status !== 'done');
-    const totalProgress = openTasks.reduce((acc, t) => acc + (t.progress || 0), 0);
-    const averageProgress = openTasks.length > 0 ? Math.round(totalProgress / openTasks.length) : 0;
-
-    return { myTasks, myCompletedTasks, myInProgressTasks, myPendingTasks, overdueTasks, averageProgress, openTasksCount: openTasks.length };
-  }, [accessibleTasks, currentUserId]);
+    return {
+      myTasks,
+      myTodoTasks,
+      myWorkingTasks,
+      myStuckTasks,
+      myReviewTasks,
+      myDoneTasks,
+      myInProgressTasks,
+      myPendingTasks,
+      overdueTasks,
+      averageProgress
+    };
+  }, [accessibleTasks, currentUserId, dateRange]);
 
   const quickStats = [
-    { title: 'Toplam Görevler', value: stats.myTasks.length, icon: <Target size={20} />, bgColor: 'bg-blue-100 dark:bg-blue-500/20', textColor: 'text-blue-700 dark:text-blue-300', action: () => setFilter('all') },
-    { title: 'Devam Eden', value: stats.myInProgressTasks.length, icon: <Zap size={20} />, bgColor: 'bg-amber-100 dark:bg-amber-500/20', textColor: 'text-amber-700 dark:text-amber-300', action: () => setFilter('in_progress') },
-    { title: 'Tamamlanan', value: stats.myCompletedTasks.length, icon: <CheckCircle size={20} />, bgColor: 'bg-emerald-100 dark:bg-emerald-500/20', textColor: 'text-emerald-700 dark:text-emerald-300', action: () => setFilter('done') },
-    { title: 'Geciken', value: stats.overdueTasks.length, icon: <AlertCircle size={20} />, bgColor: 'bg-rose-100 dark:bg-rose-500/20', textColor: 'text-rose-700 dark:text-rose-300', action: () => setFilter('overdue') }
+    { id: 'all', title: 'Toplam Görev', value: stats.myTasks.length, icon: <Target size={20} />, bgColor: 'bg-indigo-100 dark:bg-indigo-500/20', textColor: 'text-indigo-700 dark:text-indigo-300', action: () => setFilter('all') },
+    { id: 'todo', title: 'Yapılacak', value: stats.myTodoTasks.length, icon: <Calendar size={20} />, bgColor: 'bg-slate-100 dark:bg-slate-700/50', textColor: 'text-slate-600 dark:text-slate-300', action: () => setFilter('todo') },
+    { id: 'working', title: 'Devam Ediyor', value: stats.myWorkingTasks.length, icon: <Zap size={20} />, bgColor: 'bg-amber-100 dark:bg-amber-500/20', textColor: 'text-amber-700 dark:text-amber-300', action: () => setFilter('working') },
+    { id: 'stuck', title: 'Takıldı', value: stats.myStuckTasks.length, icon: <AlertCircle size={20} />, bgColor: 'bg-rose-100 dark:bg-rose-500/20', textColor: 'text-rose-700 dark:text-rose-300', action: () => setFilter('stuck') },
+    { id: 'review', title: 'İncelemede', value: stats.myReviewTasks.length, icon: <Search size={20} />, bgColor: 'bg-blue-100 dark:bg-blue-500/20', textColor: 'text-blue-700 dark:text-blue-300', action: () => setFilter('review') },
+    { id: 'done', title: 'Tamamlandı', value: stats.myDoneTasks.length, icon: <CheckCircle size={20} />, bgColor: 'bg-emerald-100 dark:bg-emerald-500/20', textColor: 'text-emerald-700 dark:text-emerald-300', action: () => setFilter('done') },
   ];
 
   // --- My Tasks Logic ---
@@ -94,7 +166,7 @@ const Dashboard = () => {
 
   const handleFilterChange = (newFilter) => {
     setFilter(newFilter);
-    setSearchParams({ filter: newFilter });
+    // setSearchParams({ filter: newFilter }); // Optional: keep URL sync if desired, but user wants simple interaction
   };
 
   const filteredTasks = useMemo(() => {
@@ -103,6 +175,14 @@ const Dashboard = () => {
     const now = new Date();
     if (filter === 'done') {
       result = result.filter(t => t.status === 'done');
+    } else if (filter === 'todo') {
+      result = result.filter(t => t.status === 'todo');
+    } else if (filter === 'working') {
+      result = result.filter(t => t.status === 'working' || t.status === 'in_progress');
+    } else if (filter === 'stuck') {
+      result = result.filter(t => t.status === 'stuck');
+    } else if (filter === 'review') {
+      result = result.filter(t => t.status === 'review');
     } else if (filter === 'in_progress') {
       result = result.filter(t => statusGroups.in_progress.statuses.includes(t.status));
     } else if (filter === 'pending') {
@@ -143,9 +223,11 @@ const Dashboard = () => {
   const getStatusStyle = (status) => {
     switch (status) {
       case 'done': return { bg: 'bg-emerald-100 dark:bg-emerald-900/30', text: 'text-emerald-700 dark:text-emerald-400', label: 'Tamamlandı' };
-      case 'working': return { bg: 'bg-amber-100 dark:bg-amber-900/30', text: 'text-amber-700 dark:text-amber-400', label: 'Çalışılıyor' };
+      case 'working':
+      case 'in_progress':
+        return { bg: 'bg-amber-100 dark:bg-amber-900/30', text: 'text-amber-700 dark:text-amber-400', label: 'Devam Ediyor' };
       case 'stuck': return { bg: 'bg-red-100 dark:bg-red-900/30', text: 'text-red-700 dark:text-red-400', label: 'Takıldı' };
-      case 'review': return { bg: 'bg-blue-100 dark:bg-blue-900/30', text: 'text-blue-700 dark:text-blue-400', label: 'İnceleme' };
+      case 'review': return { bg: 'bg-blue-100 dark:bg-blue-900/30', text: 'text-blue-700 dark:text-blue-400', label: 'İncelemede' };
       default: return { bg: 'bg-slate-100 dark:bg-slate-800', text: 'text-slate-700 dark:text-slate-400', label: 'Yapılacak' };
     }
   };
@@ -175,243 +257,207 @@ const Dashboard = () => {
 
       <div className="relative z-10 max-w-[1600px] mx-auto p-6 lg:p-8 space-y-8">
 
-        {/* Header */}
+        {/* Premium Header */}
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
-          className="flex flex-col md:flex-row md:items-center justify-between gap-4"
+          className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-2"
         >
-          <div className="space-y-1">
-            <h1 className="text-2xl font-bold text-blue-700 dark:text-blue-300">
+          <div className="space-y-0.5">
+            <h1 className="text-xl font-bold text-slate-900 dark:text-white tracking-tight">
               Merhaba, {user?.fullName?.split(' ')[0]} 👋
             </h1>
-            <p className="text-xs text-gray-600 dark:text-gray-400 flex items-center gap-1.5">
-              <Calendar size={12} />
+            <p className="text-[11px] font-medium text-slate-400 flex items-center gap-1.5 capitalize tracking-wider">
+              <Calendar size={12} className="text-indigo-400" />
               {new Date().toLocaleDateString('tr-TR', { weekday: 'long', day: 'numeric', month: 'long' })}
             </p>
           </div>
 
-          {/* New Task Button Removed */}
+          {/* Elegant Date Filter */}
+          <div className="flex items-center gap-1 bg-white/60 dark:bg-gray-800/60 backdrop-blur-sm p-1 rounded-xl border border-slate-100 dark:border-gray-700 shadow-sm">
+            {[
+              { id: 'week', label: 'Haftalık' },
+              { id: 'month', label: 'Aylık' },
+              { id: 'year', label: 'Yıllık' }
+            ].map(option => (
+              <button
+                key={option.id}
+                onClick={() => setDateFilter(option.id)}
+                className={`px-4 py-1.5 text-[11px] font-bold capitalize tracking-wide rounded-lg transition-all ${dateFilter === option.id
+                  ? 'bg-indigo-600 text-white shadow-md shadow-indigo-200 dark:shadow-none'
+                  : 'text-slate-500 dark:text-gray-400 hover:bg-slate-50 dark:hover:bg-gray-700'
+                  }`}
+              >
+                {option.label}
+              </button>
+            ))}
+          </div>
         </motion.div>
 
-        {/* Charts Section (Team Summary & Progress) */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Team Summary */}
+        {/* Weekly Progress Component */}
+        <WeeklyProgress
+          totalTasks={stats.myTasks.length}
+          activeTasks={stats.myInProgressTasks.length}
+          overdueTasks={stats.overdueTasks.length}
+          completionRate={stats.averageProgress}
+        />
+
+        {/* INTEGRATED: Quick Stats & Task Grid */}
+        <div className="space-y-6">
+
+          {/* Quick Stats (Now Acting as Filters) */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
-            className="lg:col-span-2 bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 overflow-hidden shadow-sm"
+            transition={{ delay: 0.1 }}
+            className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4"
           >
-            <div className="p-5 border-b border-gray-200 dark:border-gray-700">
-              <h2 className="text-base font-bold text-gray-900 dark:text-white">Haftalık Ekip Özeti</h2>
-              <p className="text-[10px] text-gray-500 dark:text-gray-400">Görev dağılımı</p>
-            </div>
-            <div className="p-5 space-y-4">
-              {(() => {
-                const teamMembers = Array.from(new Set(accessibleTasks.flatMap(t => t.assignees || []))).slice(0, 6);
-                const maxTasks = Math.max(...teamMembers.map(memberId => accessibleTasks.filter(t => t.assignees?.includes(memberId) && t.status !== 'done').length), 1);
+            {quickStats.map((stat, index) => {
+              const isActive = filter === stat.id;
+              return (
+                <motion.div
+                  key={index}
+                  whileHover={{ y: -2 }}
+                  onClick={stat.action}
+                  className={`bg-white dark:bg-gray-800 rounded-xl border transition-all duration-300 cursor-pointer p-4 group relative overflow-hidden
+                    ${isActive
+                      ? 'border-indigo-500/50 shadow-lg shadow-indigo-100 dark:shadow-none bg-indigo-50/10'
+                      : 'border-slate-50 dark:border-gray-700/50 hover:bg-slate-50/50 dark:hover:bg-gray-700/30'
+                    }`}
+                >
+                  <div className="flex items-center gap-4 mb-2.5">
+                    <div className={`p-1.5 rounded-lg transition-all duration-300 ${isActive ? 'bg-indigo-600 text-white' : `${stat.bgColor} ${stat.textColor} opacity-80`}`}>
+                      {React.cloneElement(stat.icon, { size: 18 })}
+                    </div>
+                    <div className="text-2xl font-bold text-slate-900 dark:text-white leading-none">{stat.value}</div>
+                  </div>
+                  <div>
+                    <div className="text-[11px] font-medium tracking-wide capitalize text-slate-500 dark:text-gray-400">{stat.title}</div>
+                  </div>
 
-                return teamMembers.map((memberId, idx) => {
-                  const member = users.find(u => u.id == memberId || u._id == memberId);
-                  const memberTasks = accessibleTasks.filter(t => t.assignees?.includes(memberId) && t.status !== 'done');
-                  const percentage = (memberTasks.length / maxTasks) * 100;
-                  const displayName = member?.fullName || member?.username || `Kullanıcı ${memberId}`;
-
-                  return (
-                    <motion.div key={memberId} initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: idx * 0.1 }}>
-                      <div className="flex items-center gap-3 mb-2">
-                        <img src={member?.avatar ? (member.avatar.startsWith('http') ? member.avatar : `http://localhost:5052${member.avatar}`) : `https://api.dicebear.com/7.x/avataaars/svg?seed=${displayName}`} alt={displayName} className="w-8 h-8 rounded-full border-2 border-gray-200 dark:border-gray-700" />
-                        <div className="flex-1 min-w-0">
-                          <div className="text-sm font-bold text-gray-900 dark:text-white truncate">{displayName}</div>
-                          <div className="text-[10px] text-gray-500 dark:text-gray-400">{memberTasks.length} aktif</div>
-                        </div>
-                        <div className="text-sm font-bold text-gray-900 dark:text-white">{memberTasks.length}</div>
-                      </div>
-                      <div className="relative h-2 bg-gray-100 dark:bg-gray-700/20 rounded-full overflow-hidden">
-                        <motion.div initial={{ width: 0 }} animate={{ width: `${percentage}%` }} transition={{ duration: 1, delay: 0.3 + idx * 0.1 }} className="absolute inset-y-0 left-0 rounded-full bg-gradient-to-r from-blue-400 to-blue-600" />
-                      </div>
-                    </motion.div>
-                  );
-                });
-              })()}
-            </div>
+                  {isActive && (
+                    <motion.div
+                      layoutId="activeIndicator"
+                      className="absolute bottom-0 left-4 right-4 h-0.5 bg-indigo-500 rounded-full"
+                    />
+                  )}
+                </motion.div>
+              );
+            })}
           </motion.div>
 
-          {/* Progress Stats */}
+          {/* Elegant Task Table - Replaces Grid */}
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3 }}
-            className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 p-5 shadow-sm"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.2 }}
+            className="bg-white/40 dark:bg-slate-800/40 backdrop-blur-sm rounded-xl border border-slate-100/50 dark:border-gray-800/50 shadow-sm overflow-hidden"
           >
-            <h3 className="text-sm font-bold text-gray-900 dark:text-white mb-6">İlerleme</h3>
-            <div className="relative w-40 h-40 mx-auto mb-6">
-              <svg className="transform -rotate-90 w-40 h-40">
-                <circle cx="80" cy="80" r="70" stroke="currentColor" strokeWidth="12" fill="transparent" className="text-blue-100 dark:text-blue-900/50" />
-                <motion.circle cx="80" cy="80" r="70" stroke="url(#gradient-navy)" strokeWidth="12" fill="transparent" strokeLinecap="round" initial={{ strokeDashoffset: 440 }} animate={{ strokeDashoffset: 440 - (440 * (stats.averageProgress / 100)) }} transition={{ duration: 1.5, delay: 0.5 }} strokeDasharray="440" />
-                <defs>
-                  <linearGradient id="gradient-navy" x1="0%" y1="0%" x2="100%" y2="100%">
-                    <stop offset="0%" stopColor="#1e3a8a" />
-                    <stop offset="100%" stopColor="#1e40af" />
-                  </linearGradient>
-                </defs>
-              </svg>
-              <div className="absolute inset-0 flex items-center justify-center flex-col">
-                <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ delay: 1 }} className="text-3xl font-black bg-gradient-to-r from-blue-700 to-blue-800 bg-clip-text text-transparent">{stats.averageProgress}%</motion.div>
-                <div className="text-[10px] text-gray-400 mt-1 text-center leading-3">Açık İşlerin<br />Ortalaması</div>
-              </div>
+            {/* Table Header */}
+            <div className="grid grid-cols-[1fr_200px_150px_150px_100px] gap-4 px-6 py-3 bg-slate-50/50 dark:bg-gray-900/40 border-b border-slate-100/50 dark:border-gray-800/30">
+              <div className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 capitalize tracking-wider pl-8">Görev Adı</div>
+              <div className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 capitalize tracking-wider">Proje</div>
+              <div className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 capitalize tracking-wider">Son Tarih</div>
+              <div className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 capitalize tracking-wider">Durum</div>
+              <div className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 capitalize tracking-wider text-center">İlerleme</div>
             </div>
-            <div className="space-y-2">
-              <div className="flex justify-between p-2 bg-gray-50 dark:bg-gray-700/30 rounded-lg"><span className="text-xs text-gray-600 dark:text-gray-400">Tamamlanan</span><span className="text-sm font-bold text-gray-900 dark:text-white">{stats.myCompletedTasks.length}</span></div>
-              <div className="flex justify-between p-2 bg-gray-50 dark:bg-gray-700/30 rounded-lg"><span className="text-xs text-gray-600 dark:text-gray-400">Devam Eden</span><span className="text-sm font-bold text-gray-900 dark:text-white">{stats.myInProgressTasks.length}</span></div>
-              <div className="flex justify-between p-2 bg-gray-50 dark:bg-gray-700/30 rounded-lg"><span className="text-xs text-gray-600 dark:text-gray-400">Bekleyen</span><span className="text-sm font-bold text-gray-900 dark:text-white">{stats.myPendingTasks.length}</span></div>
+
+            {/* Table Body */}
+            <div className="divide-y divide-slate-50/50 dark:divide-gray-800/20">
+              {filteredTasks.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-20 text-slate-300">
+                  <Search size={32} className="opacity-10 mb-3" />
+                  <h3 className="text-[11px] font-medium opacity-30 italic tracking-widest uppercase">Henüz bir kayıt bulunamadı</h3>
+                </div>
+              ) : (
+                filteredTasks.map(task => {
+                  const statusStyle = getStatusStyle(task.status);
+                  const projectColor = getProjectColor(task.projectId);
+                  const isOverdue = task.dueDate && new Date(task.dueDate) < new Date() && task.status !== 'done';
+
+                  return (
+                    <div
+                      key={task.id}
+                      onClick={() => handleTaskClick(task)}
+                      className="group grid grid-cols-[1fr_200px_150px_150px_100px] gap-4 px-6 py-4 items-center hover:bg-white/60 dark:hover:bg-gray-800/60 transition-colors cursor-pointer relative"
+                    >
+                      {/* Task Name Column with Status Icon */}
+                      <div className="flex items-center gap-4 min-w-0">
+                        <div className={`shrink-0 w-5 h-5 rounded-full flex items-center justify-center border ${task.status === 'done'
+                          ? 'border-emerald-200 bg-emerald-50 text-emerald-500'
+                          : 'border-slate-200 bg-white text-slate-300 group-hover:border-indigo-300 group-hover:text-indigo-400'
+                          }`}>
+                          {task.status === 'done' ? <CheckCircle size={12} /> : <div className="w-1.5 h-1.5 rounded-full bg-current" />}
+                        </div>
+                        <h3 className="text-[13px] font-medium text-slate-700 dark:text-gray-200 truncate pr-4">
+                          {task.title}
+                        </h3>
+                      </div>
+
+                      {/* Project Column */}
+                      <div className="flex items-center gap-2 min-w-0">
+                        <div className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: projectColor }} />
+                        <span className="text-[12px] text-slate-400 dark:text-gray-500 truncate">
+                          {getProjectName(task.projectId)}
+                        </span>
+                      </div>
+
+                      {/* Deadline Column */}
+                      <div className="flex items-center gap-1.5">
+                        <span className={`text-[12px] ${isOverdue ? 'text-rose-400 font-medium' : 'text-slate-400'}`}>
+                          {task.dueDate ? new Date(task.dueDate).toLocaleDateString('tr-TR', { day: 'numeric', month: 'short', year: 'numeric' }) : '-'}
+                        </span>
+                        {task.priority === 'urgent' && !isOverdue && (
+                          <span className="text-[9px] text-rose-500 capitalize tracking-tighter">Acil</span>
+                        )}
+                      </div>
+
+                      {/* Status Column */}
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <div className={`w-1.5 h-1.5 rounded-full ${statusStyle.text.replace('text-', 'bg-')} bg-opacity-70`} />
+                          <span className={`text-[11px] font-medium ${statusStyle.text}`}>
+                            {statusStyle.label}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Progress Column */}
+                      <div className="flex items-center gap-2 justify-center pr-2">
+                        <div className="w-full max-w-[60px] h-1.5 bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden">
+                          <div
+                            className="h-full bg-indigo-500 rounded-full transition-all duration-500"
+                            style={{ width: `${task.progress || 0}%` }}
+                          />
+                        </div>
+                        <span className="text-[10px] font-bold text-slate-400 min-w-[28px]">{task.progress || 0}%</span>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
             </div>
           </motion.div>
         </div>
 
-        {/* Quick Stats */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-          className="grid grid-cols-2 md:grid-cols-4 gap-4"
-        >
-          {quickStats.map((stat, index) => (
-            <motion.div
-              key={index}
-              whileHover={{ y: -2 }}
-              onClick={stat.action}
-              className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 p-4 transition-all cursor-pointer hover:shadow-lg"
-            >
-              <div className="flex items-start justify-between mb-3">
-                <div className={`p-2 rounded-xl ${stat.bgColor} ${stat.textColor}`}>
-                  {stat.icon}
-                </div>
-              </div>
-              <div className="space-y-1">
-                <div className="text-2xl font-black text-gray-900 dark:text-white">{stat.value}</div>
-                <div className="text-xs font-medium text-gray-500 dark:text-gray-400">{stat.title}</div>
-              </div>
-            </motion.div>
-          ))}
-        </motion.div>
-
-        {/* MERGED: My Tasks Section */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.4 }}
-          className="space-y-6 pt-6 border-t border-gray-200 dark:border-gray-800"
-        >
-          <div className="flex flex-col md:flex-row gap-6 items-center justify-between">
-            <div>
-              <h2 className="text-lg font-bold text-slate-800 dark:text-white">İşlerim</h2>
-              <p className="text-xs text-slate-500">Üzerimdeki görevler</p>
-            </div>
-
-            <div className="flex items-center gap-3 bg-white dark:bg-slate-800 p-2 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm transition-all focus-within:ring-2 focus-within:ring-indigo-500 w-full md:w-auto">
-              <Search className="ml-2 text-slate-400" size={16} />
-              <input
-                type="text"
-                placeholder="Görevlerde ara..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="bg-transparent border-none focus:outline-none text-sm w-full md:w-64 text-slate-700 dark:text-slate-200 placeholder:text-slate-400"
-              />
-            </div>
-          </div>
-
-          {/* Filter Tabs */}
-          <div className="flex flex-wrap gap-2">
-            {[
-              { id: 'all', label: 'Tümü', icon: <Filter size={14} /> },
-              { id: 'in_progress', label: 'Devam Eden', icon: <Zap size={14} /> },
-              { id: 'pending', label: 'Bekleyen', icon: <Clock size={14} /> },
-              { id: 'done', label: 'Tamamlandı', icon: <CheckCircle size={14} /> },
-              { id: 'overdue', label: 'Geciken', icon: <AlertCircle size={14} /> },
-            ].map(f => (
-              <button
-                key={f.id}
-                onClick={() => handleFilterChange(f.id)}
-                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-semibold transition-all duration-200
-                            ${filter === f.id
-                    ? 'bg-indigo-600 text-white shadow-md shadow-indigo-200 dark:shadow-none'
-                    : 'bg-white dark:bg-slate-800 border border-transparent dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700'}`}
-              >
-                {f.icon}
-                {f.label}
-              </button>
-            ))}
-          </div>
-
-          {/* Task Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-            {filteredTasks.length === 0 ? (
-              <div className="col-span-full flex flex-col items-center justify-center py-16 text-slate-400">
-                <Search size={32} className="opacity-50 mb-2" />
-                <h3 className="text-sm font-semibold">Görev Bulunamadı</h3>
-              </div>
-            ) : (
-              filteredTasks.map(task => {
-                const statusStyle = getStatusStyle(task.status);
-                const projectColor = getProjectColor(task.projectId);
-
-                return (
-                  <div
-                    key={task.id}
-                    onClick={() => handleTaskClick(task)}
-                    className="group relative bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-300 cursor-pointer overflow-hidden flex flex-col h-full"
-                  >
-                    <div className="h-1 w-full" style={{ backgroundColor: projectColor }}></div>
-                    <div className="p-4 flex-1 flex flex-col gap-3">
-                      <div className="flex justify-between items-start gap-2">
-                        <Badge variant="outline" className="text-[10px] px-2 py-0.5 h-auto font-medium text-slate-500 bg-slate-50 dark:bg-slate-900/50 border-slate-100 dark:border-slate-700 truncate max-w-[120px]">
-                          {getProjectName(task.projectId)}
-                        </Badge>
-                        <span className={`shrink-0 px-2 py-0.5 rounded text-[10px] font-bold tracking-wide uppercase ${statusStyle.bg} ${statusStyle.text}`}>
-                          {statusStyle.label}
-                        </span>
-                      </div>
-                      <h3 className="text-sm font-semibold text-slate-800 dark:text-white leading-snug line-clamp-2 md:line-clamp-3 group-hover:text-indigo-600 transition-colors">
-                        {task.title}
-                      </h3>
-                      <div className="mt-auto pt-3 border-t border-slate-100 dark:border-slate-700 flex items-center justify-between text-[10px] text-slate-500">
-                        <div className="flex items-center gap-1">
-                          <Calendar size={12} className={new Date(task.dueDate) < new Date() ? 'text-rose-500' : 'text-slate-400'} />
-                          <span className={new Date(task.dueDate) < new Date() ? 'font-semibold text-rose-500' : ''}>
-                            {task.dueDate ? new Date(task.dueDate).toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' }) : '-'}
-                          </span>
-                        </div>
-                        <div className={`w-1.5 h-1.5 rounded-full ${task.priority === 'urgent' ? 'bg-red-500' :
-                          task.priority === 'high' ? 'bg-orange-500' :
-                            task.priority === 'medium' ? 'bg-blue-500' : 'bg-slate-300'
-                          }`}></div>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })
-            )}
-          </div>
-        </motion.div>
-
-      </div>
+      </div >
 
       <NewTaskModal
         isOpen={showNewTaskModal}
         onClose={() => setShowNewTaskModal(false)}
       />
 
-      {isModalOpen && selectedTask && (
-        <ModernTaskModal
-          task={selectedTask}
-          isOpen={isModalOpen}
-          onClose={() => setIsModalOpen(false)}
-          initialSection="activity"
-        />
-      )}
-    </div>
+      {
+        isModalOpen && selectedTask && (
+          <ModernTaskModal
+            task={selectedTask}
+            isOpen={isModalOpen}
+            onClose={() => setIsModalOpen(false)}
+            initialSection="activity"
+          />
+        )
+      }
+    </div >
   );
 };
 

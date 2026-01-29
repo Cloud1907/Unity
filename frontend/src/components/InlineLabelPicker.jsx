@@ -182,7 +182,7 @@ const InlineLabelPicker = ({ taskId, currentLabels = [], projectId, onUpdate }) 
       <div className="p-2 max-h-80 overflow-y-auto">
         {searchQuery && !availableLabels.find(l => l.name.toLowerCase() === searchQuery.toLowerCase()) && (
           <div className="p-2 mb-2 bg-slate-50 dark:bg-slate-800/50 rounded-lg border border-slate-200 dark:border-slate-700">
-            <p className="text-[10px] font-bold text-slate-500 dark:text-slate-400 mb-2 uppercase tracking-wider">Yeni Etiket Oluştur</p>
+            <p className="text-[10px] font-bold text-slate-500 dark:text-slate-400 mb-2 capitalize tracking-wider">Yeni Etiket Oluştur</p>
             <div className="flex flex-wrap gap-1.5 mb-3">
               {COLOR_PALETTE.map((cp) => (
                 <button

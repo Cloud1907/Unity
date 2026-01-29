@@ -11,50 +11,70 @@ export const useTheme = () => {
 };
 
 export const ThemeProvider = ({ children }) => {
-  const [theme, setTheme] = useState(() => {
-    // Check localStorage first
-    const savedTheme = localStorage.getItem('4flow-theme');
-    if (savedTheme) return savedTheme;
-    
-    // Check system preference
-    if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
-      return 'dark';
-    }
-    
-    return 'light';
+  // 1. Initialize state from localStorage or default to 'system'
+  const [themePreference, setThemePreference] = useState(() => {
+    return localStorage.getItem('4flow-theme-preference') || 'system';
   });
 
+  // 2. State for the actual effective theme (light/dark)
+  const [effectiveTheme, setEffectiveTheme] = useState('light');
+
+  // 3. Effect to resolve the effective theme based on preference and system settings
   useEffect(() => {
-    // Save to localStorage
-    localStorage.setItem('4flow-theme', theme);
-    
-    // Apply theme to document
     const root = document.documentElement;
-    if (theme === 'dark') {
-      root.classList.add('dark');
+
+    const applyTheme = (newTheme) => {
+      setEffectiveTheme(newTheme);
+      if (newTheme === 'dark') {
+        root.classList.add('dark');
+      } else {
+        root.classList.remove('dark');
+      }
+    };
+
+    if (themePreference === 'system') {
+      const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+
+      // Initial check
+      applyTheme(mediaQuery.matches ? 'dark' : 'light');
+
+      // Listener for system changes
+      const handleChange = (e) => {
+        applyTheme(e.matches ? 'dark' : 'light');
+      };
+
+      mediaQuery.addEventListener('change', handleChange);
+      return () => mediaQuery.removeEventListener('change', handleChange);
     } else {
-      root.classList.remove('dark');
+      // Manual 'light' or 'dark'
+      applyTheme(themePreference);
     }
-  }, [theme]);
+  }, [themePreference]);
+
+  // 4. Persist preference whenever it changes
+  useEffect(() => {
+    localStorage.setItem('4flow-theme-preference', themePreference);
+  }, [themePreference]);
 
   const toggleTheme = () => {
-    setTheme(prev => prev === 'light' ? 'dark' : 'light');
+    setThemePreference(prev => {
+      if (prev === 'system') {
+        return effectiveTheme === 'light' ? 'dark' : 'light';
+      }
+      return prev === 'light' ? 'dark' : 'light';
+    });
   };
 
   const setThemeMode = (mode) => {
-    if (mode === 'system') {
-      const systemTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-      setTheme(systemTheme);
-    } else {
-      setTheme(mode);
-    }
+    setThemePreference(mode); // 'light', 'dark', or 'system'
   };
 
   const value = {
-    theme,
+    theme: themePreference, // Return the preference so Settings UI knows selected option
+    effectiveTheme,         // actual resolved theme
     toggleTheme,
     setThemeMode,
-    isDark: theme === 'dark'
+    isDark: effectiveTheme === 'dark'
   };
 
   return (

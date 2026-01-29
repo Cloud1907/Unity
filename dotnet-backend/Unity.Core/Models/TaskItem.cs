@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Text.Json;
+using Unity.Core.Helpers;
 
 namespace Unity.Core.Models
 {
@@ -19,25 +20,14 @@ namespace Unity.Core.Models
 
         public string? Description { get; set; }
 
-        public string AssigneesJson { get; set; } = "[]";
-        [NotMapped]
-        public List<int> Assignees 
-        { 
-            get => JsonSerializer.Deserialize<List<int>>(AssigneesJson ?? "[]") ?? new List<int>();
-            set => AssigneesJson = JsonSerializer.Serialize(value);
-        }
+        public List<TaskAssignee> Assignees { get; set; } = new List<TaskAssignee>();
 
         public int AssignedBy { get; set; }
-        public string Status { get; set; } = "todo"; // todo, working, review, done, stuck
+        public string Status { get; set; } = "todo";
         public string Priority { get; set; } = "medium";
         
-        public string LabelsJson { get; set; } = "[]";
-        [NotMapped]
-        public List<int> Labels 
-        { 
-            get => JsonSerializer.Deserialize<List<int>>(LabelsJson ?? "[]") ?? new List<int>();
-            set => LabelsJson = JsonSerializer.Serialize(value);
-        }
+        // Relation: Labels (Many-to-Many)
+        public List<TaskLabel> Labels { get; set; } = new List<TaskLabel>();
 
         public bool IsPrivate { get; set; } = false;
 
@@ -46,23 +36,18 @@ namespace Unity.Core.Models
         public DateTime? DueDate { get; set; }
         public int Progress { get; set; } = 0;
 
-        // Complex objects stored as JSON for simplicity in this migration
-        public string SubtasksJson { get; set; } = "[]"; 
-        
-        // Helper wrapper could be added but for now simplistic approach
-        // public List<Subtask> Subtasks ... 
+        // Relations: Subtasks (One-to-Many)
+        public List<Subtask> Subtasks { get; set; } = new List<Subtask>();
 
-        public string CommentsJson { get; set; } = "[]";
-        public string AttachmentsJson { get; set; } = "[]";
+        // Relations: Comments (One-to-Many)
+        public List<Comment> Comments { get; set; } = new List<Comment>();
 
-        [NotMapped]
-        public List<dynamic> Subtasks 
-        { 
-            get => JsonSerializer.Deserialize<List<dynamic>>(SubtasksJson ?? "[]") ?? new List<dynamic>();
-             // Set not easily typed without concrete class, but needed for reading
-        }
+        // Relations: Attachments (One-to-Many)
+        public List<Attachment> Attachments { get; set; } = new List<Attachment>();
 
-        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
-        public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
+        public int CreatedBy { get; set; } // Restored
+
+        public DateTime CreatedAt { get; set; } = TimeHelper.Now;
+        public DateTime UpdatedAt { get; set; } = TimeHelper.Now;
     }
 }

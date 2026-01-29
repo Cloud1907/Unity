@@ -87,7 +87,14 @@ const MyTasks = () => {
 
     const myTasks = useMemo(() => {
         if (!currentUserId) return [];
-        return tasks.filter(t => t.assignees?.includes(currentUserId));
+        return tasks.filter(t => {
+            if (!t.assignees) return false;
+            // Handle both [1, 2] and [{userId: 1}, {userId: 2}]
+            if (t.assignees.length > 0 && typeof t.assignees[0] === 'object') {
+                return t.assignees.some(a => (a.userId || a.id) === currentUserId);
+            }
+            return t.assignees.includes(currentUserId);
+        });
     }, [tasks, currentUserId]);
 
     const filteredTasks = useMemo(() => {
@@ -259,8 +266,8 @@ const MyTasks = () => {
                                             <div className="flex items-center gap-1.5">
                                                 <span className="text-slate-400">Öncelik:</span>
                                                 <div className={`w-2 h-2 rounded-full ${task.priority === 'urgent' ? 'bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.6)]' :
-                                                        task.priority === 'high' ? 'bg-orange-500' :
-                                                            task.priority === 'medium' ? 'bg-blue-500' : 'bg-slate-300'
+                                                    task.priority === 'high' ? 'bg-orange-500' :
+                                                        task.priority === 'medium' ? 'bg-blue-500' : 'bg-slate-300'
                                                     }`}></div>
                                             </div>
                                         </div>

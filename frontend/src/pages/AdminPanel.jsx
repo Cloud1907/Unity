@@ -4,6 +4,7 @@ import { useData } from '../contexts/DataContext';
 import { usersAPI, labelsAPI } from '../services/api';
 import { toast } from '../components/ui/sonner';
 import { Avatar, AvatarFallback, AvatarImage } from '../components/ui/avatar';
+import { getAvatarUrl } from '../utils/avatarHelper';
 
 const AdminPanel = () => {
   const { users, projects, fetchUsers, departments, fetchDepartments, createDepartment, updateDepartment, deleteDepartment } = useData();
@@ -183,16 +184,15 @@ const AdminPanel = () => {
                     <tr key={user._id || user.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
-                          <Avatar className="w-10 h-10">
+                          <Avatar className="w-10 h-10 border border-gray-100 dark:border-gray-700">
                             <AvatarImage
-                              src={
-                                user.avatar?.startsWith('http')
-                                  ? user.avatar
-                                  : `http://localhost:7000${user.avatar || ''}`
-                              }
+                              src={user.avatar ? getAvatarUrl(user.avatar) : ''}
                             />
-                            <AvatarFallback className="bg-gradient-to-br from-blue-400 to-purple-500 text-white dark:text-gray-100 font-bold">
-                              {user.fullName?.charAt(0) || 'U'}
+                            <AvatarFallback
+                              className="font-bold text-white"
+                              style={{ backgroundColor: user.color || '#6366f1' }}
+                            >
+                              {user.fullName?.charAt(0).toUpperCase() || 'U'}
                             </AvatarFallback>
                           </Avatar>
                           <div>
@@ -571,11 +571,12 @@ const UserFormModal = ({ isOpen, onClose, onSuccess, user = null, projects = [] 
 
     try {
       const userId = user?._id || user?.id;
-      // We need to send departments as list.
+
+      const { departments, ...restData } = formData;
 
       const payload = {
         id: userId, // Required for backend validation
-        ...formData,
+        ...restData,
         department: null, // Ensure legacy field is cleared or ignored
       };
 
@@ -584,14 +585,24 @@ const UserFormModal = ({ isOpen, onClose, onSuccess, user = null, projects = [] 
         delete payload.password;
       }
 
-      console.log('Sending user update payload:', payload);
-
       if (user) {
-        // Update existing user
+        // PUT Request: Update existing user
+        // Backend expects 'User' entity structure: List<UserDepartment>
+        // Transform [1, 2] -> [{ departmentId: 1 }, { departmentId: 2 }]
+        payload.departments = departments
+          .map(id => parseInt(id))
+          .filter(id => !isNaN(id))
+          .map(id => ({ departmentId: id }));
+
         await usersAPI.update(userId, payload);
         toast.success('Kullanıcı güncellendi');
       } else {
-        // Create new user
+        // POST Request: Create new user
+        // Backend expects 'CreateUserRequest' DTO: List<int>
+        payload.departments = departments
+          .map(id => parseInt(id))
+          .filter(id => !isNaN(id));
+
         const response = await usersAPI.create(payload);
         toast.success('Kullanıcı oluşturuldu');
       }
@@ -681,7 +692,7 @@ const UserFormModal = ({ isOpen, onClose, onSuccess, user = null, projects = [] 
 
               {/* Master Workspaces Group */}
               <div>
-                <h4 className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-2 flex items-center gap-1">
+                <h4 className="text-xs font-bold text-gray-500 capitalize tracking-widest mb-2 flex items-center gap-1">
                   <Shield size={10} /> Master Çalışma Alanları
                 </h4>
                 <div className="space-y-1">
@@ -709,7 +720,7 @@ const UserFormModal = ({ isOpen, onClose, onSuccess, user = null, projects = [] 
 
               {/* Dynamic Workspaces Group */}
               <div>
-                <h4 className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">Diğer Çalışma Alanları</h4>
+                <h4 className="text-xs font-bold text-gray-500 capitalize tracking-widest mb-2">Diğer Çalışma Alanları</h4>
                 <div className="space-y-1">
                   {departments.filter(d => !d.isMaster).map(dept => {
                     const deptId = dept._id || dept.id;
