@@ -48,8 +48,16 @@ if (string.IsNullOrEmpty(connectionString))
 
 
 
-builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseSqlServer(connectionString));
+if (connectionString.Equals("InMemory", StringComparison.OrdinalIgnoreCase))
+{
+    builder.Services.AddDbContext<AppDbContext>(options =>
+        options.UseInMemoryDatabase("UnityDB"));
+}
+else
+{
+    builder.Services.AddDbContext<AppDbContext>(options =>
+        options.UseSqlServer(connectionString));
+}
 
     /* 
        Dynamic Key for Strict Security.
