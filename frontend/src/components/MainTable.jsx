@@ -1,72 +1,73 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { Plus, ChevronDown } from 'lucide-react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
+import { Plus, ChevronDown, Settings } from 'lucide-react';
+import { AnimatePresence, motion } from 'framer-motion';
 import { useDataState, useDataActions } from '../contexts/DataContext';
 import { useAuth } from '../contexts/AuthContext';
 import ModernTaskModal from './ModernTaskModal';
 import MobileBoardView from './MobileBoardView';
 import TaskRow from './TaskRow';
-import VirtualizedTableRow from './VirtualizedTableRow';
 import ConfirmModal from './ui/ConfirmModal';
-
-import { VariableSizeList as List } from 'react-window';
-import AutoSizer from 'react-virtualized-auto-sizer';
 import { TableSkeleton } from './skeletons/TableSkeleton';
 import EmptyState from './ui/EmptyState';
 
-
-
 // Import shared constants
-import { statuses, priorities, tShirtSizes, GRID_TEMPLATE } from '../constants/taskConstants';
+import { statuses, priorities, tShirtSizes, COLUMNS, generateGridTemplate, getDefaultColumnVisibility, EXPANDER_COLUMN_WIDTH, TASK_COLUMN_WIDTH } from '../constants/taskConstants';
+import { filterProjectUsers } from '../utils/userHelper';
+import { normalizeAssignees, normalizeLabels } from '../utils/entityUtils';
 
-// Re-export for backward compatibility
-export { GRID_TEMPLATE };
+// GRID_TEMPLATE export removed as it's no longer used
 
 const MainTable = ({ boardId, searchQuery, filters, groupBy }) => {
   const { tasks: rawTasks, users, projects, labels, loading } = useDataState();
+  const { user: currentUser } = useAuth();
 
+  // Column visibility state - Disabled as per user request
+  const visibleColumns = getDefaultColumnVisibility();
 
-  // Normalize tasks (Backend returns objects, Frontend expects IDs)
-  const tasks = React.useMemo(() => {
+  const tasks = useMemo(() => {
     return rawTasks.map(t => ({
       ...t,
-      _id: t._id || t.id || t.Id,
-      id: t._id || t.id || t.Id,
+      // Normalize IDs using centralized utility
+      id: t.id || t.Id,
       dueDate: t.dueDate || t.DueDate,
       startDate: t.startDate || t.StartDate,
-      assignees: Array.isArray(t.assignees) ? t.assignees.map(a => {
-        if (typeof a === 'object' && a !== null) return a.userId || a.UserId || a.id || a.Id || a.uid;
-        return a;
-      }) : [],
-      labels: Array.isArray(t.labels) ? t.labels.map(l => {
-        if (typeof l === 'object' && l !== null) return l.labelId || l.LabelId || l.id || l.Id;
-        return l;
-      }) : []
-
+      assignees: normalizeAssignees(t.assignees),
+      labels: normalizeLabels(t.labels)
     }));
   }, [rawTasks]);
 
-  const { user: currentUser } = useAuth();
-  const { fetchTasks, fetchLabels, updateTaskStatus, updateTask, deleteProject, createTask, deleteTask, updateSubtask } = useDataActions();
+  // Filter out 'done' tasks older than 7 days
+  const filteredTasks = useMemo(() => {
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
+    return tasks.filter(t => {
+      if (t.status === 'done') {
+        const updateDate = t.updatedAt ? new Date(t.updatedAt) : new Date(t.createdAt); // Fallback to createdAt if updated is missing
+        return updateDate > sevenDaysAgo;
+      }
+      return true;
+    });
+  }, [tasks]);
+
+  const { fetchTasks, fetchLabels, updateTaskStatus, updateTask, createTask, deleteTask, updateSubtask } = useDataActions();
   const [selectedTask, setSelectedTask] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalInitialSection, setModalInitialSection] = useState('activity');
-  const [showNewTaskModal, setShowNewTaskModal] = useState(false);
+  const [expandedRows, setExpandedRows] = useState(new Set());
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [taskToDelete, setTaskToDelete] = useState(null);
+  const [activeMenuTaskId, setActiveMenuTaskId] = useState(null);
 
   // Inline Creation State
   const [isCreating, setIsCreating] = useState(false);
-  const [creatingGroup, setCreatingGroup] = useState(null); // Which group is being added to
+  const [creatingGroup, setCreatingGroup] = useState(null);
   const [newTaskTitle, setNewTaskTitle] = useState('');
   const creationInputRef = useRef(null);
-  const groupCreationInputRef = useRef(null);
 
-  const [expandedRows, setExpandedRows] = useState(new Set());
-  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
-
-  // --- Deletion & Menu State ---
-  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
-  const [taskToDelete, setTaskToDelete] = useState(null);
-  const [activeMenuTaskId, setActiveMenuTaskId] = useState(null); // Ensure single menu open
-  // -----------------------------
+  // Dynamic grid template based on visible columns
+  const gridTemplate = useMemo(() => generateGridTemplate(visibleColumns), [visibleColumns]);
 
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth < 768);
@@ -74,34 +75,53 @@ const MainTable = ({ boardId, searchQuery, filters, groupBy }) => {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  // Optimize data fetching: Only fetch if needed
-  React.useEffect(() => {
+  // Fetch data on board change
+  // Fetch data on board change
+  useEffect(() => {
     if (boardId) {
-      // Fetch tasks if needed
-      const hasTasks = tasks.some(t => t.projectId === Number(boardId));
-      if (!hasTasks) {
-        // Fetching tasks for boardId
-        fetchTasks(boardId);
-      }
-      // Always fetch or refresh labels for the current board
+      // Optimization: Only fetch if we don't have tasks for this board?
+      // DANGER: If project is empty, this causes infinite loop if 'tasks' is a dependency.
+      // Logic: fetch returns 0 items -> tasks changes -> effect runs -> hasTasks is false -> fetch runs -> ...
+      // Fix: Just fetch on boardId change. The data layer should handle dedup or we accept one network call per board switch.
+      fetchTasks(boardId);
       fetchLabels(boardId);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [boardId, fetchTasks, fetchLabels]);
 
-  const boardTasks = React.useMemo(() => {
-    if (!boardId) return [];
-    let filtered = tasks.filter(t => t.projectId === Number(boardId));
+  // Project-based user filtering
+  const projectUsers = useMemo(() => {
+    const project = projects.find(p => p.id === Number(boardId));
+    return filterProjectUsers(project, users);
+  }, [users, boardId, projects]);
 
-    // Apply Search
+  // Filter tasks for current board
+  const boardTasks = useMemo(() => {
+    let filtered = filteredTasks.filter(t => t.projectId === Number(boardId));
+
+    filtered = filtered.filter(t => {
+      // ONLY filter if it explicitly has a parent ID.
+      // If parentTaskId is missing but it's listed in a parent's subtask array (inconsistent data),
+      // we prefer showing it at the top level rather than hiding it entirely.
+      return !(t.parentTaskId || t.parentId);
+    });
+
+    // Final dedup by ID just in case
+    const seenIds = new Set();
+    filtered = filtered.filter(t => {
+      if (seenIds.has(t.id)) return false;
+      seenIds.add(t.id);
+      return true;
+    });
+
     if (searchQuery) {
       const lowerQuery = searchQuery.toLowerCase();
       filtered = filtered.filter(task =>
         task.title?.toLowerCase().includes(lowerQuery) ||
-        users.find(u => task.assignees?.includes(u._id))?.fullName?.toLowerCase().includes(lowerQuery)
+        projectUsers.find(u => task.assignees?.includes(u.id))?.fullName?.toLowerCase().includes(lowerQuery)
       );
     }
 
-    // Apply Filters
     if (filters) {
       if (filters.status?.length > 0) {
         filtered = filtered.filter(task => filters.status.includes(task.status));
@@ -122,33 +142,23 @@ const MainTable = ({ boardId, searchQuery, filters, groupBy }) => {
     }
 
     return filtered;
-  }, [tasks, boardId, searchQuery, filters, users]);
+  }, [filteredTasks, boardId, searchQuery, filters, projectUsers]);
 
-  // Grouped Tasks Calculation
-  const groupedTasks = React.useMemo(() => {
+  // Grouped Tasks
+  const groupedTasks = useMemo(() => {
     if (!groupBy) return { 'all': boardTasks };
 
     const groups = {};
+    if (groupBy === 'status') statuses.forEach(s => groups[s.id] = []);
+    else if (groupBy === 'priority') priorities.forEach(p => groups[p.id] = []);
+    else if (groupBy === 'tShirtSize') tShirtSizes.forEach(s => groups[s.id] = []);
 
-    // Initialize groups based on groupBy type to ensure order and empty groups
-    if (groupBy === 'status') {
-      statuses.forEach(s => groups[s.id] = []);
-    } else if (groupBy === 'priority') {
-      priorities.forEach(p => groups[p.id] = []);
-    } else if (groupBy === 'tShirtSize') {
-      tShirtSizes.forEach(s => groups[s.id] = []);
-    }
-
-    // Distribute tasks
     boardTasks.forEach(task => {
       let key = null;
       if (groupBy === 'status') key = task.status;
       else if (groupBy === 'priority') key = task.priority;
       else if (groupBy === 'tShirtSize') key = task.tShirtSize;
 
-      // Handle Labels specially (tasks can be in multiple groups or just one?)
-      // Implementation: Duplicate for each label if needed, or group by "First Label"
-      // User requested "Etiket" grouping. Let's group by EACH label.
       if (groupBy === 'labels') {
         if (!task.labels || task.labels.length === 0) {
           if (!groups['no_label']) groups['no_label'] = [];
@@ -159,14 +169,11 @@ const MainTable = ({ boardId, searchQuery, filters, groupBy }) => {
             groups[labelId].push(task);
           });
         }
-        return; // Early return for labels because of multi-grouping nature
+        return;
       }
 
-      // Default grouping
-      if (groups[key] !== undefined) {
-        groups[key].push(task);
-      } else {
-        // Create dynamic group if not exists (e.g. for labels or unknown values)
+      if (groups[key] !== undefined) groups[key].push(task);
+      else {
         if (!groups[key]) groups[key] = [];
         groups[key].push(task);
       }
@@ -174,6 +181,18 @@ const MainTable = ({ boardId, searchQuery, filters, groupBy }) => {
 
     return groups;
   }, [boardTasks, groupBy]);
+
+  // Default expand rows with subtasks
+  // Default expand rows with subtasks - DISABLED per user request for List View
+  // Subtasks should be collapsed by default in List view, but open in Gantt.
+  /*
+  useEffect(() => {
+    if (boardTasks.length > 0) {
+      const withSubtasks = boardTasks.filter(t => t.subtasks?.length > 0).map(t => t.id);
+      setExpandedRows(new Set(withSubtasks));
+    }
+  }, [boardTasks.length > 0]); 
+  */
 
   const getGroupTitle = (key) => {
     if (!groupBy) return null;
@@ -200,121 +219,20 @@ const MainTable = ({ boardId, searchQuery, filters, groupBy }) => {
     return null;
   };
 
-  // --- Virtualization Helpers ---
-  const flatItems = React.useMemo(() => {
-    const items = [];
-    if (groupBy) {
-      Object.entries(groupedTasks).forEach(([groupKey, groupTasks]) => {
-        // 1. Group Header
-        items.push({
-          type: 'group-header',
-          groupKey,
-          title: getGroupTitle(groupKey),
-          color: getGroupColor(groupKey),
-          count: groupTasks.length
-        });
-
-        // 2. Tasks
-        groupTasks.forEach(task => {
-          items.push({
-            type: 'task-row',
-            task,
-            groupKey,
-            id: task._id
-          });
-        });
-
-        // 3. Add Item Row for this group
-        items.push({
-          type: 'add-row',
-          groupKey,
-          id: `add-${groupKey}`
-        });
-      });
-    } else {
-      // 1. Tasks
-      boardTasks.forEach(task => {
-        items.push({
-          type: 'task-row',
-          task,
-          id: task._id
-        });
-      });
-
-      // 2. Global Add Row
-      items.push({
-        type: 'add-row',
-        id: 'add-global'
-      });
-    }
-
-    // Bottom padding
-    items.push({ type: 'padding', id: 'bottom-padding' });
-
-    return items;
-  }, [groupedTasks, boardTasks, groupBy, labels, tasks]);
-
-  const getItemSize = React.useCallback((index) => {
-    const item = flatItems[index];
-    if (!item) return 0;
-
-    if (item.type === 'group-header') return 40;
-    if (item.type === 'add-row') return 54;
-    if (item.type === 'padding') return 40;
-
-    if (item.type === 'task-row') {
-      const isExpanded = expandedRows.has(item.task._id);
-      if (isExpanded && item.task.subtasks?.length > 0) {
-        // Base row (56px) + (subtask count * 40px)
-        return 56 + (item.task.subtasks.length * 40);
-      }
-      return 56;
-    }
-
-    return 56;
-  }, [flatItems, expandedRows]);
-
-  const listRef = useRef(null);
-
-  // Recalculate heights when rows expand or item list changes
-  useEffect(() => {
-    if (listRef.current) {
-      listRef.current.resetAfterIndex(0);
-    }
-  }, [expandedRows, flatItems]);
-  // -----------------------------
-
-
-
-  const getStatusColor = React.useCallback((statusId) => {
-    return statuses.find(s => s.id === statusId)?.color || '#c4c4c4';
-  }, []);
-
-  const getPriorityData = React.useCallback((priorityId) => {
-    return priorities.find(p => p.id === priorityId) || priorities[0];
-  }, []);
-
-  const getAssignees = React.useCallback((assigneeIds) => {
-    return users.filter(u => assigneeIds?.includes(u.id || u._id));
-  }, [users]);
-
-  const toggleRow = React.useCallback((taskId) => {
+  const toggleRow = (taskId) => {
     setExpandedRows(prev => {
       const newExpanded = new Set(prev);
-      if (newExpanded.has(taskId)) {
-        newExpanded.delete(taskId);
-      } else {
-        newExpanded.add(taskId);
-      }
+      if (newExpanded.has(taskId)) newExpanded.delete(taskId);
+      else newExpanded.add(taskId);
       return newExpanded;
     });
-  }, []);
+  };
 
-  const openTaskModal = React.useCallback((task, section = 'subtasks') => {
+  const openTaskModal = (task, section = 'subtasks') => {
     setSelectedTask(task);
     setModalInitialSection(section);
     setIsModalOpen(true);
-  }, []);
+  };
 
   const handleDeleteRequest = (taskId) => {
     setTaskToDelete(taskId);
@@ -328,14 +246,84 @@ const MainTable = ({ boardId, searchQuery, filters, groupBy }) => {
     }
   };
 
+  const handleCreateTask = async (groupKey = null) => {
+    if (!newTaskTitle.trim()) return;
+
+    const newTask = {
+      title: newTaskTitle,
+      projectId: Number(boardId),
+      status: groupBy === 'status' ? groupKey : 'todo',
+      priority: groupBy === 'priority' ? groupKey : 'medium',
+      tShirtSize: groupBy === 'tShirtSize' ? groupKey : null,
+    };
+
+    await createTask(newTask);
+    setNewTaskTitle('');
+    setIsCreating(false);
+    setCreatingGroup(null);
+  };
+
+  // Get filtered users for this project
+  const filteredUsers = useMemo(() => {
+    const project = projects.find(p => p.id === Number(boardId));
+    return filterProjectUsers(project, users);
+  }, [projects, boardId, users]);
+
+  // Flattened items for Virtualization (Performance Fix)
+  const flattenedItems = useMemo(() => {
+    const items = [];
+    Object.entries(groupedTasks)
+      .filter(([groupKey, tasks]) => tasks.length > 0 || groupKey === 'todo')
+      .forEach(([groupKey, groupTaskList]) => {
+        const groupColor = getGroupColor(groupKey);
+
+        // 1. Group Header
+        if (groupBy) {
+          items.push({
+            type: 'GROUP_HEADER',
+            id: `group-${groupKey}`,
+            groupKey,
+            groupTitle: getGroupTitle(groupKey),
+            groupColor,
+            count: groupTaskList.length
+          });
+        }
+
+        // 2. Tasks (Recursive in data, but flat here)
+        const addTasksFlat = (taskList, depth = 0) => {
+          taskList.forEach((task, index) => {
+            items.push({
+              type: 'TASK',
+              id: `task-${groupKey}-${task.id}`, // Unique globally: task + group + id
+              task,
+              depth,
+              index
+            });
+            if (expandedRows.has(task.id) && task.subtasks?.length > 0) {
+              addTasksFlat(task.subtasks, depth + 1);
+            }
+          });
+        };
+        addTasksFlat(groupTaskList);
+
+        // 3. Add Task Row
+        if (groupBy !== 'status' || !['stuck', 'review', 'done'].includes(groupKey)) {
+          items.push({
+            type: 'ADD_TASK',
+            id: `add-${groupKey}`,
+            groupKey
+          });
+        }
+      });
+    return items;
+  }, [groupedTasks, expandedRows, groupBy]);
+
+
+
   if (!boardId) {
     return (
       <div className="flex-1 flex items-center justify-center bg-white dark:bg-[#0f172a]">
-        <EmptyState
-          icon="project"
-          title="Proje Seçin"
-          description="Sol menüden bir proje seçin veya yeni bir proje oluşturun."
-        />
+        <EmptyState icon="project" title="Proje Seçin" description="Sol menüden bir proje seçin veya yeni bir proje oluşturun." />
       </div>
     );
   }
@@ -351,166 +339,245 @@ const MainTable = ({ boardId, searchQuery, filters, groupBy }) => {
   if (boardTasks.length === 0 && (searchQuery || Object.values(filters || {}).some(f => f?.length > 0))) {
     return (
       <div className="flex-1 flex items-center justify-center bg-white dark:bg-[#0f172a]">
-        <EmptyState
-          icon="search"
-          title="Sonuç Bulunamadı"
-          description="Arama kriterlerinize veya seçtiğiniz filtrelere uygun görev bulunamadı."
-        />
+        <EmptyState icon="search" title="Sonuç Bulunamadı" description="Arama kriterlerinize veya seçtiğiniz filtrelere uygun görev bulunamadı." />
       </div>
     );
   }
 
-  // Mobile View Render
   if (isMobile) {
     return (
       <>
         <MobileBoardView
           tasks={boardTasks}
           onTaskClick={(task) => openTaskModal(task)}
-          onNewTaskClick={() => setShowNewTaskModal(true)}
-          getStatusColor={getStatusColor}
-          getPriorityData={getPriorityData}
-          getAssignees={getAssignees}
-          searchQuery={searchQuery}
+          onNewTaskClick={() => setIsCreating(true)}
         />
-
-        {/* Task Modal */}
         {isModalOpen && selectedTask && (
+          <ModernTaskModal task={selectedTask} isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} initialSection={modalInitialSection} />
+        )}
+      </>
+    );
+  }
+
+  return (
+    <>
+      {/* Main Scroll Container - Single container for both X and Y scroll */}
+      <div
+        className="h-full overflow-auto bg-white dark:bg-[#0f172a] relative flex flex-col"
+        onClick={() => setActiveMenuTaskId(null)}
+      >
+        {/* Wide Content Container */}
+        <div className="min-w-max flex flex-col">
+
+          {/* Table Header - Sticky Top + First Column Sticky Left */}
+          <div
+            className="sticky top-0 z-50 bg-slate-50/50 dark:bg-slate-800/50 backdrop-blur-sm border-b border-slate-200 dark:border-slate-700 shadow-sm shrink-0"
+            style={{ height: '40px' }}
+          >
+            <div className="grid items-center h-full" style={{ gridTemplateColumns: gridTemplate }}>
+
+              {/* Column 1: Row Operations Stripe - Sticky Left (Total 2rem) */}
+              <div
+                className="sticky left-0 z-[60] bg-slate-100 dark:bg-slate-800 border-r border-slate-200 dark:border-slate-700 h-full flex items-center justify-center bg-clip-padding"
+                style={{ width: EXPANDER_COLUMN_WIDTH, minWidth: EXPANDER_COLUMN_WIDTH, maxWidth: EXPANDER_COLUMN_WIDTH, boxSizing: 'border-box' }}
+              >
+                <div className="w-1 h-full shrink-0"></div>
+              </div>
+
+              {/* Column 2: Task Title Header - Sticky Left (Starts at 2rem) */}
+              <div
+                className="sticky z-[60] bg-slate-50/50 dark:bg-slate-800/50 backdrop-blur-sm px-4 font-semibold text-[12px] tracking-tight text-slate-500 dark:text-slate-400 border-r border-slate-200 dark:border-slate-700 flex items-center h-full bg-clip-padding"
+                style={{ left: EXPANDER_COLUMN_WIDTH, width: TASK_COLUMN_WIDTH, minWidth: TASK_COLUMN_WIDTH, maxWidth: TASK_COLUMN_WIDTH, boxSizing: 'border-box' }}
+              >
+                Görev
+              </div>
+
+              {/* Dynamic Columns */}
+              {COLUMNS.map(col => visibleColumns[col.id] && (
+                <div
+                  key={`header-${col.id}`}
+                  className="px-4 font-semibold text-[12px] tracking-tight text-slate-500 dark:text-slate-400 border-r border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/50 h-full flex items-center truncate"
+                >
+                  {col.label}
+                </div>
+              ))}
+
+              {/* Actions Column */}
+              <div className="bg-slate-100 dark:bg-slate-800 h-full border-r border-slate-200 dark:border-slate-700 bg-clip-padding" style={{ boxSizing: 'border-box' }}></div>
+            </div>
+          </div>
+
+          {/* Table Body - Stable Hybrid (No Virtualization) */}
+          <div className="flex-1">
+            <AnimatePresence initial={false}>
+              {flattenedItems.map((item, index) => {
+                if (item.type === 'GROUP_HEADER') {
+                  return (
+                    <motion.div
+                      key={item.id}
+                      layout
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      className="z-10 group/header relative"
+                    >
+                      <div
+                        className="grid items-stretch border-b border-slate-200 dark:border-slate-700 shrink-0"
+                        style={{
+                          height: '32px',
+                          gridTemplateColumns: gridTemplate,
+                          borderTop: `1px solid ${item.groupColor ? item.groupColor + '20' : 'transparent'}`,
+                          background: item.groupColor
+                            ? `linear-gradient(to right, ${item.groupColor}0a 0%, ${item.groupColor}02 100%)`
+                            : 'none'
+                        }}
+                      >
+                        {/* 1. Group Indicator - Sticky Left */}
+                        <div
+                          className="sticky left-0 z-30 h-full border-r border-slate-200 dark:border-slate-700 flex items-stretch bg-white dark:bg-[#0f172a] bg-clip-padding"
+                          style={{ width: EXPANDER_COLUMN_WIDTH, minWidth: EXPANDER_COLUMN_WIDTH, maxWidth: EXPANDER_COLUMN_WIDTH, boxSizing: 'border-box' }}
+                        >
+                          <div
+                            className="w-1 h-full shrink-0"
+                            style={{ backgroundColor: item.groupColor }}
+                          />
+                          <div className="flex-1" />
+                        </div>
+
+                        {/* 2. Group Title - Sticky Left */}
+                        <div
+                          className="sticky z-30 px-4 flex items-center gap-2 overflow-hidden border-r border-slate-200 dark:border-slate-700 h-full min-w-0 bg-white dark:bg-[#0f172a] bg-clip-padding"
+                          style={{ left: EXPANDER_COLUMN_WIDTH, width: TASK_COLUMN_WIDTH, minWidth: TASK_COLUMN_WIDTH, maxWidth: TASK_COLUMN_WIDTH, boxSizing: 'border-box' }}
+                        >
+                          <span className="text-xs font-medium text-slate-700 dark:text-slate-300 truncate capitalize tracking-tight">
+                            {item.groupTitle}
+                          </span>
+                          <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-700 px-1.5 py-0.5 rounded-md min-w-[20px] text-center bg-slate-100/50 dark:bg-slate-800/50">
+                            {item.count}
+                          </span>
+                        </div>
+
+                        {/* Dynamic Empty Cells for Header Alignment */}
+                        {COLUMNS.map(col => visibleColumns[col.id] && (
+                          <div key={`group-empty-${col.id}`} className="h-full border-r border-slate-200 dark:border-slate-700 bg-clip-padding" style={{ boxSizing: 'border-box' }} />
+                        ))}
+                        <div className="h-full bg-clip-padding border-r border-slate-200 dark:border-slate-700" style={{ boxSizing: 'border-box' }} />
+                      </div>
+                    </motion.div>
+                  );
+                }
+
+                if (item.type === 'TASK') {
+                  return (
+                    <motion.div
+                      key={item.id}
+                      layout
+                      initial={{ opacity: 0, y: -5 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, scale: 0.98 }}
+                      transition={{ duration: 0.15 }}
+                      style={{ height: item.depth > 0 ? '42px' : '52px' }}
+                    >
+                      <TaskRow
+                        task={item.task}
+                        index={item.index}
+                        users={filteredUsers}
+                        boardId={boardId}
+                        statuses={statuses}
+                        priorities={priorities}
+                        tShirtSizes={tShirtSizes}
+                        gridTemplate={gridTemplate}
+                        isExpanded={expandedRows.has(item.task.id)}
+                        toggleRow={toggleRow}
+                        openTaskModal={openTaskModal}
+                        updateTask={updateTask}
+                        updateTaskStatus={updateTaskStatus}
+                        activeMenuTaskId={activeMenuTaskId}
+                        onToggleMenu={setActiveMenuTaskId}
+                        onDelete={handleDeleteRequest}
+                        currentUser={currentUser}
+                        updateSubtask={updateSubtask}
+                        visibleColumns={visibleColumns}
+                        depth={item.depth}
+                        isVirtualized={false}
+                      />
+                    </motion.div>
+                  );
+                }
+
+                if (item.type === 'ADD_TASK') {
+                  return (
+                    <motion.div
+                      key={item.id}
+                      layout
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                    >
+                      <div
+                        className="grid items-stretch hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors cursor-pointer border-b border-slate-200 dark:border-slate-700 shrink-0"
+                        style={{ height: '42px', gridTemplateColumns: gridTemplate }}
+                      >
+                        <div
+                          className="sticky left-0 z-30 bg-white dark:bg-[#0f172a] border-r border-slate-200 dark:border-slate-700 flex items-stretch h-full bg-clip-padding"
+                          style={{ width: EXPANDER_COLUMN_WIDTH, minWidth: EXPANDER_COLUMN_WIDTH, maxWidth: EXPANDER_COLUMN_WIDTH, boxSizing: 'border-box' }}
+                        >
+                          <div className="w-1 h-full shrink-0"></div>
+                          <div className="flex-1"></div>
+                        </div>
+                        <div
+                          className="sticky z-30 bg-white dark:bg-[#0f172a] px-4 py-0 flex items-center border-r border-slate-200 dark:border-slate-700 h-full bg-clip-padding"
+                          style={{ left: EXPANDER_COLUMN_WIDTH, width: TASK_COLUMN_WIDTH, minWidth: TASK_COLUMN_WIDTH, maxWidth: TASK_COLUMN_WIDTH, boxSizing: 'border-box' }}
+                          onClick={() => { setCreatingGroup(item.groupKey); setIsCreating(true); }}
+                        >
+                          {isCreating && creatingGroup === item.groupKey ? (
+                            <input
+                              ref={creationInputRef}
+                              type="text"
+                              value={newTaskTitle}
+                              onChange={(e) => setNewTaskTitle(e.target.value)}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') handleCreateTask(item.groupKey);
+                                if (e.key === 'Escape') { setIsCreating(false); setNewTaskTitle(''); }
+                              }}
+                              onBlur={() => { if (!newTaskTitle.trim()) { setIsCreating(false); setNewTaskTitle(''); } }}
+                              placeholder="Yeni görev başlığı..."
+                              className="w-full px-2 py-1 text-sm border border-indigo-300 rounded focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-slate-800 dark:border-slate-600 dark:text-white"
+                              autoFocus
+                            />
+                          ) : (
+                            <div className="flex items-center gap-2 text-slate-400 hover:text-indigo-600 transition-colors">
+                              <Plus size={14} />
+                              <span className="text-[13px] tracking-tight">Görev ekle</span>
+                            </div>
+                          )}
+                        </div>
+                        {COLUMNS.map(col => visibleColumns[col.id] && (
+                          <div key={`add-task-empty-${col.id}`} className="h-full border-r border-slate-200 dark:border-slate-700 bg-clip-padding" style={{ boxSizing: 'border-box' }} />
+                        ))}
+                        <div className="h-full bg-clip-padding border-r border-slate-200 dark:border-slate-700" style={{ boxSizing: 'border-box' }}></div>
+                      </div>
+                    </motion.div>
+                  );
+                }
+                return null;
+              })}
+            </AnimatePresence>
+          </div>
+        </div>
+      </div>
+
+      {/* Task Modal */}
+      {
+        isModalOpen && selectedTask && (
           <ModernTaskModal
             task={selectedTask}
             isOpen={isModalOpen}
             onClose={() => setIsModalOpen(false)}
             initialSection={modalInitialSection}
           />
-        )}
-
-        {/* New Task Modal */}
-        {showNewTaskModal && (
-          <NewTaskModal
-            isOpen={showNewTaskModal}
-            onClose={() => setShowNewTaskModal(false)}
-            boardId={boardId}
-          />
-        )}
-      </>
-    );
-  }
-
-  // --- Row Renderer (uses VirtualizedTableRow) ---
-  const Row = ({ index, style }) => (
-    <VirtualizedTableRow
-      item={flatItems[index]}
-      style={style}
-      index={index}
-      users={users}
-      boardId={boardId}
-      statuses={statuses}
-      priorities={priorities}
-      tShirtSizes={tShirtSizes}
-      expandedRows={expandedRows}
-      toggleRow={toggleRow}
-      openTaskModal={openTaskModal}
-      updateTask={updateTask}
-      updateTaskStatus={updateTaskStatus}
-      activeMenuTaskId={activeMenuTaskId}
-      setActiveMenuTaskId={setActiveMenuTaskId}
-      handleDeleteRequest={handleDeleteRequest}
-      currentUser={currentUser}
-      groupBy={groupBy}
-      isCreating={isCreating}
-      creatingGroup={creatingGroup}
-      setIsCreating={setIsCreating}
-      setCreatingGroup={setCreatingGroup}
-      newTaskTitle={newTaskTitle}
-      setNewTaskTitle={setNewTaskTitle}
-      createTask={createTask}
-      getGroupColor={getGroupColor}
-      creationInputRef={creationInputRef}
-      groupCreationInputRef={groupCreationInputRef}
-      updateSubtask={updateSubtask}
-    />
-  );
-
-  return (
-
-    <>
-      <div
-        className="h-full overflow-x-auto overflow-y-hidden bg-white dark:bg-[#0f172a] relative flex flex-col"
-        onClick={() => setActiveMenuTaskId(null)} // Click anywhere closes menus
-      >
-        <div className="flex-1 min-w-[120rem] inline-block align-top relative flex flex-col">
-          {/* Table Header using CSS GRID */}
-          <div className="bg-slate-50 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-700 z-20 w-full shrink-0 box-border">
-
-            <div className="grid border-l-4 border-transparent w-full" style={{ gridTemplateColumns: GRID_TEMPLATE }}>
-              <div className="flex items-center justify-center py-2 border-r border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900">
-                {/* Expander Column Header */}
-              </div>
-              <div className="px-4 py-2 font-semibold text-xs text-slate-600 dark:text-slate-400 border-r border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900">
-                Görev
-              </div>
-              <div className="px-4 py-2 font-semibold text-xs text-slate-600 dark:text-slate-400 border-r border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900">
-                Durum
-              </div>
-              <div className="px-4 py-2 font-semibold text-xs text-slate-600 dark:text-slate-400 border-r border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900">
-                Öncelik
-              </div>
-              <div className="px-4 py-2 font-semibold text-xs text-slate-600 dark:text-slate-400 border-r border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900">
-                T-Shirt Size
-              </div>
-              <div className="px-4 py-2 font-semibold text-xs text-slate-600 dark:text-slate-400 border-r border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900">
-                Atanan
-              </div>
-              <div className="px-4 py-2 font-semibold text-xs text-slate-600 dark:text-slate-400 border-r border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900">
-                Son Tarih
-              </div>
-              <div className="px-4 py-2 font-semibold text-xs text-slate-600 dark:text-slate-400 border-r border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900">
-                Etiketler
-              </div>
-              <div className="px-4 py-2 font-semibold text-xs text-slate-600 dark:text-slate-400 border-r border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-center">
-                İlerleme
-              </div>
-              <div className="px-4 py-2 font-semibold text-xs text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-gray-900 border-r border-gray-200 dark:border-gray-700">
-                Dosyalar
-              </div>
-              <div className="px-4 py-2 font-semibold text-xs text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-gray-900 border-r border-gray-200 dark:border-gray-700">
-                Oluşturan
-              </div>
-              <div className="bg-gray-50 dark:bg-gray-900"></div>
-            </div>
-          </div>
-
-          {/* Virtualized List Body */}
-          <div className="flex-1 min-w-full">
-            <AutoSizer>
-              {({ height, width }) => (
-                <List
-                  ref={listRef}
-                  height={height}
-                  itemCount={flatItems.length}
-                  itemSize={getItemSize}
-                  width={width}
-                  className="scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600 overflow-y-scroll"
-                >
-                  {Row}
-                </List>
-              )}
-            </AutoSizer>
-          </div>
-        </div>
-      </div>
-
-      {/* Task Modal */}
-      {isModalOpen && selectedTask && (
-        <ModernTaskModal
-          task={selectedTask}
-          isOpen={isModalOpen}
-          onClose={() => setIsModalOpen(false)}
-          initialSection={modalInitialSection}
-        />
-      )}
-
-      {/* New Task Modal (Global Fab if needed, but here mostly for mobile trigger or unused) */}
+        )
+      }
 
       {/* Confirm Delete Modal */}
       <ConfirmModal
