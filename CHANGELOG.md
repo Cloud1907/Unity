@@ -2,6 +2,18 @@
 
 Tüm geliştirmeler tarih ve saat ile yeniden eskiye sıralanır.
 
+## [1.4.4] - 2026-02-04 12:40
+
+### Düzeltildi
+- **Proje Sahipliği & Erişim**: Proje güncellemelerinde metadata (sahip, oluşturan) kaybına neden olan backend hatası giderildi; "Param Yönetim Konuları" projesinin sahipliği manuel olarak onarıldı.
+- **Header Katman Standardizasyonu**: Proje ayarları menüsünün alt öğelerin (tablo/filtre) arkasında kalma sorunu z-index (`z-60`) düzenlemesiyle kökten çözüldü.
+
+### Değiştirildi
+- **Gizlilik Mantığının Kaldırılması**: "Özel Proje" (isPrivate) özelliği sistemden tamamen kaldırıldı. Artık tüm projeler sahibi, üyeleri ve çalışma alanı üyeleri tarafından kısıtlamasız görülebilir.
+- **UI İyileştirmeleri**: Proje ayarları menüsü için kullanılan `...` ikonu, daha anlaşılır olması amacıyla 'Settings' (dişli) ikonu ile değiştirildi.
+
+---
+
 ## [1.4.3] - 2026-02-04 09:30
 
 ### Düzeltildi

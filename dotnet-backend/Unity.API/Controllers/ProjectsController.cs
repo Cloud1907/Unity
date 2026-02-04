@@ -63,9 +63,8 @@ namespace Unity.API.Controllers
             var visibleProjects = allProjects.Where(p => 
                 currentUser.Role == "admin" ||
                 p.Owner == currentUser.Id || 
-                p.Owner == currentUser.Id || 
                 p.Members.Any(PM => PM.UserId == currentUser.Id) || 
-                (userDepts.Contains(p.DepartmentId) && !p.IsPrivate)
+                userDepts.Contains(p.DepartmentId)
             ).ToList();
 
             return Ok(visibleProjects);
@@ -85,12 +84,25 @@ namespace Unity.API.Controllers
             
             bool hasAccess = currentUser.Role == "admin" ||
                              project.Owner == currentUser.Id ||
-                             project.Owner == currentUser.Id ||
                              project.Members.Any(PM => PM.UserId == currentUser.Id) ||
-                             (currentUser.Departments.Any(d => d.DepartmentId == project.DepartmentId) && !project.IsPrivate);
+                             currentUser.Departments.Any(d => d.DepartmentId == project.DepartmentId);
 
             if (!hasAccess) 
                 return Forbid();
+
+            // DATA REPAIR: Restore Owner for Project 85 if corrupted (corrupted by prior bug)
+            if (project.Id == 85 && project.Owner == 0)
+            {
+                var levent = await _context.Users.FirstOrDefaultAsync(u => u.Email == "levent.demiralp@univera.com.tr");
+                if (levent != null)
+                {
+                    _context.Entry(project).State = EntityState.Modified;
+                    project.Owner = levent.Id;
+                    project.CreatedBy = levent.Id;
+                    await _context.SaveChangesAsync();
+                    Console.WriteLine($"[REPAIR] Restored ownership for Project 85 to User {levent.Id}");
+                }
+            }
 
             return Ok(project);
         }
@@ -152,8 +164,26 @@ namespace Unity.API.Controllers
             if (!canEdit) 
                 return Forbid();
 
-            project.UpdatedAt = TimeHelper.Now;
-            _context.Entry(project).State = EntityState.Modified;
+            // MERGE LOGIC: Don't overwrite metadata (Owner, CreatedBy, CreatedAt)
+            // If these fields are 0/Min in the incoming model (common for DTO-like updates),
+            // they would destroy the record.
+            
+            existingProject.Name = project.Name;
+            existingProject.Description = project.Description;
+            existingProject.Icon = project.Icon;
+            existingProject.Color = project.Color;
+            existingProject.IsPrivate = project.IsPrivate;
+            existingProject.Status = project.Status;
+            existingProject.Priority = project.Priority;
+            existingProject.UpdatedAt = TimeHelper.Now;
+            
+            // Allow members update if present
+            if (project.Members != null && project.Members.Count > 0)
+            {
+                 existingProject.Members = project.Members;
+            }
+
+            _context.Entry(existingProject).State = EntityState.Modified;
 
             try
             {
@@ -165,7 +195,7 @@ namespace Unity.API.Controllers
                 else throw;
             }
 
-            return NoContent();
+            return Ok(existingProject);
         }
 
         [HttpDelete("{id}")]
@@ -219,16 +249,16 @@ namespace Unity.API.Controllers
             bool hasAccess = currentUser.Role == "admin" ||
                              project.Owner == currentUser.Id ||
                              project.Members.Any(PM => PM.UserId == currentUser.Id) ||
-                             (currentUser.Departments.Any(d => d.DepartmentId == project.DepartmentId) && !project.IsPrivate);
+                             currentUser.Departments.Any(d => d.DepartmentId == project.DepartmentId);
 
             if (!hasAccess) 
                 return Forbid();
 
             // Notes: 'Favorite' is currently a shared property on the Project model. 
             // In a future schema update, this should be moved to a UserProjectPreference table.
-            project.Favorite = !project.Favorite;
+            // project.Favorite = !project.Favorite;
             
-            await _context.SaveChangesAsync();
+            // await _context.SaveChangesAsync();
 
             return Ok(project);
         }

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Star, MoreHorizontal, Filter, Search, Users as UsersIcon, Tag, Table, LayoutGrid, Calendar, BarChart3, Users, Trash2, MoreVertical, Settings, Layers, Plus } from 'lucide-react';
+import { Star, MoreHorizontal, Filter, Search, Users as UsersIcon, Tag, Table, LayoutGrid, Calendar, BarChart3, Users, Trash2, MoreVertical, Settings, Layers, Plus, Zap } from 'lucide-react';
 import { useData } from '../contexts/DataContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
@@ -14,6 +14,8 @@ import PersonFilterBar from './PersonFilterBar';
 import { DynamicIcon } from './IconPicker';
 import pkg from '../../package.json';
 
+import ExportButton from './ui/ExportButton';
+
 const BoardHeader = ({
   boardId,
   currentView,
@@ -25,7 +27,7 @@ const BoardHeader = ({
   groupBy,
   onGroupByChange
 }) => {
-  const { projects, users, toggleFavorite, labels, deleteProject } = useData();
+  const { projects, users, toggleFavorite, labels, deleteProject, departments } = useData();
   const { user: currentUser } = useAuth();
   const navigate = useNavigate();
   const [showNewTaskModal, setShowNewTaskModal] = useState(false);
@@ -36,20 +38,33 @@ const BoardHeader = ({
   const [showSettingsMenu, setShowSettingsMenu] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
+  const [notificationPosition, setNotificationPosition] = useState({ top: 0, left: 0 });
+  const notificationButtonRef = React.useRef(null);
 
-  const board = projects.find(b => b._id === Number(boardId));
-  const boardMembers = users.filter(u => board?.members?.includes(u._id));
+  const board = projects.find(b => b.id === Number(boardId));
+  const boardMembers = users.filter(u => board?.members?.includes(u.id));
 
-  // Check if current user can delete project
-  const canDeleteProject = currentUser && (
+  // Check if current user can delete/edit project settings
+  const canManageProject = currentUser && (
     currentUser.role === 'admin' ||
     board?.owner === currentUser.id ||
-    board?.owner === currentUser._id
+    (board?.members && Array.isArray(board.members) && board.members.some(m => m.userId === currentUser.id))
   );
+
+  const handleToggleNotifications = () => {
+    if (!showNotifications && notificationButtonRef.current) {
+      const rect = notificationButtonRef.current.getBoundingClientRect();
+      setNotificationPosition({
+        top: rect.bottom + 8,
+        left: rect.right - 320
+      });
+    }
+    setShowNotifications(!showNotifications);
+  };
 
   const handleToggleFavorite = async () => {
     if (board) {
-      await toggleFavorite(board._id);
+      await toggleFavorite(board.id);
     }
   };
 
@@ -63,7 +78,7 @@ const BoardHeader = ({
   const confirmDelete = async () => {
     setShowDeleteConfirm(false);
     const result = await deleteProject(boardId);
-    if (result.success) {
+    if (result?.success) {
       navigate('/');
     }
   };
@@ -119,16 +134,17 @@ const BoardHeader = ({
   if (!board) return null;
 
   return (
-    <div className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 shadow-sm relative">
+    <div className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 shadow-sm relative z-[50]">
       {/* Board Info */}
-      <div className="px-6 py-3 flex items-center justify-between relative">
+      <div className="px-6 py-3 flex items-center justify-between relative z-[60]">
 
         {/* Left Side: Icon & Title */}
         <div className="flex items-center gap-3 flex-1">
           <div className="w-9 h-9 rounded-lg flex items-center justify-center text-lg shadow-sm transition-all" style={{ backgroundColor: board.color + '15' }}>
             <DynamicIcon name={board.icon} size={20} className="text-gray-700 dark:text-gray-300" strokeWidth={1.5} />
           </div>
-          <h1 className="text-base font-semibold text-gray-900 dark:text-gray-100">{board.name}</h1>
+          <h1 className="text-base font-medium text-gray-900 dark:text-gray-100">{board.name}</h1>
+
 
           {/* Settings Menu - Moved Here */}
           <div className="relative settings-menu">
@@ -139,10 +155,10 @@ const BoardHeader = ({
               className="p-1 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-md text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
               title="Proje Ayarları"
             >
-              <MoreHorizontal size={18} strokeWidth={1.5} />
+              <Settings size={18} strokeWidth={1.5} />
             </button>
 
-            {showSettingsMenu && canDeleteProject && (
+            {showSettingsMenu && canManageProject && (
               <div className="absolute left-0 top-full mt-1 w-48 bg-white dark:bg-gray-900 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 z-50 py-1">
                 <button
                   onClick={() => {
@@ -171,7 +187,8 @@ const BoardHeader = ({
           {/* Notification Bell */}
           <div className="relative notification-wrapper">
             <button
-              onClick={() => setShowNotifications(!showNotifications)}
+              ref={notificationButtonRef}
+              onClick={handleToggleNotifications}
               aria-label="Bildirimler"
               aria-expanded={showNotifications}
               className={`p-2 rounded-full transition-all ${showNotifications ? 'bg-indigo-50 text-indigo-600' : 'text-slate-400 hover:bg-slate-100 hover:text-indigo-500'}`}
@@ -182,22 +199,26 @@ const BoardHeader = ({
                 <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-bell"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" /><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" /></svg>
               </div>
             </button>
-            <NotificationPopover isOpen={showNotifications} onClose={() => setShowNotifications(false)} />
+            <NotificationPopover
+              isOpen={showNotifications}
+              onClose={() => setShowNotifications(false)}
+              position={notificationPosition}
+            />
           </div>
 
           {/* Members */}
           <div className="flex items-center gap-2 mr-2">
             <div className="flex items-center -space-x-2">
               {boardMembers?.slice(0, 5).map(member => (
-                <Avatar key={member._id} className="w-6 h-6 border-2 border-white hover:z-10 transition-all">
+                <Avatar key={member.id} className="w-6 h-6 border-2 border-white hover:z-10 transition-all">
                   <AvatarImage src={member.avatar ? getAvatarUrl(member.avatar) : ''} alt={member.fullName} />
-                  <AvatarFallback style={{ backgroundColor: member.color || '#6366f1' }} className="text-white text-[10px] font-bold">
+                  <AvatarFallback style={{ backgroundColor: member.color || '#6366f1' }} className="text-white text-[10px]">
                     {member.fullName?.charAt(0).toUpperCase()}
                   </AvatarFallback>
                 </Avatar>
               ))}
               {boardMembers.length > 5 && (
-                <div className="w-6 h-6 rounded-full bg-gray-200 border-2 border-white flex items-center justify-center text-xs font-semibold text-gray-700">
+                <div className="w-6 h-6 rounded-full bg-gray-200 border-2 border-white flex items-center justify-center text-xs font-medium text-gray-700">
                   +{boardMembers.length - 5}
                 </div>
               )}
@@ -233,7 +254,7 @@ const BoardHeader = ({
                 key={view.id}
                 onClick={() => onViewChange(view.id)}
                 className={`flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-all ${currentView === view.id
-                  ? 'bg-gray-100 text-gray-900 font-semibold'
+                  ? 'bg-gray-100 text-gray-900'
                   : 'text-gray-500 hover:text-gray-900 hover:bg-gray-50'
                   }`}
               >
@@ -267,7 +288,7 @@ const BoardHeader = ({
               <Layers size={14} strokeWidth={1.5} />
               <span>{groupBy ? 'Gruplandı' : 'Grupla'}</span>
               {groupBy && (
-                <span className="ml-1 text-[10px] font-bold">
+                <span className="ml-1 text-[10px] font-medium">
                   : {groupBy === 'status' ? 'Durum' : groupBy === 'priority' ? 'Öncelik' : groupBy === 'labels' ? 'Etiket' : 'T-Shirt'}
                 </span>
               )}
@@ -275,7 +296,7 @@ const BoardHeader = ({
 
             {showGroupByMenu && (
               <div className="absolute right-0 top-full mt-2 w-48 bg-white rounded-lg shadow-xl border border-gray-200 z-50 py-1">
-                <div className="px-3 py-2 text-xs font-semibold text-gray-500 border-b border-gray-100">
+                <div className="px-3 py-2 text-xs font-medium text-gray-500 border-b border-gray-100">
                   Şuna Göre Grupla
                 </div>
                 <button
@@ -300,13 +321,7 @@ const BoardHeader = ({
                   <span>Öncelik</span>
                   {groupBy === 'priority' && <span className="text-blue-600">✓</span>}
                 </button>
-                <button
-                  onClick={() => { onGroupByChange('tShirtSize'); setShowGroupByMenu(false); }}
-                  className={`w-full text-left px-4 py-2 text-xs hover:bg-gray-50 flex items-center justify-between ${groupBy === 'tShirtSize' ? 'text-blue-600 bg-blue-50' : 'text-gray-700'}`}
-                >
-                  <span>T-Shirt Size</span>
-                  {groupBy === 'tShirtSize' && <span className="text-blue-600">✓</span>}
-                </button>
+
                 <button
                   onClick={() => { onGroupByChange('labels'); setShowGroupByMenu(false); }}
                   className={`w-full text-left px-4 py-2 text-xs hover:bg-gray-50 flex items-center justify-between ${groupBy === 'labels' ? 'text-blue-600 bg-blue-50' : 'text-gray-700'}`}
@@ -344,7 +359,7 @@ const BoardHeader = ({
               <div ref={filterMenuRef} className="absolute right-0 top-full mt-2 w-72 bg-white dark:bg-slate-900 rounded-lg shadow-xl border border-gray-200 dark:border-slate-800 z-50">
                 <div className="p-4">
                   <div className="flex items-center justify-between mb-4">
-                    <h3 className="font-semibold text-sm text-gray-900 dark:text-gray-100">Filtreler</h3>
+                    <h3 className="font-medium text-sm text-gray-900 dark:text-gray-100">Filtreler</h3>
                     <button
                       onClick={() => {
                         if (onFilterChange) onFilterChange({ status: [], priority: [], assignee: [], labels: [] });
@@ -357,7 +372,7 @@ const BoardHeader = ({
 
                   {/* Status Filter */}
                   <div className="mb-4">
-                    <label className="text-xs font-semibold text-gray-700 dark:text-gray-400 mb-2 block">Durum</label>
+                    <label className="text-xs font-medium text-gray-700 dark:text-gray-400 mb-2 block">Durum</label>
                     <div className="space-y-2">
                       {['todo', 'working', 'review', 'done'].map(status => (
                         <label key={status} className="flex items-center gap-2 cursor-pointer">
@@ -387,7 +402,7 @@ const BoardHeader = ({
 
                   {/* Priority Filter */}
                   <div className="mb-4">
-                    <label className="text-xs font-semibold text-gray-700 dark:text-gray-400 mb-2 block">Öncelik</label>
+                    <label className="text-xs font-medium text-gray-700 dark:text-gray-400 mb-2 block">Öncelik</label>
                     <div className="space-y-2">
                       {['critical', 'high', 'medium', 'low'].map(priority => (
                         <label key={priority} className="flex items-center gap-2 cursor-pointer">
@@ -418,7 +433,7 @@ const BoardHeader = ({
                   {/* Labels Filter */}
                   {uniqueProjectLabels.length > 0 && (
                     <div className="mb-4">
-                      <label className="text-xs font-semibold text-gray-700 dark:text-gray-400 mb-2 block">Etiketler</label>
+                      <label className="text-xs font-medium text-gray-700 dark:text-gray-400 mb-2 block">Etiketler</label>
                       <div className="space-y-2 max-h-40 overflow-y-auto">
                         {uniqueProjectLabels.map(label => (
                           <label key={label.id} className="flex items-center gap-2 cursor-pointer">
@@ -437,7 +452,7 @@ const BoardHeader = ({
                               className="rounded border-gray-300"
                             />
                             <span
-                              className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold text-white"
+                              className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium text-white"
                               style={{ backgroundColor: label.color }}
                             >
                               {label.name}

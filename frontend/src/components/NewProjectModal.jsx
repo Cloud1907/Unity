@@ -10,6 +10,8 @@ import {
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
+import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
+import { getAvatarUrl, getUserColor, getInitials } from '../utils/avatarHelper';
 import { useData } from '../contexts/DataContext';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -55,7 +57,7 @@ const PREMIUM_ICONS = [
 
 const NewProjectModal = ({ isOpen, onClose, initialData = null }) => {
   const { user } = useAuth();
-  const { createProject, updateProject, departments, fetchDepartments } = useData();
+  const { createProject, updateProject, departments, fetchDepartments, users } = useData();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
@@ -63,7 +65,8 @@ const NewProjectModal = ({ isOpen, onClose, initialData = null }) => {
     icon: 'Folder',
     color: '#0086c0',
     department: '',
-    isPrivate: false
+    isPrivate: false,
+    memberIds: []
   });
 
   const isEditing = !!initialData;
@@ -78,7 +81,7 @@ const NewProjectModal = ({ isOpen, onClose, initialData = null }) => {
         let deptId = initialData.departmentId;
         if (!deptId && initialData.department && departments.length > 0) {
           const dept = departments.find(d => d.name === initialData.department);
-          if (dept) deptId = dept.id || dept._id;
+          if (dept) deptId = dept.id;
         }
 
         setFormData({
@@ -86,7 +89,8 @@ const NewProjectModal = ({ isOpen, onClose, initialData = null }) => {
           icon: initialData.icon || 'Folder',
           color: initialData.color || '#0086c0',
           department: deptId || '',
-          isPrivate: initialData.isPrivate || false
+          isPrivate: initialData.isPrivate || false,
+          memberIds: initialData.members?.map(m => m.userId) || []
         });
       } else {
         setFormData({
@@ -94,26 +98,23 @@ const NewProjectModal = ({ isOpen, onClose, initialData = null }) => {
           icon: 'Folder',
           color: '#0086c0',
           department: '',
-          isPrivate: false
+          isPrivate: false,
+          memberIds: []
         });
       }
       fetchDepartments();
     }
     prevOpenRef.current = isOpen;
-  }, [isOpen, initialData, fetchDepartments, departments]); // Only re-run when modal actually opens or data changes fundamentally
+  }, [isOpen, initialData, fetchDepartments, departments]);
 
   // Available departments for user
   const availableDepartments = React.useMemo(() => {
     if (!user) return [];
-
-    // Admin can see all departments
     if (user.role === 'admin') return departments;
-
     const userDeptList = user?.departments || [];
     if (user?.department) userDeptList.push(user.department);
-
     return departments.filter(d => {
-      const dId = d._id || d.id;
+      const dId = d.id;
       return userDeptList.some(ud => ud == dId || ud === d.name);
     });
   }, [departments, user]);
@@ -121,7 +122,7 @@ const NewProjectModal = ({ isOpen, onClose, initialData = null }) => {
   // Auto-select first department for new projects
   React.useEffect(() => {
     if (isOpen && !isEditing && availableDepartments.length === 1 && !formData.department) {
-      const deptId = availableDepartments[0]._id || availableDepartments[0].id;
+      const deptId = availableDepartments[0].id;
       setFormData(prev => ({ ...prev, department: deptId }));
     }
   }, [isOpen, isEditing, availableDepartments, formData.department]);
@@ -132,6 +133,8 @@ const NewProjectModal = ({ isOpen, onClose, initialData = null }) => {
     const value = e.target.type === 'checkbox' ? e.target.checked : e.target.value;
     setFormData({ ...formData, [e.target.name]: value });
   };
+
+
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -148,21 +151,17 @@ const NewProjectModal = ({ isOpen, onClose, initialData = null }) => {
 
     setLoading(true);
 
-    const projId = isEditing ? parseInt(initialData._id || initialData.id, 10) : 0;
+    const projId = isEditing ? parseInt(initialData.id, 10) : 0;
 
     const payload = {
       id: projId,
-      Id: projId,
       name: formData.name,
       icon: formData.icon,
       color: formData.color,
-      isPrivate: formData.isPrivate,
-      departmentId: parseInt(formData.department, 10) || (isEditing ? initialData.departmentId : 0)
-    };
+      isPrivate: false,
+      departmentId: parseInt(formData.department, 10) || (isEditing ? initialData.departmentId : 0),
 
-    if (!isEditing) {
-      payload.owner = parseInt(user?._id || user?.id, 10);
-    }
+    };
 
     let result;
     if (isEditing) {
@@ -176,8 +175,8 @@ const NewProjectModal = ({ isOpen, onClose, initialData = null }) => {
     if (result.success) {
       onClose();
       toast.success(isEditing ? 'Proje güncellendi' : 'Proje oluşturuldu');
-      if (!isEditing && result.data && (result.data._id || result.data.id)) {
-        navigate(`/board/${result.data._id || result.data.id}`);
+      if (!isEditing && result.data && result.data.id) {
+        navigate(`/board/${result.data.id}`);
       }
     } else {
       console.error("Operation failed:", result.error);
@@ -187,8 +186,6 @@ const NewProjectModal = ({ isOpen, onClose, initialData = null }) => {
 
   if (!isOpen) return null;
 
-  const SelectedIconComponent = PREMIUM_ICONS.find(i => i.name === formData.icon)?.icon || Folder;
-
   return (
     <div
       className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4"
@@ -196,11 +193,11 @@ const NewProjectModal = ({ isOpen, onClose, initialData = null }) => {
       onClick={onClose}
     >
       <div
-        className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl max-w-md w-full overflow-hidden"
+        className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl max-w-md w-full max-h-[90vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-center justify-between p-5 border-b border-gray-100 dark:border-gray-800">
+        <div className="flex items-center justify-between p-5 border-b border-gray-100 dark:border-gray-800 sticky top-0 bg-white dark:bg-gray-900 z-10">
           <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
             {isEditing ? 'Projeyi Düzenle' : 'Yeni Proje'}
           </h2>
@@ -230,10 +227,10 @@ const NewProjectModal = ({ isOpen, onClose, initialData = null }) => {
             />
           </div>
 
-          {/* Icon Selection - Simplified */}
+          {/* Icon Selection */}
           <div>
             <Label className="text-sm font-medium text-gray-700 dark:text-gray-300">İkon</Label>
-            <div className="mt-2 grid grid-cols-6 gap-2 max-h-56 overflow-y-auto p-2 bg-gray-50/50 dark:bg-gray-900/50 rounded-xl border border-gray-100 dark:border-gray-800">
+            <div className="mt-2 grid grid-cols-6 gap-2 max-h-40 overflow-y-auto p-2 bg-gray-50/50 dark:bg-gray-900/50 rounded-xl border border-gray-100 dark:border-gray-800">
               {PREMIUM_ICONS.map(({ name, icon: Icon }) => (
                 <button
                   key={name}
@@ -250,9 +247,6 @@ const NewProjectModal = ({ isOpen, onClose, initialData = null }) => {
                     strokeWidth={formData.icon === name ? 1.8 : 1.4}
                     className={`transition-all ${formData.icon === name ? 'text-indigo-600' : 'text-gray-400 dark:text-gray-500'}`}
                   />
-                  {formData.icon === name && (
-                    <div className="absolute top-1 right-1 w-2.5 h-2.5 bg-indigo-500 rounded-full border-2 border-white dark:border-gray-800 shadow-sm" />
-                  )}
                 </button>
               ))}
             </div>
@@ -286,44 +280,20 @@ const NewProjectModal = ({ isOpen, onClose, initialData = null }) => {
               value={formData.department}
               onChange={handleChange}
               disabled={isEditing}
-              className={`mt-1.5 w-full px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-xl 
-                focus:outline-none focus:ring-2 focus:ring-indigo-500 
-                bg-white dark:bg-gray-800 text-gray-900 dark:text-white
-                ${isEditing ? 'opacity-60 cursor-not-allowed bg-gray-50 dark:bg-gray-900' : ''}`}
+              className="mt-1.5 w-full px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
             >
               <option value="">Çalışma Alanı Seçin</option>
               {availableDepartments.map(dept => (
-                <option key={dept._id || dept.id} value={dept._id || dept.id}>
+                <option key={dept.id} value={dept.id}>
                   {dept.name}
                 </option>
               ))}
             </select>
-            {isEditing && (
-              <p className="mt-1 text-xs text-gray-400 italic">
-                Mevcut projeler için çalışma alanı değiştirilemez.
-              </p>
-            )}
           </div>
 
-          {/* Private Project Toggle */}
-          <div className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-800/50 rounded-xl">
-            <input
-              type="checkbox"
-              id="isPrivate"
-              name="isPrivate"
-              checked={formData.isPrivate}
-              onChange={handleChange}
-              className="w-4 h-4 text-indigo-600 rounded focus:ring-indigo-500"
-            />
-            <div className="flex-1">
-              <Label htmlFor="isPrivate" className="text-sm font-medium text-gray-700 dark:text-gray-300 cursor-pointer">
-                Özel Proje
-              </Label>
-              <p className="text-xs text-gray-500 dark:text-gray-400">
-                Sadece proje üyeleri görebilir
-              </p>
-            </div>
-          </div>
+
+
+
 
           {/* Actions */}
           <div className="flex gap-2 pt-2">

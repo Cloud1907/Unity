@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
 import { Home, Settings, Plus, ChevronDown, ChevronRight, Star, LogOut, Menu, X, Lock, Users, Hexagon, TrendingUp, FolderPlus, CheckSquare } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { useData } from '../contexts/DataContext';
-import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
-import { getAvatarUrl } from '../utils/avatarHelper';
+import { useDataState, useDataActions } from '../contexts/DataContext';
+import UserAvatar from './ui/shared/UserAvatar';
+import { getAvatarUrl, getInitials, getUserColor } from '../utils/avatarHelper';
 import NewProjectModal from './NewProjectModal';
 import WorkspaceSettingsModal from './WorkspaceSettingsModal';
 import NewWorkspaceModal from './NewWorkspaceModal';
@@ -27,18 +27,14 @@ const UserProfile = () => {
         className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-all duration-200 group border border-transparent hover:border-slate-200 dark:hover:border-slate-700"
       >
 
-        <Avatar className="w-9 h-9 border-2 border-white dark:border-slate-800 shadow-sm group-hover:border-indigo-100 transition-colors">
-          <AvatarImage
-            src={getAvatarUrl(user.avatar, user.gender, user.fullName, user.color)}
-            alt={user.fullName}
-          />
-          <AvatarFallback style={{ backgroundColor: user.color }} className="text-white font-medium text-xs">
-            {user.fullName?.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2)}
-          </AvatarFallback>
-        </Avatar>
+        <UserAvatar
+          user={user}
+          size="md"
+          className="border border-slate-200 dark:border-slate-700 shadow-sm group-hover:border-indigo-100 transition-colors"
+        />
         <div className="flex-1 text-left overflow-hidden">
-          <p className="text-sm font-semibold text-slate-900 dark:text-white truncate">{user.fullName}</p>
-          <p className="text-xs text-slate-500 dark:text-slate-400 font-medium truncate">
+          <p className="text-[13px] text-slate-900 dark:text-white truncate">{user.fullName}</p>
+          <p className="text-[10px] text-slate-500 dark:text-slate-400 tracking-tight truncate">
             {user.role === 'admin' ? 'Yönetici' : user.role === 'member' ? 'Üye' : user.role === 'manager' ? 'Yönetici' : user.role}
           </p>
         </div>
@@ -46,6 +42,7 @@ const UserProfile = () => {
 
       {showMenu && (
         <div className="absolute bottom-full left-0 right-0 mb-3 bg-white dark:bg-slate-900 rounded-xl shadow-xl shadow-slate-200/50 dark:shadow-black/50 border border-slate-200 dark:border-slate-800 py-1.5 overflow-hidden animate-in slide-in-from-bottom-2 fade-in duration-200">
+
           <Link
             to="/settings"
             onClick={() => setShowMenu(false)}
@@ -82,7 +79,12 @@ const UserProfile = () => {
 };
 
 const Sidebar = ({ currentBoard, onBoardChange, onNewBoard }) => {
-  const { projects, toggleFavorite, departments, createDepartment, tasks } = useData();
+  const { boardId } = useParams();
+  const { projects, departments } = useDataState();
+  const { toggleFavorite } = useDataActions();
+
+  // Use prop if provided, otherwise fallback to URL param
+  const activeBoardId = currentBoard || (boardId ? Number(boardId) : null);
   const [expandedSections, setExpandedSections] = useState({
     favorites: true,
     boards: true
@@ -110,21 +112,12 @@ const Sidebar = ({ currentBoard, onBoardChange, onNewBoard }) => {
     setShowNewWorkspaceModal(true);
   };
 
-  const onOpenWorkspaceSettings = (workspaceName) => {
-    // Find workspace object by name (fallback if ID not directly available in loop)
-    let ws = departments.find(d => d.name === workspaceName);
-
-    // Fallback for "Genel" or "Other" which might be distinct in DB but named differently in UI
-    if (!ws && workspaceName === 'Genel') {
-      ws = departments.find(d => d.id === 1 || d._id === 1);
-    }
-
+  const onOpenWorkspaceSettings = (ws) => {
     if (ws) {
       setSelectedWorkspace(ws);
       setShowWorkspaceSettings(true);
     } else {
-      console.warn("Workspace not found:", workspaceName);
-      alert(`"${workspaceName}" çalışma alanı düzenlenemez.`);
+      console.warn("Workspace not provided");
     }
   };
 
@@ -134,16 +127,13 @@ const Sidebar = ({ currentBoard, onBoardChange, onNewBoard }) => {
 
   const allBoards = React.useMemo(() => {
     if (!user) return [];
-    if (user.role === 'admin') return projects;
 
     const userDeptIds = user.departments || (user.department ? [user.department] : []);
 
     return projects.filter(p => {
-      // 1. Owner or Member
-      if (p.owner === (user._id || user.id) || p.members?.includes(user._id || user.id)) return true;
-      // 2. Private Project check
-      if (p.isPrivate) return false;
-      // 3. Department Match (ID or Name)
+      // 1. Owner or Member (Robust Type Check)
+      if (p.owner == user.id || p.members?.some(m => m == user.id)) return true;
+      // 2. Department Match (ID or Name)
       // Check if project.departmentId (int) or project.department (string/int) is in user's list
       if (userDeptIds.some(d => d == p.departmentId || d == p.department)) return true;
 
@@ -223,6 +213,42 @@ const Sidebar = ({ currentBoard, onBoardChange, onNewBoard }) => {
             </Link>
           </div>
 
+          {/* Favorites Section */}
+          {favoriteBoards.length > 0 && (
+            <div className="space-y-1">
+              <div className="px-3 py-1 flex items-center justify-between text-xs font-semibold text-slate-400 capitalize tracking-wider">
+                <div className="flex items-center gap-1 text-amber-500">
+                  <Star size={14} className="fill-amber-500" />
+                  <span>Favoriler</span>
+                </div>
+              </div>
+              <div className="space-y-1">
+                {favoriteBoards.map(board => (
+                  <Link
+                    key={board.id}
+                    to={`/board/${board.id}`}
+                    className={`group w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-all text-sm font-medium relative overflow-hidden ${activeBoardId === board.id
+                      ? 'bg-indigo-50 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-300'
+                      : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'
+                      }`}
+                  >
+                    <div
+                      className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-3/5 rounded-r-full transition-opacity"
+                      style={{ backgroundColor: board.color || '#4F46E5', opacity: activeBoardId === board.id ? 1 : 0.6 }}
+                    />
+                    <span className="flex-1 truncate pl-2">{board.name}</span>
+                    <button
+                      onClick={(e) => handleToggleFavorite(e, board.id)}
+                      className="opacity-0 group-hover:opacity-100 p-1 hover:bg-slate-100 dark:hover:bg-slate-700 rounded transition-all"
+                    >
+                      <Star size={12} className="text-amber-500 fill-amber-500" />
+                    </button>
+                  </Link>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* Workspaces (Formerly Boards grouped by Department) */}
           <div className="space-y-1">
             <div className="px-3 py-1 flex items-center justify-between text-xs font-semibold text-slate-400 capitalize tracking-wider group">
@@ -243,40 +269,43 @@ const Sidebar = ({ currentBoard, onBoardChange, onNewBoard }) => {
               </button>
             </div>
 
+            {/* Yeni Proje Button - Moved here from bottom */}
+            <button
+              onClick={() => setShowNewProjectModal(true)}
+              className="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 transition-all text-slate-500 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 group text-xs font-medium"
+            >
+              <div className="w-5 h-5 rounded bg-slate-100 dark:bg-slate-800 flex items-center justify-center group-hover:bg-indigo-100 dark:group-hover:bg-indigo-900/50 transition-colors">
+                <Plus size={12} />
+              </div>
+              <span>Yeni Proje</span>
+            </button>
+
             {expandedSections.boards && (
               <div className="space-y-4 mt-2">
-                {/* Iterate over Workspaces (Departments) first to ensure correct order and names */}
+                {/* Iterate over Departments */}
                 {departments.map(dept => {
-                  // Find projects for this department
-                  // Handle both string/number ID mismatch safely
                   const deptProjects = allBoards.filter(b =>
-                    (b.departmentId && (b.departmentId == dept.id || b.departmentId == dept._id)) ||
-                    (b.department && b.department === dept.name) // Fallback for legacy
+                    (b.departmentId && b.departmentId == dept.id) ||
+                    (b.department && b.department === dept.name)
                   );
 
-                  // Optional: if you only want to show workspaces that have projects OR the user is a member of:
-                  // The 'allBoards' filtering already handles user permission for projects.
-                  // But we might want to show empty workspaces the user is a member of too.
+                  // FIX: Show department if User is member OR Admin, even if no projects exist
+                  const isMemberOrAdmin = user?.role === 'admin' ||
+                    (user?.departments && user.departments.some(d => d == dept.id));
 
-                  // Skip if no projects and user not relevant? 
-                  // Current requirement seems to be "show based on real workspaces"
-
-                  // Only render if there are projects
-                  if (deptProjects.length === 0) return null;
+                  if (deptProjects.length === 0 && !isMemberOrAdmin) return null;
 
                   return (
-                    <div key={dept._id || dept.id} className="space-y-1 relative group/section">
+                    <div key={dept.id} className="space-y-1 relative group/section">
                       <div className="px-3 py-1.5 pb-2 flex items-center justify-between border-b border-slate-100 dark:border-slate-800/50 mb-1">
                         <div className="flex items-center gap-2">
                           <span className="truncate max-w-[140px] text-xs font-semibold text-slate-400 dark:text-slate-500 capitalize tracking-wide">{dept.name}</span>
                         </div>
-
-                        {/* Settings Trigger */}
                         <button
                           onClick={(e) => {
                             e.preventDefault();
                             e.stopPropagation();
-                            onOpenWorkspaceSettings(dept.name);
+                            onOpenWorkspaceSettings(dept);
                           }}
                           className="opacity-0 group-hover/section:opacity-100 p-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded transition-all text-slate-400 hover:text-indigo-600"
                           title="Üyeleri Yönet"
@@ -287,39 +316,80 @@ const Sidebar = ({ currentBoard, onBoardChange, onNewBoard }) => {
 
                       {deptProjects.map(board => (
                         <Link
-                          key={board._id}
-                          to={`/board/${board._id}`}
-                          className={`group w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-all text-sm font-medium relative overflow-hidden ${currentBoard === board._id
+                          key={board.id}
+                          to={`/board/${board.id}`}
+                          className={`group w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-all text-sm font-medium relative overflow-hidden ${activeBoardId === board.id
                             ? 'bg-indigo-50 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-300'
                             : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'
                             }`}
                         >
-                          {/* Elegant Color Line */}
                           <div
                             className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-3/5 rounded-r-full transition-opacity"
-                            style={{ backgroundColor: board.color || '#4F46E5', opacity: currentBoard === board._id ? 1 : 0.6 }}
+                            style={{ backgroundColor: board.color || '#4F46E5', opacity: activeBoardId === board.id ? 1 : 0.6 }}
                           />
-
                           <span className="flex-1 truncate pl-2">{board.name}</span>
-                          {board.isPrivate && <Lock size={12} className="text-slate-400 flex-shrink-0" />}
+                          <button
+                            onClick={(e) => handleToggleFavorite(e, board.id)}
+                            className={`p-1 hover:bg-slate-100 dark:hover:bg-slate-700 rounded transition-all ${board.favorite ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}
+                          >
+                            <Star size={12} className={`${board.favorite ? 'text-amber-500 fill-amber-500' : 'text-slate-300 dark:text-slate-600'}`} />
+                          </button>
                         </Link>
-                      ))
-                      }
+                      ))}
                     </div>
                   );
                 })}
 
-                {/* Orphan projects 'Diğer' section removed per user request */}
+                {/* Other Projects / Orphans (Projects that didn't match any department above) */}
+                {(() => {
+                  // Re-calculate visible projects to find orphans
+                  // Ideally we would track IDs in a Set above, but inside a map that's tricky to side-effect cleanly in React render.
+                  // So we do a reverse check: projects whose department is NOT in the departments list.
 
-                <button
-                  onClick={() => setShowNewProjectModal(true)}
-                  className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 transition-all text-slate-500 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 group mt-2 text-[13px] font-medium"
-                >
-                  <div className="w-6 h-6 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center group-hover:bg-indigo-100 dark:group-hover:bg-indigo-900/50 transition-colors">
-                    <Plus size={14} />
-                  </div>
-                  <span>Yeni Proje</span>
-                </button>
+                  const otherProjects = allBoards.filter(b => {
+                    const matchesDept = departments.some(d =>
+                      (b.departmentId && b.departmentId == d.id) ||
+                      (b.department && b.department === d.name)
+                    );
+                    return !matchesDept;
+                  });
+
+                  if (otherProjects.length === 0) return null;
+
+                  return (
+                    <div className="space-y-1 relative group/section">
+                      <div className="px-3 py-1.5 pb-2 flex items-center justify-between border-b border-slate-100 dark:border-slate-800/50 mb-1">
+                        <div className="flex items-center gap-2">
+                          <span className="truncate max-w-[140px] text-xs font-semibold text-slate-400 dark:text-slate-500 capitalize tracking-wide">Diğer Projeler</span>
+                        </div>
+                      </div>
+
+                      {otherProjects.map(board => (
+                        <Link
+                          key={board.id}
+                          to={`/board/${board.id}`}
+                          className={`group w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-all text-sm font-medium relative overflow-hidden ${activeBoardId === board.id
+                            ? 'bg-indigo-50 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-300'
+                            : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'
+                            }`}
+                        >
+                          <div
+                            className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-3/5 rounded-r-full transition-opacity"
+                            style={{ backgroundColor: board.color || '#4F46E5', opacity: activeBoardId === board.id ? 1 : 0.6 }}
+                          />
+                          <span className="flex-1 truncate pl-2">{board.name}</span>
+                          <button
+                            onClick={(e) => handleToggleFavorite(e, board.id)}
+                            className={`p-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded transition-all ${board.favorite ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}
+                          >
+                            <Star size={12} className={`${board.favorite ? 'text-amber-500 fill-amber-500' : 'text-slate-400 dark:text-slate-600'}`} />
+                          </button>
+                        </Link>
+                      ))}
+                    </div>
+                  );
+                })()}
+
               </div>
             )}
           </div>
@@ -330,8 +400,6 @@ const Sidebar = ({ currentBoard, onBoardChange, onNewBoard }) => {
           <UserProfile />
 
           <div className="mt-2 flex items-center justify-center gap-2 text-[10px] text-slate-400 font-medium">
-            <span>Unity v{pkg.version}</span>
-            <span>•</span>
             <Link to="/settings" className="hover:text-indigo-500 transition-colors">Ayarlar</Link>
           </div>
         </div>
