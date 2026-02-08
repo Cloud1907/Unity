@@ -25,7 +25,7 @@ namespace Unity.API.Controllers
         {
 
 
-            var claimId = User.FindFirst("id")?.Value 
+            var claimId = User.FindFirst("id")?.Value
                           ?? User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 
             if (int.TryParse(claimId, out int userId))
@@ -41,7 +41,7 @@ namespace Unity.API.Controllers
             var user = await _context.Users.AsNoTracking()
                 .Include(u => u.Departments)
                 .FirstOrDefaultAsync(u => u.Id == userId);
-                
+
             return user ?? throw new UnauthorizedAccessException("User not found.");
         }
 
@@ -64,30 +64,30 @@ namespace Unity.API.Controllers
             var allProjects = await _context.Projects.AsNoTracking()
                 .Include(p => p.Members)
                 .AsSplitQuery() // PERFORMANCE FIX: Avoid Cartesian explosion
-                .Select(p => new {
-                     p.Id,
-                     ProjectId = p.Id,
-                     p.Name,
-                     p.Description,
-                     p.DepartmentId,
-                     p.Owner,
-                     p.Color,
-                     p.Status,
-                     p.Priority,
-                     p.Icon,
-                     p.IsPrivate,
-                     p.CreatedAt,
-                     p.UpdatedAt,
-                     Members = p.Members.Select(m => new { m.UserId }) 
+                .Select(p => new
+                {
+                    p.Id,
+                    ProjectId = p.Id,
+                    p.Name,
+                    p.Description,
+                    p.DepartmentId,
+                    p.Owner,
+                    p.Color,
+                    p.Status,
+                    p.Priority,
+                    p.Icon,
+                    p.IsPrivate,
+                    p.CreatedAt,
+                    p.UpdatedAt,
+                    Members = p.Members.Select(m => new { m.UserId })
                 })
                 .ToListAsync();
 
             // 3. Filter in Memory (Fast because DTO is small)
-            var visibleProjects = allProjects.Where(p => 
-                currentUser.Role == "admin" ||
-                p.Owner == currentUser.Id || 
-                memberProjectIds.Contains(p.ProjectId) || 
-                userDepts.Contains(p.DepartmentId)
+            var visibleProjects = allProjects.Where(p =>
+                p.Owner == currentUser.Id ||
+                memberProjectIds.Contains(p.ProjectId) ||
+                (!p.IsPrivate && (currentUser.Role == "admin" || userDepts.Contains(p.DepartmentId)))
             ).ToList();
 
             return Ok(visibleProjects);
@@ -99,18 +99,19 @@ namespace Unity.API.Controllers
             var project = await _context.Projects.AsNoTracking()
                 .Include(p => p.Members).ThenInclude(m => m.User)
                 .FirstOrDefaultAsync(p => p.Id == id);
-            
-            if (project == null) 
+
+            if (project == null)
                 return NotFound();
 
             var currentUser = await GetCurrentUserWithDeptsAsync();
-            
-            bool hasAccess = currentUser.Role == "admin" ||
-                             project.Owner == currentUser.Id ||
-                             project.Members.Any(PM => PM.UserId == currentUser.Id) ||
-                             currentUser.Departments.Any(d => d.DepartmentId == project.DepartmentId);
 
-            if (!hasAccess) 
+            bool isMember = project.Owner == currentUser.Id ||
+                            project.Members.Any(PM => PM.UserId == currentUser.Id);
+
+            bool hasAccess = isMember ||
+                             (!project.IsPrivate && (currentUser.Role == "admin" || currentUser.Departments.Any(d => d.DepartmentId == project.DepartmentId)));
+
+            if (!hasAccess)
                 return Forbid();
 
             // DATA REPAIR: Restore Owner for Project 85 if corrupted (corrupted by prior bug)
@@ -158,7 +159,7 @@ namespace Unity.API.Controllers
             project.Members = new List<ProjectMember> { new ProjectMember { UserId = currentUser.Id } };
             project.CreatedAt = TimeHelper.Now;
             project.UpdatedAt = TimeHelper.Now;
-            
+
             _context.Projects.Add(project);
             await _context.SaveChangesAsync();
 
@@ -168,7 +169,7 @@ namespace Unity.API.Controllers
         [HttpPut("{id}")]
         public async Task<IActionResult> PutProject(int id, Project project)
         {
-            if (id != project.Id) 
+            if (id != project.Id)
                 return BadRequest("ID mismatch.");
 
             var currentUser = await GetCurrentUserWithDeptsAsync();
@@ -176,7 +177,7 @@ namespace Unity.API.Controllers
                 .Include(p => p.Members)
                 .FirstOrDefaultAsync(p => p.Id == id);
 
-            if (existingProject == null) 
+            if (existingProject == null)
                 return NotFound();
 
             // Permission Check: Owner, Member, or Admin
@@ -184,13 +185,13 @@ namespace Unity.API.Controllers
                            existingProject.Owner == currentUser.Id ||
                            existingProject.Members.Any(PM => PM.UserId == currentUser.Id);
 
-            if (!canEdit) 
+            if (!canEdit)
                 return Forbid();
 
             // MERGE LOGIC: Don't overwrite metadata (Owner, CreatedBy, CreatedAt)
             // If these fields are 0/Min in the incoming model (common for DTO-like updates),
             // they would destroy the record.
-            
+
             existingProject.Name = project.Name;
             existingProject.Description = project.Description;
             existingProject.Icon = project.Icon;
@@ -199,11 +200,11 @@ namespace Unity.API.Controllers
             existingProject.Status = project.Status;
             existingProject.Priority = project.Priority;
             existingProject.UpdatedAt = TimeHelper.Now;
-            
+
             // Allow members update if present
             if (project.Members != null && project.Members.Count > 0)
             {
-                 existingProject.Members = project.Members;
+                existingProject.Members = project.Members;
             }
 
             _context.Entry(existingProject).State = EntityState.Modified;
@@ -225,15 +226,16 @@ namespace Unity.API.Controllers
         public async Task<IActionResult> DeleteProject(int id)
         {
             var project = await _context.Projects.FindAsync(id);
-            if (project == null) 
+            if (project == null)
                 return NotFound();
 
             var currentUser = await GetCurrentUserWithDeptsAsync();
 
             // Strict Delete Permission: Only Owner or Admin
-            if (project.Owner != currentUser.Id && currentUser.Role != "admin") 
+            if (project.Owner != currentUser.Id && currentUser.Role != "admin")
             {
-                return StatusCode(403, new { 
+                return StatusCode(403, new
+                {
                     message = "Projeyi sadece oluşturan kişi veya yönetici silebilir.",
                     title = "Yetkisiz İşlem"
                 });
@@ -257,7 +259,7 @@ namespace Unity.API.Controllers
 
                     // 3. Delete ALL Task Assignees (Linked to Task OR Subtask) - Fixes FK_TaskAssignees_Subtasks_SubtaskId
                     var assignees = await _context.Set<TaskAssignee>()
-                        .Where(a => (a.TaskId != null && taskIds.Contains(a.TaskId.Value)) || 
+                        .Where(a => (a.TaskId != null && taskIds.Contains(a.TaskId.Value)) ||
                                     (a.SubtaskId != null && subtaskIds.Contains(a.SubtaskId.Value)))
                         .ToListAsync();
                     _context.Set<TaskAssignee>().RemoveRange(assignees);
@@ -306,7 +308,7 @@ namespace Unity.API.Controllers
 
                 // 13. Remove Project
                 _context.Projects.Remove(project);
-                
+
                 await _context.SaveChangesAsync();
 
                 return NoContent();
@@ -322,23 +324,23 @@ namespace Unity.API.Controllers
         public async Task<ActionResult<Project>> ToggleFavorite(int id)
         {
             var project = await _context.Projects.FindAsync(id);
-            if (project == null) 
+            if (project == null)
                 return NotFound();
 
             var currentUser = await GetCurrentUserWithDeptsAsync();
-            
+
             bool hasAccess = currentUser.Role == "admin" ||
                              project.Owner == currentUser.Id ||
                              project.Members.Any(PM => PM.UserId == currentUser.Id) ||
                              currentUser.Departments.Any(d => d.DepartmentId == project.DepartmentId);
 
-            if (!hasAccess) 
+            if (!hasAccess)
                 return Forbid();
 
             // Notes: 'Favorite' is currently a shared property on the Project model. 
             // In a future schema update, this should be moved to a UserProjectPreference table.
             // project.Favorite = !project.Favorite;
-            
+
             // await _context.SaveChangesAsync();
 
             return Ok(project);

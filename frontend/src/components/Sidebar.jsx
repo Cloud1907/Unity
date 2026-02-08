@@ -381,9 +381,12 @@ const Sidebar = ({ currentBoard, onBoardChange, onNewBoard }) => {
                             <div className={`text-slate-400 hover:text-indigo-500 transition-all duration-200 ${isCollapsed ? '-rotate-90' : ''}`}>
                               <ChevronDown size={14} />
                             </div>
-                            <span className="truncate max-w-[120px] text-xs font-medium text-slate-400 dark:text-slate-500 capitalize tracking-wide">
-                              {dept.name}
-                            </span>
+                            <div className="flex items-center gap-1.5 min-w-0">
+                              <Users size={14} className={`shrink-0 ${isCollapsed ? 'text-indigo-600' : 'text-slate-400 group-hover:text-indigo-500'}`} />
+                              <span className="truncate max-w-[120px] text-xs font-medium text-slate-400 dark:text-slate-500 capitalize tracking-wide">
+                                {dept.name}
+                              </span>
+                            </div>
                           </div>
                           <div className="flex items-center gap-2">
                             <button

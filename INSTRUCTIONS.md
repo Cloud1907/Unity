@@ -1,3 +1,13 @@
+# 🚨 CRITICAL DEVELOPMENT RULES (PORTS)
+
+> **ALWAYS USE PORT 3000 FOR DEVELOPMENT**
+> - **Frontend (Dev):** `http://localhost:3000` (Use `npm start` in `frontend/`)
+> - **Backend (API):** `http://localhost:8080`
+>
+> ❌ **NEVER** use `http://localhost:8080` for viewing the frontend during development. It serves an **OLD/STALE** build.
+
+---
+
 # AGENT WORKFLOW: TERMINAL-FIRST TDD
 
 1. **DEFAULT TO HEADLESS TESTING:**

@@ -5,7 +5,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Calendar, Target, Zap, AlertCircle, Search, CheckCircle2,
-  Clock, ChevronDown, ChevronRight, FileText, Activity
+  Clock, ChevronDown, ChevronRight, FileText, Activity, Users
 } from 'lucide-react';
 import { DashboardSkeleton } from '../components/skeletons/DashboardSkeleton';
 import ModernTaskModal from '../components/ModernTaskModal';
@@ -36,38 +36,40 @@ const Dashboard = () => {
 
   const currentUserId = user?.id || localStorage.getItem('userId');
 
-  // --- Parallel & Lazy Data Fetching ---
-  useEffect(() => {
-    if (!currentUserId) return;
+  // --- Data Fetching Methods (Defined outside useEffect for re-use) ---
+  const fetchStats = async () => {
+    setLoadingStats(true);
+    try {
+      const res = await tasksAPI.getDashboardStats();
+      setServerStats(res.data);
+    } catch (error) {
+      console.error("Dashboard stats fetch failed:", error);
+    } finally {
+      setLoadingStats(false);
+    }
+  };
 
-    // 1. Fetch Stats (Fast - SQL View)
-    const fetchStats = async () => {
-      setLoadingStats(true);
-      try {
-        const res = await tasksAPI.getDashboardStats();
-        setServerStats(res.data);
-      } catch (error) {
-        console.error("Dashboard stats fetch failed:", error);
-      } finally {
-        setLoadingStats(false);
-      }
-    };
+  const fetchTasks = async () => {
+    setLoadingTasks(true);
+    try {
+      const res = await tasksAPI.getDashboardTasks(1, 100);
+      setTaskList(res.data.tasks || []);
+    } catch (error) {
+      console.error("Dashboard tasks fetch failed:", error);
+    } finally {
+      setLoadingTasks(false);
+    }
+  };
 
-    // 2. Fetch Tasks (Slower - Enriched DTOs)
-    const fetchTasks = async () => {
-      setLoadingTasks(true);
-      try {
-        const res = await tasksAPI.getDashboardTasks(1, 100);
-        setTaskList(res.data.tasks || []);
-      } catch (error) {
-        console.error("Dashboard tasks fetch failed:", error);
-      } finally {
-        setLoadingTasks(false);
-      }
-    };
-
+  const refreshDashboard = () => {
     fetchStats();
     fetchTasks();
+  };
+
+  // --- Initial Load ---
+  useEffect(() => {
+    if (!currentUserId) return;
+    refreshDashboard();
   }, [currentUserId]);
 
   // --- Logic & Data Processing ---
@@ -385,8 +387,7 @@ const Dashboard = () => {
                   </button>
                   <div className="font-bold text-slate-800 dark:text-slate-200 flex items-center gap-2 text-sm">
                     <div className="w-6 h-6 rounded bg-indigo-100 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-300 flex items-center justify-center text-xs">
-                      {/* Simple Icon based on Name - Initials if no check */}
-                      {workspace.name.substring(0, 2).toUpperCase()}
+                      <Users size={14} />
                     </div>
                     {workspace.name}
                   </div>
@@ -533,7 +534,10 @@ const Dashboard = () => {
         <ModernTaskModal
           task={selectedTask}
           isOpen={isModalOpen}
-          onClose={() => setIsModalOpen(false)}
+          onClose={() => {
+            setIsModalOpen(false);
+            refreshDashboard(); // <--- Auto-refresh on close
+          }}
           initialSection="subtasks"
         />
       )}
