@@ -31,11 +31,7 @@
 
 ## 📊 BÖLÜM 1: PERFORMANCE & UX STANDARDS
 
-### 1.1 MANDATORY VIRTUALIZATION
-- Dinamik veri gösteren her liste/grid (Rows, Cards) **Windowing/Virtualization** kullanmalı (örn: `react-window`)
-- ❌ **YASAK:** 50+ elemanlı array'lerde virtualization olmadan `map()` kullanmak
-
-### 1.2 SKELETON SCREENS OVER SPINNERS
+### 1.1 SKELETON SCREENS OVER SPINNERS
 - Full-screen loading spinner kullanmak **YASAKTIR**
 - Yüklenen içeriğin boyutlarına uygun **Skeleton Loader** kullanılmalı
 - Amaç: Cumulative Layout Shift (CLS) önlemek
@@ -188,3 +184,16 @@ Tipler: feat, fix, refactor, style, docs, test, chore
 
 > **Son Güncelleme:** 2026-01-27
 > **Versiyon:** 1.0
+
+---
+
+## 🧪 BÖLÜM 8: MANDATORY TESTING RULES
+
+### 8.1 STANDART TEST HESABI
+- Tüm manuel ve otomasyon testleri aşağıdaki hesap ile yapılmalıdır:
+  - **Email:** `melih.bulut@univera.com.tr`
+  - **Şifre:** `test123`
+
+### 8.2 STANDART TEST PROJESİ
+- Tüm özellikler ve hata düzeltmeleri **Test Project Final 3** çalışma alanında test edilmelidir.
+- Yeni proje oluşturmak yerine bu proje kullanılmalıdır.

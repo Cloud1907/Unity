@@ -20,5 +20,11 @@ namespace Unity.Core.Models
         public bool IsMaster { get; set; } = false; // Master workspaces created by Admin
 
         public int CreatedBy { get; set; } // User ID of the creator
+
+        public DateTime CreatedAt { get; set; } = DateTime.UtcNow; // For sorting by creation date
+
+        public bool IsDeleted { get; set; } = false;
+        public DateTime? DeletedAt { get; set; }
     }
 }
+

@@ -75,3 +75,38 @@ code {
 .App {
   min-height: 100vh;
 }
+
+/* Table Grid Stabilization - Prevents layout shifts */
+@layer utilities {
+  /* Stable grid container for table rows */
+  .table-grid-row {
+    display: grid;
+    contain: layout style;
+    will-change: transform;
+  }
+
+  /* Box sizing for sticky columns */
+  .grid > [class*="sticky"] {
+    box-sizing: border-box;
+  }
+
+  /* Consistent sticky positioning for first two columns */
+  .sticky-first-col {
+    position: sticky;
+    left: 0;
+    z-index: 40;
+    width: 32px;
+    min-width: 32px;
+    max-width: 32px;
+  }
+
+  .sticky-second-col {
+    position: sticky;
+    left: 32px;
+    z-index: 40;
+    width: 380px;
+    min-width: 380px;
+    max-width: 380px;
+    box-sizing: border-box;
+  }
+}

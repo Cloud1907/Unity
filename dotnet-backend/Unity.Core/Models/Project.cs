@@ -31,11 +31,14 @@ namespace Unity.Core.Models
         public string Status { get; set; } = "planning"; // planning, in_progress, on_hold, completed, cancelled
         public string Priority { get; set; } = "medium"; // low, medium, high, urgent
         
-        public bool Favorite { get; set; } = false;
         public bool IsPrivate { get; set; } = false;
 
         public int CreatedBy { get; set; }
         public DateTime CreatedAt { get; set; } = TimeHelper.Now;
         public DateTime UpdatedAt { get; set; } = TimeHelper.Now;
+
+        public bool IsDeleted { get; set; } = false;
+        public DateTime? DeletedAt { get; set; }
     }
 }
+

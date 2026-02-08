@@ -46,24 +46,47 @@ namespace Unity.API.Controllers
         }
 
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<Project>>> GetProjects()
+        public async Task<ActionResult<IEnumerable<dynamic>>> GetProjects()
         {
             var currentUser = await GetCurrentUserWithDeptsAsync();
             var userDepts = currentUser.Departments?.Select(d => d.DepartmentId).ToList() ?? new List<int>();
 
-            // Enterprise Optimization: 
-            // Fetching as NoTracking for read performance.
-            // Note: 'Members' is stored as JSON, preventing full SQL-side filtering for that field without schema changes.
-            // We filter strictly on SQL-compatible fields first to minimize memory footprint.
-            
-            var allProjects = await _context.Projects.AsNoTracking()
-                .Include(p => p.Members)
+            // 1. Get IDs of projects where user is a member (Lightweight query)
+            var memberProjectIds = await _context.ProjectMembers
+                .AsNoTracking()
+                .Where(pm => pm.UserId == currentUser.Id)
+                .Select(pm => pm.ProjectId)
                 .ToListAsync();
 
+            // 2. Fetch from Optimized SQL View (Lightweight DTOs)
+            // 2. Fetch from TABLE with Members (Fixing "User List/Bilinmeyen User" visibility issue)
+            // Replaces ProjectListViews usage which caused invisible members on frontend (filterProjectUsers)
+            var allProjects = await _context.Projects.AsNoTracking()
+                .Include(p => p.Members)
+                .AsSplitQuery() // PERFORMANCE FIX: Avoid Cartesian explosion
+                .Select(p => new {
+                     p.Id,
+                     ProjectId = p.Id,
+                     p.Name,
+                     p.Description,
+                     p.DepartmentId,
+                     p.Owner,
+                     p.Color,
+                     p.Status,
+                     p.Priority,
+                     p.Icon,
+                     p.IsPrivate,
+                     p.CreatedAt,
+                     p.UpdatedAt,
+                     Members = p.Members.Select(m => new { m.UserId }) 
+                })
+                .ToListAsync();
+
+            // 3. Filter in Memory (Fast because DTO is small)
             var visibleProjects = allProjects.Where(p => 
                 currentUser.Role == "admin" ||
                 p.Owner == currentUser.Id || 
-                p.Members.Any(PM => PM.UserId == currentUser.Id) || 
+                memberProjectIds.Contains(p.ProjectId) || 
                 userDepts.Contains(p.DepartmentId)
             ).ToList();
 
@@ -74,7 +97,7 @@ namespace Unity.API.Controllers
         public async Task<ActionResult<Project>> GetProject(int id)
         {
             var project = await _context.Projects.AsNoTracking()
-                .Include(p => p.Members)
+                .Include(p => p.Members).ThenInclude(m => m.User)
                 .FirstOrDefaultAsync(p => p.Id == id);
             
             if (project == null) 
@@ -218,14 +241,72 @@ namespace Unity.API.Controllers
 
             try
             {
-                // Cascade Delete Logic (Manual handling for consistency)
-                var tasks = _context.Tasks.Where(t => t.ProjectId == id);
-                _context.Tasks.RemoveRange(tasks);
+                // Cascade Delete Logic: Manually remove all related entities to prevent FK constraints
+                // 1. Get all tasks for this project
+                var projectTasks = await _context.Tasks
+                    .Where(t => t.ProjectId == id)
+                    .ToListAsync();
 
-                var labels = _context.Labels.Where(l => l.ProjectId == id);
+                if (projectTasks.Any())
+                {
+                    var taskIds = projectTasks.Select(t => t.Id).ToList();
+
+                    // 2. Get Subtasks first (need IDs for Assignee cleanup)
+                    var subtasks = await _context.Set<Subtask>().Where(s => taskIds.Contains(s.TaskId)).ToListAsync();
+                    var subtaskIds = subtasks.Select(s => s.Id).ToList();
+
+                    // 3. Delete ALL Task Assignees (Linked to Task OR Subtask) - Fixes FK_TaskAssignees_Subtasks_SubtaskId
+                    var assignees = await _context.Set<TaskAssignee>()
+                        .Where(a => (a.TaskId != null && taskIds.Contains(a.TaskId.Value)) || 
+                                    (a.SubtaskId != null && subtaskIds.Contains(a.SubtaskId.Value)))
+                        .ToListAsync();
+                    _context.Set<TaskAssignee>().RemoveRange(assignees);
+
+                    // 4. Delete Subtasks
+                    _context.Set<Subtask>().RemoveRange(subtasks);
+
+                    // 5. Delete Task Comments
+                    var comments = await _context.Comments.Where(c => taskIds.Contains(c.TaskId)).ToListAsync();
+                    _context.Comments.RemoveRange(comments);
+
+                    // 6. Delete Task Labels
+                    var taskLabels = await _context.Set<TaskLabel>().Where(tl => taskIds.Contains(tl.TaskId)).ToListAsync();
+                    _context.Set<TaskLabel>().RemoveRange(taskLabels);
+
+                    // 7. Delete Attachments
+                    var attachments = await _context.Attachments.Where(a => taskIds.Contains(a.TaskId)).ToListAsync();
+                    _context.Attachments.RemoveRange(attachments);
+
+                    // 8. Finally remove the tasks
+                    _context.Tasks.RemoveRange(projectTasks);
+                }
+
+                // 9. Delete Project Labels
+                var labels = await _context.Labels.Where(l => l.ProjectId == id).ToListAsync();
                 _context.Labels.RemoveRange(labels);
 
+                // 10. Delete User Project Preferences (Favorites, etc.) - CRITICAL: Has FK to Project
+                var userPrefs = await _context.Set<UserProjectPreference>().Where(up => up.ProjectId == id).ToListAsync();
+                _context.Set<UserProjectPreference>().RemoveRange(userPrefs);
+
+                // 11. Delete Project Members (if explicit table exists)
+                var members = await _context.Set<ProjectMember>().Where(pm => pm.ProjectId == id).ToListAsync();
+                if (members.Any())
+                {
+                    _context.Set<ProjectMember>().RemoveRange(members);
+                }
+
+                // 12. Cleanup Logs (Optional but safer to avoid bad references)
+                // Use string conversion for EntityId which is common in logs
+                var sId = id.ToString();
+                var activityLogs = await _context.Set<ActivityLog>()
+                    .Where(a => a.EntityType == "Project" && a.EntityId == sId)
+                    .ToListAsync();
+                _context.Set<ActivityLog>().RemoveRange(activityLogs);
+
+                // 13. Remove Project
                 _context.Projects.Remove(project);
+                
                 await _context.SaveChangesAsync();
 
                 return NoContent();

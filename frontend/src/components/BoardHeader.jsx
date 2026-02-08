@@ -42,7 +42,30 @@ const BoardHeader = ({
   const notificationButtonRef = React.useRef(null);
 
   const board = projects.find(b => b.id === Number(boardId));
-  const boardMembers = users.filter(u => board?.members?.includes(u.id));
+
+  // Get all users who belong to the same workspace (department) as this project
+  const boardMembers = React.useMemo(() => {
+    if (!board || !board.departmentId) {
+      if (process.env.NODE_ENV === 'development') {
+        console.warn('Board or departmentId not found:', { board, boardId });
+      }
+      return [];
+    }
+
+    const members = users.filter(user => {
+      // CRITICAL: user.departments is an INTEGER ARRAY [1, 2, 3], not [{departmentId: 1}, ...]
+      if (!user.departments || !Array.isArray(user.departments)) {
+        return false;
+      }
+
+      const isInWorkspace = user.departments.includes(board.departmentId);
+      return isInWorkspace;
+    });
+
+
+
+    return members;
+  }, [board, users, boardId]);
 
   // Check if current user can delete/edit project settings
   const canManageProject = currentUser && (
@@ -206,8 +229,8 @@ const BoardHeader = ({
             />
           </div>
 
-          {/* Members */}
-          <div className="flex items-center gap-2 mr-2">
+          {/* Members - Hidden per user request */}
+          {/* <div className="flex items-center gap-2 mr-2">
             <div className="flex items-center -space-x-2">
               {boardMembers?.slice(0, 5).map(member => (
                 <Avatar key={member.id} className="w-6 h-6 border-2 border-white hover:z-10 transition-all">
@@ -223,7 +246,7 @@ const BoardHeader = ({
                 </div>
               )}
             </div>
-          </div>
+          </div> */}
 
           <Button onClick={() => setShowNewTaskModal(true)} size="sm" className="gap-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium h-8 px-3 rounded-md shadow-sm transition-all mr-2">
             <Plus size={16} strokeWidth={1.5} />
@@ -334,7 +357,7 @@ const BoardHeader = ({
           </div>
 
           <div className="relative">
-            <PersonFilterBar filters={filters} onFilterChange={onFilterChange} />
+            <PersonFilterBar filters={filters} onFilterChange={onFilterChange} boardMembers={boardMembers} />
           </div>
 
           <div className="relative">

@@ -34,14 +34,42 @@ namespace Unity.API.Controllers
         [HttpGet]
         public async Task<ActionResult<IEnumerable<AuditLog>>> GetNotifications()
         {
-            // Simple logic: Get last 20 actions that happened in Departments/Workspaces
-            // In a pro system, we'd filter by 'EntityId' matching user's Workspace IDs.
+            var userId = GetCurrentUserId();
+            if (userId == 0) return Unauthorized();
+
+            // 1. Get IDs of tasks user is involved in (Creator or Assignee)
+            var involvedTaskIds = await _context.Tasks
+                .Where(t => t.CreatedBy == userId || t.Assignees.Any(a => a.UserId == userId))
+                .Select(t => t.Id.ToString())
+                .ToListAsync();
+
+            // 2. Get IDs of projects user is a member of
+            var involvedProjectIds = await _context.ProjectMembers
+                .Where(m => m.UserId == userId)
+                .Select(m => m.ProjectId.ToString())
+                .ToListAsync();
+
+            // 3. Filter AuditLogs:
+            // - Related to user's tasks
+            // - Related to user's projects
+            // - Performed by someone else (optional refinement, but let's show all relevant for now as requested)
             
             var logs = await _context.AuditLogs
-                .Where(l => l.EntityName == "Department" || l.EntityName == "Project")
+                .Where(l => 
+                    l.Action == "ASSIGN_TASK" && 
+                    l.Description.StartsWith($"ASSIGNED_TO:{userId}:")
+                )
                 .OrderByDescending(l => l.Timestamp)
-                .Take(20)
+                .Take(25)
                 .ToListAsync();
+
+            // Clean up description for frontend
+            foreach(var log in logs) {
+                var parts = log.Description.Split(':', 3);
+                if (parts.Length == 3) {
+                    log.Description = $"Size bir görev atandı: {parts[2]} ({log.UserName} tarafından)";
+                }
+            }
 
             return logs;
         }

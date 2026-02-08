@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Check, X } from 'lucide-react';
+import { toSkyISOString } from '../utils/dateUtils';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
 import { getAvatarUrl } from '../utils/avatarHelper';
 
@@ -117,7 +118,7 @@ export const InlinePriorityCell = ({ value, options, onChange, colors }) => {
 // Person Column Inline Editor
 export const InlinePersonCell = ({ value, users, onChange }) => {
   const [isEditing, setIsEditing] = useState(false);
-  const assignees = users.filter(u => value?.includes(u._id)) || [];
+  const assignees = users.filter(u => value?.includes(u.id)) || [];
 
   if (isEditing) {
     return (
@@ -125,13 +126,13 @@ export const InlinePersonCell = ({ value, users, onChange }) => {
         <div className="absolute top-0 left-0 z-50 bg-white rounded-lg shadow-xl border border-gray-200 p-2 min-w-[200px] max-h-[300px] overflow-y-auto">
           {users.map(user => (
             <button
-              key={user._id}
+              key={user.id}
               onClick={(e) => {
                 e.stopPropagation();
-                const isSelected = value?.includes(user._id);
+                const isSelected = value?.includes(user.id);
                 const newValue = isSelected
-                  ? value.filter(id => id !== user._id)
-                  : [...(value || []), user._id];
+                  ? value.filter(id => id !== user.id)
+                  : [...(value || []), user.id];
                 onChange(newValue);
               }}
               className="w-full text-left px-2 py-2 rounded text-xs hover:bg-gray-100 transition-colors flex items-center gap-2"
@@ -146,7 +147,7 @@ export const InlinePersonCell = ({ value, users, onChange }) => {
                 </AvatarFallback>
               </Avatar>
               <span className="flex-1">{user.fullName}</span>
-              {value?.includes(user._id) && <Check size={14} className="text-green-500" />}
+              {value?.includes(user.id) && <Check size={14} className="text-green-500" />}
             </button>
           ))}
           <button
@@ -172,7 +173,7 @@ export const InlinePersonCell = ({ value, users, onChange }) => {
       className="flex items-center -space-x-1.5 cursor-pointer hover:opacity-75 transition-opacity"
     >
       {assignees.map(assignee => (
-        <Avatar key={assignee._id} className="w-5 h-5 border border-white">
+        <Avatar key={assignee.id} className="w-5 h-5 border border-white">
           <AvatarImage src={assignee.avatar ? getAvatarUrl(assignee.avatar) : ''} />
           <AvatarFallback
             className="text-[10px] text-white font-bold"
@@ -208,9 +209,9 @@ export const InlineDateCell = ({ value, onChange }) => {
       <div onClick={(e) => e.stopPropagation()}>
         <input
           type="date"
-          value={value ? new Date(value).toISOString().split('T')[0] : ''}
+          value={value ? toSkyISOString(value).split('T')[0] : ''}
           onChange={(e) => {
-            onChange(e.target.value ? new Date(e.target.value).toISOString() : null);
+            onChange(e.target.value ? toSkyISOString(e.target.value) : null);
             setIsEditing(false);
           }}
           onBlur={() => setIsEditing(false)}

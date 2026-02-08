@@ -44,35 +44,122 @@ namespace Unity.API.Controllers
 
         [HttpGet]
         [Authorize]
-        public async Task<ActionResult<IEnumerable<UserDto>>> GetUsers()
+        public async Task<ActionResult<object>> GetUsers(
+            [FromQuery] int? workspace_id, 
+            [FromQuery] string? mode,
+            [FromQuery] string? search,
+            [FromQuery] int page = 1,
+            [FromQuery] int pageSize = 50)
         {
-            var currentUser = await GetCurrentUserWithDeptsAsync();
-            var userDepts = currentUser.Departments?.Select(d => d.DepartmentId).ToList() ?? new List<int>();
+            // ULTRA-FAST: Skip Departments loading for list view
+            // Departments are only needed for filtering, not display
+            var query = _context.Users.AsNoTracking()
+                .Include(u => u.Departments) // EAGER LOAD
+                .AsSplitQuery()              // PREVENT CARTESIAN EXPLOSION
+                .Where(u => !u.IsDeleted);
 
-            // Optimization warning: Fetching all users is okay for small companies (<1000 users), 
-            // but for Enterprise scaling (>10k), this should be paginated (skip/take).
-            // Keeping list for now to satisfy current frontend requirements.
-            
-            var allUsers = await _context.Users.AsNoTracking()
-                .Include(u => u.Departments)
+            // Workspace filter - only when explicitly requested
+            if (workspace_id.HasValue && workspace_id.Value > 0)
+            {
+                query = query.Where(u => u.Departments.Any(d => d.DepartmentId == workspace_id.Value));
+            }
+
+            // Server-side search
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                var searchLower = search.ToLower();
+                query = query.Where(u => 
+                    u.FullName.ToLower().Contains(searchLower) || 
+                    u.Email.ToLower().Contains(searchLower));
+            }
+
+            var totalCount = await query.CountAsync();
+
+            // FAST: No Include, just DTO projection
+            var userDtos = await query
+                .OrderBy(u => u.FullName)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .Select(u => new UserDto
+                {
+                    Id = u.Id,
+                    FullName = u.FullName,
+                    Email = u.Email,
+                    Username = u.Username,
+                    Role = u.Role,
+                    Avatar = u.Avatar,
+                    Color = u.Color,
+                    JobTitle = u.JobTitle,
+                    // RESTORED: Needed for frontend filterProjectUsers logic
+                    Departments = u.Departments.Select(d => d.DepartmentId).ToList(), 
+                    Gender = u.Gender,
+                    CreatedAt = u.CreatedAt
+                })
                 .ToListAsync();
-            
-            // Allow all authenticated users to see the full user directory (Collaboration requirement)
-            var visibleUsers = allUsers.Select(u => new UserDto
+
+            return Ok(new {
+                users = userDtos,
+                totalCount = totalCount,
+                page = page,
+                pageSize = pageSize,
+                hasMore = (page * pageSize) < totalCount
+            });
+        }
+
+        [HttpGet("admin")]
+        [Authorize(Roles = "admin")]
+        public async Task<ActionResult<AdminUserResponseDto>> GetAllUsersForAdmin([FromQuery] string? search, [FromQuery] string? role)
+        {
+            var baseQuery = _context.Users.AsNoTracking().Where(u => !u.IsDeleted);
+
+            // 1. Global Stats (independent of filters)
+            var totalUsers = await baseQuery.CountAsync();
+            var adminCount = await baseQuery.CountAsync(u => u.Role == "admin");
+            var memberCount = await baseQuery.CountAsync(u => u.Role == "member");
+
+            // 2. Apply Filters (for the table list)
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                search = search.ToLower();
+                // SQL-safe lowercase matching if DB collation allows, otherwise ToLower() is standard in EF Core
+                baseQuery = baseQuery.Where(u => u.FullName.ToLower().Contains(search) || u.Email.ToLower().Contains(search));
+            }
+
+            if (!string.IsNullOrWhiteSpace(role) && role != "all")
+            {
+                baseQuery = baseQuery.Where(u => u.Role == role);
+            }
+
+            // 3. Fetch Data
+            var users = await baseQuery
+                .Include(u => u.Departments)
+                .ThenInclude(ud => ud.Department)
+                .OrderBy(u => u.FullName)
+                .ToListAsync();
+
+            var adminUserDtos = users.Select(u => new AdminUserDto
             {
                 Id = u.Id,
-                Username = u.Username,
-                Email = u.Email,
                 FullName = u.FullName,
+                Email = u.Email,
+                Username = u.Username,
                 Role = u.Role,
                 Avatar = u.Avatar,
                 Color = u.Color,
-                Department = u.Departments.Select(d => d.DepartmentId).FirstOrDefault(),
-                Departments = u.Departments.Select(d => d.DepartmentId).ToList(),
-                JobTitle = u.JobTitle
+                JobTitle = u.JobTitle,
+                DepartmentNames = u.Departments?
+                    .Where(ud => ud.Department != null && !ud.Department.IsDeleted)
+                    .Select(ud => ud.Department!.Name)
+                    .ToList() ?? new List<string>()
             }).ToList();
 
-            return Ok(visibleUsers);
+            return Ok(new AdminUserResponseDto
+            {
+                Users = adminUserDtos,
+                TotalUsers = totalUsers,
+                AdminCount = adminCount,
+                MemberCount = memberCount
+            });
         }
 
         [HttpPost]
@@ -143,12 +230,20 @@ namespace Unity.API.Controllers
             if (existingUser == null) return NotFound();
 
             // Update allowed fields
+            // DEBUG STRATEGY: Analyze incoming payload vs existing state
+            Console.WriteLine($"[UPDATE-AUDIT] User: {id} | Incoming-Avatar: '{user.Avatar}' | Incoming-Color: '{user.Color}'");
+
             existingUser.FullName = user.FullName ?? existingUser.FullName;
             existingUser.Email = user.Email ?? existingUser.Email;
             existingUser.Username = user.Username ?? existingUser.Username;
-            existingUser.Avatar = user.Avatar; 
+            
+            // FIX: Prevent overwrite if incoming avatar is null (Data Protection)
+            existingUser.Avatar = user.Avatar ?? existingUser.Avatar; 
+            
             existingUser.Color = user.Color ?? existingUser.Color;
             existingUser.JobTitle = user.JobTitle ?? existingUser.JobTitle;
+            
+            Console.WriteLine($"[UPDATE-AUDIT] Result - Avatar: '{existingUser.Avatar}' | Color: '{existingUser.Color}'");
             existingUser.UpdatedAt = TimeHelper.Now;
 
             if (!string.IsNullOrEmpty(user.Password))

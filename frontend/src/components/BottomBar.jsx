@@ -31,18 +31,14 @@ const BottomBar = () => {
             <div className="flex items-center gap-4 text-[10px] font-medium text-slate-500 dark:text-slate-400">
                 <div className="flex items-center gap-1.5 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors cursor-help" title="System Ready">
                     <div className={`w-2 h-2 rounded-full ${online ? 'bg-green-500' : 'bg-red-500'} animate-pulse`} />
-                    <span>{online ? 'SİSTEM ÇEVRİMİÇİ' : 'BAĞLANTI YOK'}</span>
+                    <span>{online ? 'Sistem çevrimiçi' : 'Bağlantı yok'}</span>
                 </div>
                 <div className="h-3 w-px bg-slate-200 dark:bg-slate-800" />
-                <div className="flex items-center gap-1.5">
-                    <Monitor size={12} />
-                    <span>UNITY v{pkg.version}</span>
-                </div>
             </div>
 
             {/* Center: Maybe copyright or minimal quote? */}
             <div className="hidden md:flex text-[10px] text-slate-300 dark:text-slate-600 tracking-widest font-semibold uppercase">
-                Unity Workforce Management
+                Univera Task Management
             </div>
 
             {/* Right: Date & Time */}

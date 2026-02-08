@@ -14,6 +14,17 @@ export const updateTaskInTree = (taskList, targetId, newData) => {
     return taskList.map(task => {
         // 1. Check strict ID match
         if (task.id === targetId) {
+            // STALE UPDATE PROTECTION:
+            // If newData has an updatedAt timestamp, only apply if it's newer than (or same as) current task
+            if (newData.updatedAt && task.updatedAt) {
+                const newTime = new Date(newData.updatedAt).getTime();
+                const taskTime = new Date(task.updatedAt).getTime();
+                if (newTime < taskTime) {
+                    console.log(`[TaskHelpers] Dropping stale update for task ${targetId} (new: ${newData.updatedAt} < current: ${task.updatedAt})`);
+                    return task;
+                }
+            }
+
             // MERGE FIX: Preserve existing subtasks if they are not in the update data
             // This prevents SignalR updates from wiping out nested children
             const mergedSubtasks = newData.subtasks !== undefined

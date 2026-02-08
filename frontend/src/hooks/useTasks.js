@@ -2,35 +2,51 @@ import { useState, useCallback, useMemo } from 'react';
 import { tasksAPI, subtasksAPI } from '../services/api';
 import { normalizeEntity, getId } from '../utils/entityHelpers';
 import { updateTaskInTree } from '../utils/taskHelpers';
-import { toast } from 'react-hot-toast';
+import { toast } from 'sonner';
+
+/** Ref: taskId -> timestamp of last optimistic update. Used by SignalR to ignore stale pushes. */
+const lastInteractionByTaskIdRef = { current: {} };
 
 export const useTasks = () => {
     const [tasks, setTasks] = useState([]);
-    const [loading, setLoading] = useState(false);
+    const [loading, setLoading] = useState(true);
+    const [totalCount, setTotalCount] = useState(0);
+    const [page, setPage] = useState(1);
+    const [hasMore, setHasMore] = useState(false);
 
 
-    const fetchTasks = useCallback(async (projectId = null) => {
+    const fetchTasks = useCallback(async (projectId = null, options = {}) => {
+        const { reset = true, page: targetPage = 1, pageSize = 500 } = options;
         setLoading(true);
         try {
-            const params = projectId ? { projectId } : {};
+            const params = {
+                page: targetPage,
+                pageSize,
+                ...(projectId ? { projectId } : {})
+            };
             const response = await tasksAPI.getAll(params);
 
+            // Handle both legacy (array) and new (paginated object) response formats
+            const data = response.data;
+            const fetchedTasksList = Array.isArray(data) ? data : (data.tasks || []);
+            const total = data.totalCount || fetchedTasksList.length;
+            const more = data.hasMore || false;
+
             // Normalize and filter invalid items
-            const normalizedTasks = response.data.map(normalizeEntity).filter(Boolean);
+            const normalizedTasks = fetchedTasksList.map(normalizeEntity).filter(Boolean);
 
             setTasks(prev => {
-                const newData = !projectId ? normalizedTasks : (() => {
-                    const taskMap = new Map();
-                    prev.forEach(t => taskMap.set(t.id, t));
-                    normalizedTasks.forEach(t => taskMap.set(t.id, t));
-                    return Array.from(taskMap.values());
-                })();
+                if (reset) return normalizedTasks;
 
-                // Identity check: Avoid re-render if data is deep-equal (string conversion for speed/simplicity here)
-                if (JSON.stringify(prev) === JSON.stringify(newData)) return prev;
-
-                return newData;
+                const taskMap = new Map();
+                prev.forEach(t => taskMap.set(t.id, t));
+                normalizedTasks.forEach(t => taskMap.set(t.id, t));
+                return Array.from(taskMap.values());
             });
+
+            setTotalCount(total);
+            setHasMore(more);
+            setPage(targetPage);
 
         } catch (error) {
             console.error('Error fetching tasks:', error);
@@ -58,36 +74,84 @@ export const useTasks = () => {
         }
     }, []);
 
-    const updateTask = useCallback(async (id, data) => {
+    // Queue for sequential updates per task to prevent race conditions
+    const taskQueuesRef = {};
+
+    const processQueue = async (taskId) => {
+        const queue = taskQueuesRef[taskId];
+        if (!queue || queue.length === 0) {
+            delete taskQueuesRef[taskId];
+            return;
+        }
+
+        const { data, resolve, reject, previousState } = queue[0];
+
+        try {
+            const response = await tasksAPI.update(taskId, data);
+            const normalized = normalizeEntity(response.data);
+
+            // Confirm consistency
+            setTasks(prev => updateTaskInTree(prev, taskId, normalized));
+            resolve({ success: true, data: normalized });
+        } catch (error) {
+            console.error('Task update error in queue:', error);
+            // Rollback on error
+            setTasks(previousState);
+            reject(error);
+        } finally {
+            // Remove processed item and continue
+            queue.shift();
+            // Clear interaction guard if queue empty
+            if (queue.length === 0) {
+                delete lastInteractionByTaskIdRef.current[taskId];
+            }
+            processQueue(taskId);
+        }
+    };
+
+    const updateTask = useCallback(async (id, data, optimisticData = null) => {
         const targetId = getId(id);
         if (!targetId) return { success: false, error: 'Invalid ID' };
 
-        // 1. Snapshot previous state for rollback
-        let previousTasks = [];
+        // 1. Snapshot previous state (for ALL queued items, we need the state BEFORE this specific optimistic update)
+        // Actually, we need the *current* state before we mutate it.
+        // Simplification: We snapshot 'prev' inside setTasks, but that's async? 
+        // Better: We rely on the fact that if a previous step fails, it rolls back to ITS previous state.
+        // So we just need to know the state right now.
+        // BUT, 'tasks' state might be stale in closure. 
+        // We will use functional state update to capture it.
 
-        // 2. Optimistic Update
-        setTasks(prev => {
-            previousTasks = prev; // Capture current state
-            return updateTaskInTree(prev, targetId, data);
+        // 2. Mark interaction
+        lastInteractionByTaskIdRef.current[targetId] = Date.now();
+
+        return new Promise((resolve, reject) => {
+            setTasks(prev => {
+                const previousState = prev; // Snapshot for this specific mutation
+
+                // 3. Optimistic Update (Use optimisticData if provided, otherwise data)
+                const newTasks = updateTaskInTree(prev, targetId, optimisticData || data);
+
+                // 4. Add to Queue (Always use 'data' for API)
+                if (!taskQueuesRef[targetId]) {
+                    taskQueuesRef[targetId] = [];
+                }
+
+                taskQueuesRef[targetId].push({
+                    data,
+                    resolve,
+                    reject,
+                    previousState
+                });
+
+                // 5. Start Queue if not running
+                if (taskQueuesRef[targetId].length === 1) {
+                    processQueue(targetId);
+                }
+
+                return newTasks;
+            });
         });
-
-        try {
-            const response = await tasksAPI.update(targetId, data);
-            const normalized = normalizeEntity(response.data);
-
-            // 3. Confirm with Server Data (Optional, but good for consistency)
-            // Ideally optimistic state is close enough, but server might normalize fields
-            setTasks(prev => updateTaskInTree(prev, targetId, response.data));
-
-            return { success: true, data: normalized };
-        } catch (error) {
-            console.error('Task update error:', error);
-            // 4. Rollback on Error
-            setTasks(previousTasks);
-            toast.error('Görev güncellenemedi');
-            return { success: false, error };
-        }
-    }, [updateTaskInTree]);
+    }, [updateTaskInTree]); // Removed dependencies that might cause loop, processQueue is closure
 
     const deleteTask = useCallback(async (id) => {
         const targetId = getId(id);
@@ -165,7 +229,7 @@ export const useTasks = () => {
         }
     }, [updateTaskInTree]);
 
-    const updateSubtask = useCallback(async (subtaskId, data) => {
+    const updateSubtask = useCallback(async (subtaskId, data, optimisticData = null) => {
         const targetId = getId(subtaskId);
 
         // 1. Snapshot for rollback
@@ -174,7 +238,7 @@ export const useTasks = () => {
         // 2. Optimistic Update
         setTasks(prev => {
             previousTasks = prev;
-            return updateTaskInTree(prev, targetId, data);
+            return updateTaskInTree(prev, targetId, optimisticData || data);
         });
 
         try {
@@ -221,6 +285,9 @@ export const useTasks = () => {
     return useMemo(() => ({
         tasks,
         loading,
+        totalCount,
+        page,
+        hasMore,
         fetchTasks,
         fetchTaskById,
         refreshTask,
@@ -230,6 +297,7 @@ export const useTasks = () => {
         createSubtask,
         updateSubtask,
         updateTaskStatus, // Exposed for MainTable and TaskRow
-        setTasks // Exposed for SignalR updates
-    }), [tasks, loading, fetchTasks, fetchTaskById, refreshTask, createTask, updateTask, deleteTask, createSubtask, updateSubtask, updateTaskStatus]);
+        setTasks, // Exposed for SignalR updates
+        lastInteractionByTaskIdRef // For SignalR: ignore stale TaskUpdated if newer local edit
+    }), [tasks, loading, totalCount, page, hasMore, fetchTasks, fetchTaskById, refreshTask, createTask, updateTask, deleteTask, createSubtask, updateSubtask, updateTaskStatus]);
 };

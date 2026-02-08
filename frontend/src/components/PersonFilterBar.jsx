@@ -1,14 +1,15 @@
 import React, { useMemo } from 'react';
-import { useData } from '../contexts/DataContext';
-import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
+import { useDataState } from '../contexts/DataContext';
+import UserAvatar from './ui/shared/UserAvatar';
 import { cn } from '../lib/utils';
-import { User, Check, X } from 'lucide-react';
+import { User, Check } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
 import { Button } from './ui/button';
-import { getAvatarUrl } from '../utils/avatarHelper';
 
-const PersonFilterBar = ({ filters, onFilterChange }) => {
-    const { users } = useData();
+const PersonFilterBar = ({ filters, onFilterChange, boardMembers }) => {
+    const { users } = useDataState();
+
+    const displayUsers = boardMembers && boardMembers.length > 0 ? boardMembers : users;
 
     const selectedAssignees = filters.assignee || [];
 
@@ -21,9 +22,14 @@ const PersonFilterBar = ({ filters, onFilterChange }) => {
     };
 
     const handleClear = (e) => {
-        e.stopPropagation(); // Stop propagation to prevent closing popover if inside button
+        e.stopPropagation();
         onFilterChange({ ...filters, assignee: [] });
     };
+
+    // Sort users alphabetically
+    const sortedUsers = useMemo(() => {
+        return [...displayUsers].sort((a, b) => (a.fullName || '').localeCompare(b.fullName || '', 'tr'));
+    }, [displayUsers]);
 
     return (
         <Popover>
@@ -47,48 +53,46 @@ const PersonFilterBar = ({ filters, onFilterChange }) => {
                     )}
                 </Button>
             </PopoverTrigger>
-            <PopoverContent className="w-64 p-2" align="start">
-                <div className="flex items-center justify-between px-2 py-1.5 mb-2 border-b border-gray-100 dark:border-gray-800">
-                    <span className="text-xs font-semibold text-gray-500">Kişiye Göre Filtrele</span>
+            <PopoverContent className="w-64 p-0 shadow-2xl border-gray-200 dark:border-slate-800" align="start">
+                <div className="px-4 py-2 text-xs font-semibold text-gray-500 border-b border-gray-100 dark:border-gray-800 flex items-center justify-between">
+                    <span>Kişiye Göre Filtrele</span>
                     {selectedAssignees.length > 0 && (
                         <button
                             onClick={handleClear}
-                            className="text-xs text-blue-600 hover:text-blue-700"
+                            className="text-[10px] text-blue-600 hover:text-blue-700 font-medium"
                         >
                             Temizle
                         </button>
                     )}
                 </div>
 
-                <div className="max-h-64 overflow-y-auto space-y-1">
-                    {users.map(user => (
+                <div className="max-h-64 overflow-y-auto py-1">
+                    {sortedUsers.map(user => (
                         <button
-                            key={user._id || user.id}
-                            onClick={() => handleToggle(user._id || user.id)}
+                            key={user.id}
+                            onClick={() => handleToggle(user.id)}
                             className={cn(
-                                "w-full flex items-center gap-3 px-2 py-2 rounded-md text-sm transition-colors group",
-                                selectedAssignees.includes(user._id || user.id)
-                                    ? "bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300"
-                                    : "hover:bg-gray-100 dark:hover:bg-slate-800 text-gray-700 dark:text-gray-200"
+                                "w-full flex items-center gap-3 px-4 py-2 text-xs hover:bg-gray-50 dark:hover:bg-slate-800/50 transition-colors group",
+                                selectedAssignees.includes(user.id)
+                                    ? "bg-blue-50/50 dark:bg-blue-900/20"
+                                    : "text-gray-700 dark:text-gray-300"
                             )}
                         >
-                            <div className="relative">
-                                <Avatar className="w-6 h-6 border border-gray-100 dark:border-gray-700">
-                                    <AvatarImage src={user.avatar ? getAvatarUrl(user.avatar) : ''} />
-                                    <AvatarFallback
-                                        className="text-[10px] font-bold text-white"
-                                        style={{ backgroundColor: user.color || '#6366f1' }}
-                                    >
-                                        {user.fullName?.charAt(0).toUpperCase()}
-                                    </AvatarFallback>
-                                </Avatar>
-                                {selectedAssignees.includes(user._id || user.id) && (
-                                    <div className="absolute -bottom-1 -right-1 bg-blue-600 rounded-full p-0.5 border border-white dark:border-slate-900">
-                                        <Check size={8} className="text-white" />
-                                    </div>
-                                )}
-                            </div>
-                            <span className="truncate flex-1 text-left">{user.fullName}</span>
+                            <UserAvatar
+                                user={user}
+                                size="sm"
+                                className="w-6 h-6"
+                                showTooltip={false}
+                            />
+                            <span className={cn(
+                                "truncate flex-1 text-left",
+                                selectedAssignees.includes(user.id) ? "font-medium text-blue-700 dark:text-blue-400" : ""
+                            )}>
+                                {user.fullName}
+                            </span>
+                            {selectedAssignees.includes(user.id) && (
+                                <Check size={14} className="text-blue-600 dark:text-blue-400" />
+                            )}
                         </button>
                     ))}
                 </div>
@@ -98,3 +102,4 @@ const PersonFilterBar = ({ filters, onFilterChange }) => {
 };
 
 export default PersonFilterBar;
+

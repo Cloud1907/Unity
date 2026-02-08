@@ -2,6 +2,7 @@ import React from 'react';
 import { Calendar, GitMerge, MessageSquare, Clock } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
 import { Badge } from './ui/badge';
+import { getAvatarUrl } from '../utils/avatarHelper';
 
 const MobileTaskCard = ({ task, onClick, getStatusColor, getPriorityData, getAssignees }) => {
     const statusColor = getStatusColor(task.status);
@@ -67,8 +68,8 @@ const MobileTaskCard = ({ task, onClick, getStatusColor, getPriorityData, getAss
                     {/* Assignees */}
                     <div className="flex -space-x-2">
                         {assignees.slice(0, 3).map((user, i) => (
-                            <Avatar key={user._id || i} className="w-6 h-6 border-2 border-white dark:border-gray-800">
-                                <AvatarImage src={user.avatar} />
+                            <Avatar key={user.id || i} className="w-6 h-6 border-2 border-white dark:border-gray-800">
+                                <AvatarImage src={user.avatar ? getAvatarUrl(user.avatar) : ''} />
                                 <AvatarFallback className="text-[9px] bg-gray-100 text-gray-600">
                                     {user.fullName?.charAt(0)}
                                 </AvatarFallback>

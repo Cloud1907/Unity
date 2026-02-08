@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
-import { useData } from '../contexts/DataContext';
+import { useDataActions, useDataState } from '../contexts/DataContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import Sidebar from '../components/Sidebar';
 import BoardHeader from '../components/BoardHeader';
@@ -13,9 +13,13 @@ import { KanbanSkeleton } from '../components/skeletons/KanbanSkeleton';
 import { TableSkeleton } from '../components/skeletons/TableSkeleton';
 
 const BoardView = () => {
-    const { boardId } = useParams();
-    const { projects, loading } = useData();
-    const [currentBoard, setCurrentBoard] = useState(boardId);
+    const { boardId: urlBoardId } = useParams();
+    const { projects, loading } = useDataState();
+    const { joinProjectGroup, leaveProjectGroup } = useDataActions();
+
+    // Determine target board ID (URL or first available project)
+    const currentBoardId = urlBoardId ? Number(urlBoardId) : (projects.length > 0 ? projects[0].id : null);
+
     const [currentView, setCurrentView] = useState('main');
 
     // Search and Filter State - Lifted Up
@@ -26,28 +30,20 @@ const BoardView = () => {
         assignee: [],
         labels: []
     });
-    const [groupBy, setGroupBy] = useState('status'); // 'status', 'priority', 'labels', 'tShirtSize'
+    const [groupBy, setGroupBy] = useState('status');
 
-    // Sync state with URL params
+    // Handle SignalR Group Subscription
     useEffect(() => {
-        if (boardId) {
-            setCurrentBoard(boardId);
-        } else if (projects.length > 0 && !currentBoard) {
-            setCurrentBoard(projects[0]._id);
+        if (currentBoardId) {
+            joinProjectGroup(currentBoardId);
+            return () => {
+                leaveProjectGroup(currentBoardId);
+            };
         }
-    }, [boardId, projects, currentBoard]);
-
-    const handleBoardChange = (newBoardId) => {
-        setCurrentBoard(newBoardId);
-    };
+    }, [currentBoardId, joinProjectGroup, leaveProjectGroup]);
 
     const handleViewChange = (view) => {
         setCurrentView(view);
-    };
-
-    const handleNewBoard = () => {
-        // Creating new board
-        // Mock new board creation
     };
 
     const renderView = () => {
@@ -58,7 +54,7 @@ const BoardView = () => {
         }
 
         const viewProps = {
-            boardId: currentBoard,
+            boardId: currentBoardId,
             searchQuery,
             filters,
             groupBy
@@ -72,47 +68,40 @@ const BoardView = () => {
             case 'gantt':
                 return <GanttView {...viewProps} />;
             case 'workload':
-                return <WorkloadView boardId={currentBoard} />;
+                return <WorkloadView boardId={currentBoardId} />;
             default:
                 return <MainTable {...viewProps} />;
         }
     };
 
     return (
-        <div className="flex h-screen bg-background overflow-hidden">
-            <Sidebar
-                currentBoard={currentBoard}
-                onBoardChange={handleBoardChange}
-                onNewBoard={handleNewBoard}
+        <div className="h-full flex flex-col overflow-hidden">
+            <BoardHeader
+                boardId={currentBoardId}
+                currentView={currentView}
+                onViewChange={handleViewChange}
+                searchQuery={searchQuery}
+                setSearchQuery={setSearchQuery}
+                filters={filters}
+                onFilterChange={setFilters}
+                groupBy={groupBy}
+                onGroupByChange={setGroupBy}
             />
-            <div className="flex-1 flex flex-col overflow-hidden">
-                <BoardHeader
-                    boardId={currentBoard}
-                    currentView={currentView}
-                    onViewChange={handleViewChange}
-                    searchQuery={searchQuery}
-                    setSearchQuery={setSearchQuery}
-                    filters={filters}
-                    onFilterChange={setFilters}
-                    groupBy={groupBy}
-                    onGroupByChange={setGroupBy}
-                />
 
-                {/* Animated Content Area */}
-                <div className="flex-1 overflow-hidden relative">
-                    <AnimatePresence mode="wait" initial={false}>
-                        <motion.div
-                            key={currentView + (loading ? '-loading' : '')}
-                            initial={{ opacity: 0, y: 10, scale: 0.99 }}
-                            animate={{ opacity: 1, y: 0, scale: 1 }}
-                            exit={{ opacity: 0, y: -10, scale: 0.99 }}
-                            transition={{ duration: 0.2, ease: "easeOut" }}
-                            className="h-full w-full"
-                        >
-                            {renderView()}
-                        </motion.div>
-                    </AnimatePresence>
-                </div>
+            {/* Animated Content Area */}
+            <div className="flex-1 overflow-hidden relative">
+                <AnimatePresence mode="wait" initial={false}>
+                    <motion.div
+                        key={currentView} // Prevent mount loops
+                        initial={{ opacity: 0, y: 10, scale: 0.99 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, y: -10, scale: 0.99 }}
+                        transition={{ duration: 0.2, ease: "easeOut" }}
+                        className="h-full w-full"
+                    >
+                        {renderView()}
+                    </motion.div>
+                </AnimatePresence>
             </div>
         </div>
     );

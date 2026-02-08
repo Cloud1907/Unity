@@ -3,8 +3,9 @@ import ReactDOM from 'react-dom';
 import { Calendar } from 'lucide-react';
 import { Calendar as CalendarComponent } from './ui/calendar';
 import { tr } from 'date-fns/locale';
+import { toSkyISOString } from '../utils/dateUtils';
 
-const InlineDatePicker = ({ value, onChange }) => {
+const InlineDatePicker = ({ value, onChange, placeholder = '', icon: Icon = Calendar }) => {
     const [isOpen, setIsOpen] = useState(false);
     const datePickerRef = useRef(null);
     const buttonRef = useRef(null);
@@ -13,20 +14,49 @@ const InlineDatePicker = ({ value, onChange }) => {
     useEffect(() => {
         if (isOpen && buttonRef.current) {
             const rect = buttonRef.current.getBoundingClientRect();
-            const PICKER_WIDTH = 300; // Approximate width of the calendar + padding
             const viewportWidth = window.innerWidth;
+            const viewportHeight = window.innerHeight;
 
-            let left = rect.left + window.scrollX;
+            const popoverWidth = 300;
+            const popoverHeight = 350;
 
-            // If the picker would go off-screen to the right, align it to the right
-            if (rect.left + PICKER_WIDTH > viewportWidth) {
-                left = (rect.right + window.scrollX) - PICKER_WIDTH;
+            // Default position: below
+            let top = rect.bottom + 4;
+            let left = rect.left;
+
+
+
+            // Space Constraints
+            const spaceBelow = viewportHeight - rect.bottom;
+            // Force OPEN UP if not enough space below (regardless of midline)
+            // Or if in lower half and plenty of space above
+            const shouldOpenUp = spaceBelow < popoverHeight || rect.top > viewportHeight / 2;
+
+            let style = { left };
+            let animationClass = '';
+
+            if (shouldOpenUp) {
+                const bottom = viewportHeight - rect.top + 4;
+                style.bottom = bottom;
+                style.top = null;
+                style.transformOrigin = 'bottom left';
+                animationClass = 'slide-in-from-bottom-2';
+            } else {
+                style.top = top;
+                style.bottom = null;
+                style.transformOrigin = 'top left';
+                animationClass = 'slide-in-from-top-2';
             }
 
-            setPosition({
-                top: rect.bottom + window.scrollY + 4,
-                left: left
-            });
+            // Horizontal Overflow Check
+            if (left + popoverWidth > viewportWidth) {
+                left = Math.max(10, viewportWidth - popoverWidth - 15);
+            }
+            left = Math.max(10, left);
+
+            style.left = left;
+
+            setPosition({ ...style, animationClass });
         }
     }, [isOpen]);
 
@@ -48,7 +78,7 @@ const InlineDatePicker = ({ value, onChange }) => {
     }, [isOpen]);
 
     const formatDate = (dateString) => {
-        if (!dateString) return '';
+        if (!dateString) return placeholder;
         const date = new Date(dateString);
         return date.toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' });
     };
@@ -58,10 +88,12 @@ const InlineDatePicker = ({ value, onChange }) => {
     const pickerContent = (
         <div
             ref={datePickerRef}
-            className="fixed z-[9999] bg-white dark:bg-gray-900 rounded-lg shadow-2xl border border-gray-200 dark:border-gray-700 p-2 animate-in fade-in slide-in-from-top-2 duration-200"
+            className={`fixed z-[9999] bg-white dark:bg-gray-900 rounded-lg shadow-2xl border border-gray-200 dark:border-gray-700 p-2 animate-in fade-in ${position.animationClass || 'slide-in-from-top-2'} duration-200`}
             style={{
-                top: position.top,
-                left: position.left
+                top: position.top !== null ? position.top : 'auto',
+                bottom: position.bottom !== null ? position.bottom : 'auto',
+                left: position.left,
+                transformOrigin: position.transformOrigin
             }}
             onClick={(e) => e.stopPropagation()}
         >
@@ -70,9 +102,7 @@ const InlineDatePicker = ({ value, onChange }) => {
                 selected={value ? new Date(value) : undefined}
                 onSelect={(date) => {
                     if (date) {
-                        const newDate = new Date(date);
-                        newDate.setHours(12, 0, 0, 0);
-                        onChange(newDate.toISOString());
+                        onChange(toSkyISOString(date));
                     }
                     setIsOpen(false);
                 }}
@@ -90,10 +120,10 @@ const InlineDatePicker = ({ value, onChange }) => {
                     e.stopPropagation();
                     setIsOpen(!isOpen);
                 }}
-                className={`group inline-flex items-center gap-1.5 px-2 py-1 rounded text-xs font-medium transition-all hover:bg-gray-100 ${isOverdue ? 'text-red-600' : 'text-gray-600'
+                className={`group inline-flex items-center gap-1.5 px-2 py-1 rounded text-xs font-medium transition-all hover:bg-gray-100 ${!value ? 'text-gray-400 font-normal' : (isOverdue ? 'text-red-600' : 'text-gray-600')
                     }`}
             >
-                <Calendar size={12} />
+                <Icon size={12} className={!value ? 'opacity-50' : ''} />
                 <span>{formatDate(value)}</span>
             </button>
             {isOpen && ReactDOM.createPortal(pickerContent, document.body)}

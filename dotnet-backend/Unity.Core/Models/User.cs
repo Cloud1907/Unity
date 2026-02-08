@@ -28,13 +28,14 @@ namespace Unity.Core.Models
         public string? Role { get; set; } = "member";
 
         public int? Manager { get; set; }
-        public string? Avatar { get; set; } = "https://api.dicebear.com/7.x/avataaars/svg?seed=Default";
+        public string? Avatar { get; set; }
         public string? Color { get; set; }
         public string? JobTitle { get; set; }
         public bool IsActive { get; set; } = true;
 
         public string? Gender { get; set; }
         public string? PasswordHash { get; set; } = "";
+
         
         [NotMapped]
         public string? Password { get; set; }
@@ -44,5 +45,8 @@ namespace Unity.Core.Models
 
         [NotMapped]
         public List<int> ProjectIds { get; set; } = new List<int>();
+
+        public bool IsDeleted { get; set; } = false;
+        public DateTime? DeletedAt { get; set; }
     }
 }

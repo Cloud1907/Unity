@@ -3,6 +3,7 @@ import React from 'react';
 import { ChevronDown, Plus } from 'lucide-react';
 import TaskRow from './TaskRow';
 import { GRID_TEMPLATE } from '../constants/taskConstants';
+import { toSkyISOString } from '../utils/dateUtils';
 
 const VirtualizedTableRow = ({
     item,
@@ -70,7 +71,7 @@ const VirtualizedTableRow = ({
                     boardId={boardId}
                     statuses={statuses}
                     priorities={priorities}
-                    isExpanded={expandedRows.has(item.task._id)}
+                    isExpanded={expandedRows.has(item.task.id)}
                     toggleRow={toggleRow}
                     openTaskModal={openTaskModal}
                     updateTask={updateTask}
@@ -104,7 +105,7 @@ const VirtualizedTableRow = ({
             createTask({
                 ...defaultProps,
                 title: newTaskTitle,
-                startDate: new Date().toISOString()
+                startDate: toSkyISOString(new Date())
             });
             setNewTaskTitle('');
         };

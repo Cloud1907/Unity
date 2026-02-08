@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useData } from '../contexts/DataContext';
 import {
@@ -19,18 +19,30 @@ const WORKSPACE_COLORS = [
 ];
 
 const Reports = () => {
-    const { tasks, users, projects, departments, loading } = useData();
+    const { tasks, users, projects, departments, loading, fetchTasks } = useData();
     const { user } = useAuth();
     const [timeRange, setTimeRange] = useState('week');
 
-    const currentUserId = user?._id || user?.id || localStorage.getItem('userId');
+    const currentUserId = user?.id || parseInt(localStorage.getItem('userId'));
+
+    // ANALYTICS FIX: Ensure all tasks are loaded for complete intelligence
+    useEffect(() => {
+        const loadCompleteData = async () => {
+            if (process.env.NODE_ENV === 'development') {
+                console.log('[Reports] Syncing all tasks for analytics...');
+            }
+            await fetchTasks(null, { reset: true, pageSize: 1000 }); // Load everything
+        };
+
+        loadCompleteData();
+    }, [fetchTasks]);
 
     // Helper: Check if user is in assignees
     const isUserAssigned = (assignees, userId) => {
         if (!assignees || !userId) return false;
         return assignees.some(a => {
             if (typeof a === 'object' && a !== null) {
-                const assigneeId = a.userId || a.user?.id || a.user?._id || a._id || a.id;
+                const assigneeId = a.userId || a.user?.id || a.id;
                 return String(assigneeId) === String(userId);
             }
             return String(a) === String(userId);
@@ -44,6 +56,7 @@ const Reports = () => {
             case 'week': return startOfWeek(now, { weekStartsOn: 1 });
             case 'month': return startOfMonth(now);
             case 'year': return subYears(now, 1);
+            case 'all': return new Date(0); // Epoch start
             default: return startOfWeek(now, { weekStartsOn: 1 });
         }
     }, [timeRange]);
@@ -55,75 +68,94 @@ const Reports = () => {
             return departments;
         }
         return departments.filter(d => {
-            const dId = d._id || d.id;
+            const dId = d.id;
             return userDepts.some(ud => ud == dId || ud === d.name);
         });
     }, [departments, user]);
 
+    // Map tasks by project for performance
+    const tasksByProject = useMemo(() => {
+        const map = {};
+        tasks.forEach(t => {
+            if (!map[t.projectId]) map[t.projectId] = [];
+            map[t.projectId].push(t);
+        });
+        return map;
+    }, [tasks]);
+
     // Workspace Workload Data - Premium chart data
     const workspaceWorkloadData = useMemo(() => {
+        const now = new Date();
+
         return myWorkspaces.map((workspace, index) => {
-            const workspaceId = workspace._id || workspace.id;
-
-            // Find projects in this workspace
             const workspaceProjects = projects.filter(p =>
-                p.departmentId == workspaceId || p.department === workspace.name
+                p.departmentId == workspace.id || p.department === workspace.name
             );
-            const projectIds = workspaceProjects.map(p => p._id || p.id);
 
-            // Find tasks in these projects
-            const workspaceTasks = tasks.filter(t => projectIds.includes(t.projectId));
+            // Fetch tasks for these projects
+            const workspaceTasks = workspaceProjects.flatMap(p => tasksByProject[p.id] || []);
 
+            // Stats
             const todo = workspaceTasks.filter(t => t.status === 'todo').length;
             const inProgress = workspaceTasks.filter(t => ['working', 'in_progress', 'review'].includes(t.status)).length;
             const stuck = workspaceTasks.filter(t => t.status === 'stuck').length;
-            const done = workspaceTasks.filter(t => t.status === 'done').length;
-            const total = workspaceTasks.length;
+
+            const completedInRange = workspaceTasks.filter(t => {
+                if (t.status !== 'done') return false;
+                const d = t.updatedAt || t.createdAt;
+                if (!d) return false;
+                try {
+                    const dateObj = typeof d === 'string' ? parseISO(d) : new Date(d);
+                    return isAfter(dateObj, startDate);
+                } catch (e) {
+                    return false;
+                }
+            });
+            const done = completedInRange.length;
+
+            const overdue = workspaceTasks.filter(t => {
+                if (t.status === 'done' || !t.dueDate) return false;
+                return new Date(t.dueDate) < now;
+            }).length;
 
             return {
                 name: workspace.name,
-                shortName: workspace.name.length > 12 ? workspace.name.substring(0, 12) + '...' : workspace.name,
                 todo,
                 inProgress,
                 stuck,
                 done,
-                total,
+                total: workspaceTasks.length,
+                overdue,
                 active: todo + inProgress + stuck,
                 color: WORKSPACE_COLORS[index % WORKSPACE_COLORS.length],
                 projects: workspaceProjects.length
             };
         }).filter(w => w.total > 0).sort((a, b) => b.active - a.active);
-    }, [myWorkspaces, projects, tasks]);
+    }, [myWorkspaces, projects, tasksByProject, startDate]);
 
     // Velocity Data
     const velocityData = useMemo(() => {
         const data = [];
         const now = new Date();
-        let daysToLookBack = timeRange === 'week' ? 7 : timeRange === 'month' ? 30 : 12;
+        const days = timeRange === 'week' ? 7 : timeRange === 'month' ? 30 : 12;
 
         if (timeRange === 'year') {
             for (let i = 11; i >= 0; i--) {
                 const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
                 const count = tasks.filter(t =>
-                    t.status === 'done' &&
-                    t.updatedAt &&
+                    t.status === 'done' && t.updatedAt &&
                     new Date(t.updatedAt).getMonth() === d.getMonth() &&
                     new Date(t.updatedAt).getFullYear() === d.getFullYear()
                 ).length;
                 data.push({ name: format(d, 'MMM', { locale: tr }), completed: count });
             }
         } else {
-            for (let i = daysToLookBack - 1; i >= 0; i--) {
-                const date = subDays(now, i);
+            for (let i = days - 1; i >= 0; i--) {
+                const d = subDays(now, i);
                 const count = tasks.filter(t =>
-                    t.status === 'done' &&
-                    t.updatedAt &&
-                    isSameDay(parseISO(t.updatedAt), date)
+                    t.status === 'done' && t.updatedAt && isSameDay(parseISO(t.updatedAt), d)
                 ).length;
-                data.push({
-                    name: format(date, 'd MMM', { locale: tr }),
-                    completed: count
-                });
+                data.push({ name: format(d, 'd MMM', { locale: tr }), completed: count });
             }
         }
         return data;
@@ -131,23 +163,26 @@ const Reports = () => {
 
     // Completed Tasks (for list)
     const completedTasks = useMemo(() => {
-        return tasks
-            .filter(t => {
-                const isDone = t.status === 'done';
-                const isMyTask = isUserAssigned(t.assignees, currentUserId);
-                const taskDate = t.updatedAt || t.createdAt;
-                const inDateRange = taskDate && isAfter(parseISO(taskDate), startDate);
-                return isDone && isMyTask && inDateRange;
-            })
-            .sort((a, b) => new Date(b.updatedAt || b.createdAt) - new Date(a.updatedAt || a.createdAt));
+        return tasks.filter(t => {
+            if (t.status !== 'done') return false;
+            const isMyTask = isUserAssigned(t.assignees, currentUserId);
+            const d = t.updatedAt || t.createdAt;
+            return d && isAfter(parseISO(d), startDate) && isMyTask;
+        }).sort((a, b) => new Date(b.updatedAt || b.createdAt) - new Date(a.updatedAt || a.createdAt));
     }, [tasks, currentUserId, startDate]);
 
     // Total stats for summary cards
     const totalStats = useMemo(() => {
-        const allActive = workspaceWorkloadData.reduce((acc, w) => acc + w.active, 0);
-        const allDone = workspaceWorkloadData.reduce((acc, w) => acc + w.done, 0);
-        const allTotal = workspaceWorkloadData.reduce((acc, w) => acc + w.total, 0);
-        return { active: allActive, done: allDone, total: allTotal };
+        const active = workspaceWorkloadData.reduce((acc, w) => acc + w.active, 0);
+        const done = workspaceWorkloadData.reduce((acc, w) => acc + w.done, 0);
+        const overdue = workspaceWorkloadData.reduce((acc, w) => acc + w.overdue, 0);
+        const total = active + done;
+        return {
+            active,
+            done,
+            overdue,
+            ratio: total > 0 ? Math.round((done / total) * 100) : 0
+        };
     }, [workspaceWorkloadData]);
 
     return (
@@ -157,7 +192,7 @@ const Reports = () => {
                 {/* HEADER - Compact */}
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                     <div>
-                        <h1 className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight flex items-center gap-2">
+                        <h1 className="text-2xl font-semibold text-slate-900 dark:text-white tracking-tight flex items-center gap-2">
                             <TrendingUp className="text-indigo-600" size={24} />
                             Raporlar & İçgörüler
                         </h1>
@@ -171,7 +206,8 @@ const Reports = () => {
                         {[
                             { id: 'week', label: 'Bu Hafta' },
                             { id: 'month', label: 'Bu Ay' },
-                            { id: 'year', label: 'Son 1 Yıl' }
+                            { id: 'year', label: 'Son 1 Yıl' },
+                            { id: 'all', label: 'Tümü' }
                         ].map(option => (
                             <button
                                 key={option.id}
@@ -187,10 +223,56 @@ const Reports = () => {
                     </div>
                 </div>
 
+                {/* SUMMARY STATS - General Health Portfolio */}
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm relative overflow-hidden group">
+                        <div className="absolute top-0 right-0 p-3 opacity-5 group-hover:scale-110 transition-transform">
+                            <Layers size={40} className="text-indigo-600" />
+                        </div>
+                        <div className="text-2xl font-semibold text-slate-900 dark:text-white">{totalStats.active}</div>
+                        <div className="text-[10px] font-bold text-slate-400 tracking-wider flex items-center gap-1 mt-1">
+                            <span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
+                            Açık Görevler
+                        </div>
+                    </div>
+                    <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm relative overflow-hidden group">
+                        <div className="absolute top-0 right-0 p-3 opacity-5 group-hover:scale-110 transition-transform">
+                            <CheckCircle2 size={40} className="text-emerald-600" />
+                        </div>
+                        <div className="text-2xl font-semibold text-emerald-600">{totalStats.done}</div>
+                        <div className="text-[10px] font-bold text-slate-400 tracking-wider flex items-center gap-1 mt-1">
+                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                            Tamamlanan
+                        </div>
+                    </div>
+                    <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm relative overflow-hidden group">
+                        <div className="absolute top-0 right-0 p-3 opacity-5 group-hover:scale-110 transition-transform">
+                            <Clock size={40} className="text-rose-600" />
+                        </div>
+                        <div className="text-2xl font-semibold text-rose-600 dark:text-rose-400">
+                            {totalStats.overdue}
+                        </div>
+                        <div className="text-[10px] font-bold text-slate-400 tracking-wider flex items-center gap-1 mt-1">
+                            <span className="w-1.5 h-1.5 rounded-full bg-rose-500"></span>
+                            Gecikenler
+                        </div>
+                    </div>
+                    <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm relative overflow-hidden group">
+                        <div className="absolute top-0 right-0 p-3 opacity-5 group-hover:scale-110 transition-transform">
+                            <TrendingUp size={40} className="text-blue-600" />
+                        </div>
+                        <div className="text-2xl font-semibold text-indigo-600">{totalStats.ratio}%</div>
+                        <div className="text-[10px] font-bold text-slate-400 tracking-wider flex items-center gap-1 mt-1">
+                            <span className="w-1.5 h-1.5 rounded-full bg-indigo-500"></span>
+                            Başarı Oranı
+                        </div>
+                    </div>
+                </div>
+
                 {/* WORKSPACE WORKLOAD - Premium Cards */}
                 <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
                     <div className="p-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
-                        <h3 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                        <h3 className="text-base font-semibold text-slate-900 dark:text-white flex items-center gap-2">
                             <Building2 size={18} className="text-indigo-600" />
                             Çalışma Alanları İş Yükü
                         </h3>
@@ -225,22 +307,30 @@ const Reports = () => {
                                             <h4 className="font-semibold text-slate-900 dark:text-white text-sm truncate" title={workspace.name}>
                                                 {workspace.name}
                                             </h4>
-                                            <span className="text-xs text-slate-400 bg-slate-100 dark:bg-slate-700 px-2 py-0.5 rounded-full">
-                                                {workspace.projects} proje
-                                            </span>
+                                            <div className="flex items-center gap-2">
+                                                {workspace.overdue > 0 && (
+                                                    <div className="flex items-center gap-1 text-[10px] font-medium text-rose-600 bg-rose-50 dark:bg-rose-900/40 px-2 py-0.5 rounded-md border border-rose-100 dark:border-rose-800/20 shadow-sm">
+                                                        <Clock size={10} />
+                                                        {workspace.overdue} Geciken
+                                                    </div>
+                                                )}
+                                                <span className="text-xs text-slate-400 bg-slate-100 dark:bg-slate-700 px-2 py-0.5 rounded-full">
+                                                    {workspace.projects} proje
+                                                </span>
+                                            </div>
                                         </div>
 
                                         {/* Stats row */}
                                         <div className="flex items-center gap-3 mb-3">
                                             <div className="flex-1">
-                                                <div className="text-2xl font-bold text-slate-900 dark:text-white">
+                                                <div className="text-2xl font-semibold text-slate-900 dark:text-white">
                                                     {workspace.active}
                                                 </div>
                                                 <div className="text-[10px] capitalize tracking-wider text-slate-500">Aktif Görev</div>
                                             </div>
                                             <div className="h-10 w-px bg-slate-200 dark:bg-slate-700"></div>
                                             <div className="flex-1">
-                                                <div className="text-2xl font-bold text-emerald-600">
+                                                <div className="text-2xl font-semibold text-emerald-600">
                                                     {workspace.done}
                                                 </div>
                                                 <div className="text-[10px] capitalize tracking-wider text-slate-500">Tamamlanan</div>
@@ -291,7 +381,7 @@ const Reports = () => {
                 {/* VELOCITY CHART - Compact */}
                 <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
                     <div className="flex items-center justify-between mb-4">
-                        <h3 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                        <h3 className="text-base font-semibold text-slate-900 dark:text-white flex items-center gap-2">
                             <ArrowUpRight size={18} className="text-emerald-500" />
                             Tamamlanan İşler Trendi
                         </h3>
@@ -320,7 +410,7 @@ const Reports = () => {
                 {/* COMPLETED TASKS LIST - Compact */}
                 <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
                     <div className="p-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
-                        <h3 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                        <h3 className="text-base font-semibold text-slate-900 dark:text-white flex items-center gap-2">
                             <CheckCircle2 size={18} className="text-indigo-600" />
                             Tamamlanan Görevlerim
                         </h3>
@@ -331,9 +421,9 @@ const Reports = () => {
 
                     <div className="divide-y divide-slate-100 dark:divide-slate-800 max-h-[300px] overflow-y-auto">
                         {completedTasks.length > 0 ? completedTasks.slice(0, 8).map(task => {
-                            const project = projects.find(p => p._id === task.projectId);
+                            const project = projects.find(p => p.id === task.projectId);
                             return (
-                                <div key={task._id} className="flex items-center justify-between p-3 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+                                <div key={task.id} className="flex items-center justify-between p-3 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors group">
                                     <div className="flex items-center gap-3 min-w-0">
                                         <div className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: project?.color || '#cbd5e1' }} />
                                         <div className="min-w-0">

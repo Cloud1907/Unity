@@ -2,6 +2,75 @@
 
 Tüm geliştirmeler tarih ve saat ile yeniden eskiye sıralanır.
 
+## [1.4.9] - 2026-02-08
+
+### Düzeltildi
+- **Etiket ve Atama Seçimlerinde UI Kararlılığı (Optimistic UI)**:
+  - **Anlık state mutasyonu**: Etiket veya atama seçildiği anda API cevabı beklenmeden state güncelleniyor; hata durumunda rollback ve toast.
+  - **Kısmi veri ile render**: `entityHelpers` artık sadece ID veya ID+isim/renk içeren label/assignee objelerini güvenle işliyor; sunucudan “populated” veri gelmeden UI bozulmuyor.
+  - **SignalR race condition**: Kullanıcı etkileşimi zamanı (`lastInteractionByTaskIdRef`) tutuluyor; sunucudan gelen daha eski SignalR güncellemesi UI’ı ezmiyor.
+- **InlineLabelPicker**: `currentLabels` her zaman ID listesine normalize ediliyor (hem ID hem obje formatı); `onUpdate` artık await edilmiyor, yanıt beklemeden UI güncelleniyor.
+
+---
+
+## [1.4.8] - 2026-02-05 16:40
+
+### Düzeltildi
+- **Kullanıcı Filtreleme Sorunu**: Görev atamasında admin kullanıcılar artık workspace filtresine uyuyor
+  - `workspace_id` parametresi gönderildiğinde admin dahil herkes o workspace'e filtrelenir
+  - Admin paneli etkilenmedi (ayrı `/api/users/admin` endpoint kullanıyor)
+  - Performans iyileştirmesi: Gereksiz tüm kullanıcı listesi yüklemesi önlendi
+
+---
+
+## [1.4.7] - 2026-02-05 16:25
+
+### Düzeltildi
+- **Sidebar Görünürlük Sorunu**: TECHNICAL_CONSTITUTION kuralları uygulanırken yanlışlıkla kaldırılan admin kontrolü geri eklendi. Admin kullanıcılar artık tüm projeleri sidebar'da görebilir.
+- **Performans İyileştirmesi**: Workspace toggle işlemlerinde cascading re-render sorunu çözüldü:
+  - Local state ile anında UI tepkisi (Optimistic UI)
+  - Debounced API call (500ms) ile gereksiz network isteklerinin önlenmesi
+  - `setUser` tetiklenmesinin azaltılması
+- **Kullanılmayan Import Temizliği**: `Sidebar.jsx`'den kullanılmayan importlar kaldırıldı.
+
+### Değiştirildi
+- **TECHNICAL_CONSTITUTION.md**: Yeni **Bölüm 5: Refactoring Güvenlik Kuralları** eklendi:
+  - Çalışan sistemi bozma yasağı
+  - Role-based visibility korunması
+  - Küçük, test edilebilir değişiklik kuralı
+  - Import/Export tutarlılığı
+
+---
+
+## [1.4.6] - 2026-02-05 11:50
+
+### Eklendi
+- **Admin Panel - Kullanıcı Yönetimi**: 
+    - Server-side filtreleme (arama ve rol) özelliği eklendi.
+    - Dinamik özet kartları (Toplam Kullanıcı, Yönetici, Üye) backend entegrasyonu ile canlı hale getirildi.
+    - `AdminUserResponseDto` ile optimize edilmiş tekil API yanıt yapısına geçildi.
+- **Backend Performans**: Büyük kullanıcı kitlelerinde client-side filtreleme yükünü azaltmak için veritabanı seviyesinde sorgu optimizasyonu yapıldı.
+
+---
+
+## [1.4.5] - 2026-02-04 18:00
+
+### Düzeltildi
+- **Backend Veri Bütünlüğü**: 
+    - Çalışma alanı (Departman) güncelleme işleminde yaşanan veri kaybı ve ID uyuşmazlığı, "manuel field merge" yöntemi ile giderildi.
+    - Proje silme işleminde alınan "Subtask FK Constraint" hatası, kendi kendine referans veren (recursive) tablolar için manuel cascade silme mantığı ile çözüldü.
+- **Dashboard Analitikleri**: 
+    - "Geciken Görevler" hesaplaması, gün başlangıcı yerine anlık saat kontrolüne çevrilerek doğruluk sağlandı.
+    - Accordion menüler açıldığında ok işaretinin sola dönmesi hatası giderildi (Artık aşağıya bakıyor).
+
+### Değiştirildi
+- **UI/UX Modernizasyon**:
+    - **Dashboard Terminolojisi**: "Yapılacak" kartının ismi, karışıklığı önlemek için **"Başlanmadı"** olarak değiştirildi.
+    - **Tipografi**: Dashboard ve Rapor ekranlarındaki kalın (bold) fontlar, daha zarif ve modern bir görünüm için inceltildi (`semibold`/`medium`).
+    - **Onay Mekanizmaları**: Tarayıcı tabanlı (native) `window.confirm` uyarıları kaldırılarak, uygulama içi modern onay butonlarına geçildi.
+
+---
+
 ## [1.4.4] - 2026-02-04 12:40
 
 ### Düzeltildi

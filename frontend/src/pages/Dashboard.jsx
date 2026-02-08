@@ -2,234 +2,167 @@ import React, { useMemo, useState, useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useData } from '../contexts/DataContext';
 import { useAuth } from '../contexts/AuthContext';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
-  ChevronRight, CheckCircle, Clock, AlertCircle,
-  Calendar, Plus, Target, Zap, ArrowUpRight, TrendingUp, Users,
-  Filter, Search, MoreHorizontal
+  Calendar, Target, Zap, AlertCircle, Search, CheckCircle2,
+  Clock, ChevronDown, ChevronRight, FileText, Activity
 } from 'lucide-react';
 import { DashboardSkeleton } from '../components/skeletons/DashboardSkeleton';
-import NewTaskModal from '../components/NewTaskModal';
 import ModernTaskModal from '../components/ModernTaskModal';
-import { Badge } from '../components/ui/badge';
+import NewTaskModal from '../components/NewTaskModal';
 import { getAvatarUrl } from '../utils/avatarHelper';
-import { DynamicIcon } from '../components/IconPicker';
-import WeeklyProgress from '../components/WeeklyProgress';
+import { tasksAPI } from '../services/api';
 
 const Dashboard = () => {
-  const { projects: rawProjects, tasks: rawTasks, users, loading } = useData();
+  const { projects, users, departments } = useData(); // Keep meta-data from context, but NOT tasks
   const { user } = useAuth();
-  const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
 
-  // Normalize tasks (Backend returns objects, Frontend expects IDs)
-  const tasks = useMemo(() => {
-    return rawTasks.map(t => ({
-      ...t,
-      assignees: Array.isArray(t.assignees) ? t.assignees.map(a => (typeof a === 'object' ? (a.userId || a.id) : a)) : [],
-      labels: Array.isArray(t.labels) ? t.labels.map(l => (typeof l === 'object' ? (l.labelId || l.id) : l)) : []
-    }));
-  }, [rawTasks]);
-
-  // Normalize projects
-  const projects = useMemo(() => {
-    return rawProjects.map(p => ({
-      ...p,
-      members: Array.isArray(p.members) ? p.members.map(m => (typeof m === 'object' ? (m.userId || m.id) : m)) : []
-    }));
-  }, [rawProjects]);
-
   // Dashboard State
-  const [showNewTaskModal, setShowNewTaskModal] = useState(false);
-  const [dateFilter, setDateFilter] = useState('week'); // 'week', 'month', 'year'
+  const [serverStats, setServerStats] = useState(null); // Independent Stats State
+  const [taskList, setTaskList] = useState([]); // Independent Task List State
 
-  // My Tasks State
-  const [filter, setFilter] = useState(searchParams.get('filter') || 'all');
-  const [searchQuery, setSearchQuery] = useState('');
+  const [loadingStats, setLoadingStats] = useState(true);
+  const [loadingTasks, setLoadingTasks] = useState(true); // Lazy load tasks
+
+  const [filter, setFilter] = useState(searchParams.get('filter') || 'in_progress');
   const [selectedTask, setSelectedTask] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [showNewTaskModal, setShowNewTaskModal] = useState(false);
 
-  const currentUserId = user?._id || user?.id || localStorage.getItem('userId');
-  const currentUserDepts = user?.departments || (user?.department ? [user.department] : []);
-  const currentUserRole = user?.role;
+  // Expanded states for accordions (default all open)
+  const [expandedWorkspaces, setExpandedWorkspaces] = useState({});
+  const [expandedProjects, setExpandedProjects] = useState({});
 
-  // Date range calculation based on filter
-  const dateRange = useMemo(() => {
-    const now = new Date();
-    let startDate = new Date();
+  const currentUserId = user?.id || localStorage.getItem('userId');
 
-    if (dateFilter === 'week') {
-      // This week (Monday to Sunday)
-      const dayOfWeek = now.getDay();
-      const diff = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
-      startDate.setDate(now.getDate() - diff);
-      startDate.setHours(0, 0, 0, 0);
-    } else if (dateFilter === 'month') {
-      // This month
-      startDate = new Date(now.getFullYear(), now.getMonth(), 1);
-    } else if (dateFilter === 'year') {
-      // Last 1 year
-      startDate = new Date(now.getFullYear() - 1, now.getMonth(), now.getDate());
-    }
-
-    return { start: startDate, end: now };
-  }, [dateFilter]);
-
-  // --- Dashboard Logic ---
-
-  const accessibleProjects = useMemo(() => {
-    return projects.filter(p => {
-      if (currentUserRole === 'admin') return true;
-      if (p.owner === currentUserId || p.members?.includes(currentUserId) || p.members?.includes(Number(currentUserId))) return true;
-      if (p.isPrivate) return false;
-      if (currentUserDepts.length > 0 && (currentUserDepts.includes(p.departmentId) || currentUserDepts.includes(p.department))) return true;
-      return false;
-    });
-  }, [projects, currentUserId, currentUserDepts, currentUserRole]);
-
-  const accessibleProjectIds = useMemo(() => accessibleProjects.map(p => p._id), [accessibleProjects]);
-  const accessibleTasks = useMemo(() => tasks.filter(t => accessibleProjectIds.includes(t.projectId)), [tasks, accessibleProjectIds]);
-
-  const stats = useMemo(() => {
-    let myTasks = accessibleTasks.filter(t => {
-      const assigneeIds = t.assignees || [];
-      return assigneeIds.includes(currentUserId) || assigneeIds.includes(Number(currentUserId));
-    });
-
-    // Filter by date range based on createdAt or updatedAt
-    myTasks = myTasks.filter(t => {
-      const taskDate = new Date(t.updatedAt || t.createdAt);
-      return taskDate >= dateRange.start && taskDate <= dateRange.end;
-    });
-
-    // Status breakdowns
-    const myTodoTasks = myTasks.filter(t => t.status === 'todo'); // Yapılacak
-    const myWorkingTasks = myTasks.filter(t => t.status === 'working' || t.status === 'in_progress'); // Devam Ediyor
-    const myStuckTasks = myTasks.filter(t => t.status === 'stuck'); // Takıldı
-    const myReviewTasks = myTasks.filter(t => t.status === 'review'); // İncelemede
-    const myDoneTasks = myTasks.filter(t => t.status === 'done'); // Tamamlandı
-
-    // Grouping for progress calculation (Open tasks)
-    const openTasks = myTasks.filter(t => t.status !== 'done');
-    const totalProgress = openTasks.reduce((acc, t) => acc + (t.progress || 0), 0);
-    const averageProgress = openTasks.length > 0 ? Math.round(totalProgress / openTasks.length) : 0;
-
-    // Legacy groupings for charts if needed
-    const myInProgressTasks = [...myWorkingTasks, ...myStuckTasks, ...myReviewTasks];
-    const myPendingTasks = [...myTodoTasks];
-
-    const todayStart = new Date();
-    todayStart.setHours(0, 0, 0, 0);
-    const overdueTasks = myTasks.filter(t => {
-      if (!t.dueDate || t.status === 'done') return false;
-      return new Date(t.dueDate) < todayStart;
-    });
-
-    return {
-      myTasks,
-      myTodoTasks,
-      myWorkingTasks,
-      myStuckTasks,
-      myReviewTasks,
-      myDoneTasks,
-      myInProgressTasks,
-      myPendingTasks,
-      overdueTasks,
-      averageProgress
-    };
-  }, [accessibleTasks, currentUserId, dateRange]);
-
-  const quickStats = [
-    { id: 'all', title: 'Toplam Görev', value: stats.myTasks.length, icon: <Target size={20} />, bgColor: 'bg-indigo-100 dark:bg-indigo-500/20', textColor: 'text-indigo-700 dark:text-indigo-300', action: () => setFilter('all') },
-    { id: 'todo', title: 'Yapılacak', value: stats.myTodoTasks.length, icon: <Calendar size={20} />, bgColor: 'bg-slate-100 dark:bg-slate-700/50', textColor: 'text-slate-600 dark:text-slate-300', action: () => setFilter('todo') },
-    { id: 'working', title: 'Devam Ediyor', value: stats.myWorkingTasks.length, icon: <Zap size={20} />, bgColor: 'bg-amber-100 dark:bg-amber-500/20', textColor: 'text-amber-700 dark:text-amber-300', action: () => setFilter('working') },
-    { id: 'stuck', title: 'Takıldı', value: stats.myStuckTasks.length, icon: <AlertCircle size={20} />, bgColor: 'bg-rose-100 dark:bg-rose-500/20', textColor: 'text-rose-700 dark:text-rose-300', action: () => setFilter('stuck') },
-    { id: 'review', title: 'İncelemede', value: stats.myReviewTasks.length, icon: <Search size={20} />, bgColor: 'bg-blue-100 dark:bg-blue-500/20', textColor: 'text-blue-700 dark:text-blue-300', action: () => setFilter('review') },
-    { id: 'done', title: 'Tamamlandı', value: stats.myDoneTasks.length, icon: <CheckCircle size={20} />, bgColor: 'bg-emerald-100 dark:bg-emerald-500/20', textColor: 'text-emerald-700 dark:text-emerald-300', action: () => setFilter('done') },
-  ];
-
-  // --- My Tasks Logic ---
-
-  const statusGroups = {
-    pending: { label: 'Bekleyen', statuses: ['todo', 'backlog', 'planning'] },
-    in_progress: { label: 'Süreçte', statuses: ['working', 'in_progress', 'review', 'stuck'] },
-    done: { label: 'Tamamlanan', statuses: ['done'] },
-    overdue: { label: 'Geciken', statuses: [] }
-  };
-
+  // --- Parallel & Lazy Data Fetching ---
   useEffect(() => {
-    const urlFilter = searchParams.get('filter');
-    if (urlFilter && urlFilter !== filter) {
-      setFilter(urlFilter);
-    }
-  }, [searchParams]);
+    if (!currentUserId) return;
 
-  const handleFilterChange = (newFilter) => {
-    setFilter(newFilter);
-    // setSearchParams({ filter: newFilter }); // Optional: keep URL sync if desired, but user wants simple interaction
-  };
+    // 1. Fetch Stats (Fast - SQL View)
+    const fetchStats = async () => {
+      setLoadingStats(true);
+      try {
+        const res = await tasksAPI.getDashboardStats();
+        setServerStats(res.data);
+      } catch (error) {
+        console.error("Dashboard stats fetch failed:", error);
+      } finally {
+        setLoadingStats(false);
+      }
+    };
 
-  const filteredTasks = useMemo(() => {
-    let result = stats.myTasks; // Use pre-calculated myTasks
+    // 2. Fetch Tasks (Slower - Enriched DTOs)
+    const fetchTasks = async () => {
+      setLoadingTasks(true);
+      try {
+        const res = await tasksAPI.getDashboardTasks(1, 100);
+        setTaskList(res.data.tasks || []);
+      } catch (error) {
+        console.error("Dashboard tasks fetch failed:", error);
+      } finally {
+        setLoadingTasks(false);
+      }
+    };
 
-    const now = new Date();
+    fetchStats();
+    fetchTasks();
+  }, [currentUserId]);
+
+  // --- Logic & Data Processing ---
+
+  // 1. Stats Processing (with fallback)
+  const stats = useMemo(() => {
+    const s = serverStats || {};
+    return {
+      total: s.totalTasks || 0,
+      todo: s.todoTasks || 0,
+      inProgress: s.inProgressTasks || 0,
+      stuck: s.stuckTasks || 0,
+      review: s.reviewTasks || 0,
+      done: s.completedTasks || 0,
+      overdue: s.overdueTasks || 0,
+      progressRate: Math.round(s.averageProgress || 0),
+      continueCount: (s.inProgressTasks || 0) + (s.stuckTasks || 0) + (s.reviewTasks || 0) + (s.todoTasks || 0),
+      doneCount: s.completedTasks || 0 // Use 'completedTasks' from API DTO
+    };
+  }, [serverStats]);
+
+  // 2. Filtered Tasks for List
+  const filteredTaskList = useMemo(() => {
+    let result = taskList;
+
     if (filter === 'done') {
       result = result.filter(t => t.status === 'done');
-    } else if (filter === 'todo') {
-      result = result.filter(t => t.status === 'todo');
-    } else if (filter === 'working') {
-      result = result.filter(t => t.status === 'working' || t.status === 'in_progress');
-    } else if (filter === 'stuck') {
-      result = result.filter(t => t.status === 'stuck');
-    } else if (filter === 'review') {
-      result = result.filter(t => t.status === 'review');
     } else if (filter === 'in_progress') {
-      result = result.filter(t => statusGroups.in_progress.statuses.includes(t.status));
-    } else if (filter === 'pending') {
-      result = result.filter(t => statusGroups.pending.statuses.includes(t.status));
-    } else if (filter === 'overdue') {
-      result = result.filter(t => {
-        if (!t.dueDate || t.status === 'done') return false;
-        return new Date(t.dueDate) < now;
-      });
+      result = result.filter(t => t.status !== 'done');
     }
 
-    if (searchQuery) {
-      const q = searchQuery.toLowerCase();
-      result = result.filter(t =>
-        t.title.toLowerCase().includes(q) ||
-        t.description?.toLowerCase().includes(q) ||
-        t.id.toString().includes(q)
-      );
-    }
+    return result;
+  }, [taskList, filter]);
 
-    return result.sort((a, b) => {
-      if (!a.dueDate) return 1;
-      if (!b.dueDate) return -1;
-      return new Date(a.dueDate) - new Date(b.dueDate);
+  // 3. Grouping by Workspace -> Project
+  const groupedData = useMemo(() => {
+    const groups = {};
+
+    filteredTaskList.forEach(task => { // Use filteredTaskList
+      // Find project details (locally mapped from context or fallback from task props)
+      const project = projects.find(p => p.id === task.projectId) || {
+        id: task.projectId,
+        name: task.projectName || 'Bilinmeyen Proje',
+        departmentId: 0,
+        color: task.projectColor || '#cbd5e1'
+      };
+
+      const deptId = project.departmentId;
+      const department = departments.find(d => d.id === deptId) || { id: deptId, name: 'Genel' };
+
+      if (!groups[deptId]) {
+        groups[deptId] = {
+          ...department,
+          projects: {}
+        };
+      }
+
+      if (!groups[deptId].projects[project.id]) {
+        groups[deptId].projects[project.id] = {
+          ...project,
+          tasks: []
+        };
+      }
+
+      groups[deptId].projects[project.id].tasks.push(task);
     });
-  }, [stats.myTasks, filter, searchQuery]);
 
-  const getProjectName = (projectId) => {
-    const p = projects.find(prj => prj.id === projectId || prj._id === projectId);
-    return p ? p.name : 'Unknown Project';
-  };
+    // Convert to array and sort
+    return Object.values(groups).map(g => ({
+      ...g,
+      projects: Object.values(g.projects)
+    }));
+  }, [filteredTaskList, projects, departments]);
 
-  const getProjectColor = (projectId) => {
-    const p = projects.find(prj => prj.id === projectId || prj._id === projectId);
-    return p ? p.color : '#cbd5e1';
-  };
 
-  const getStatusStyle = (status) => {
-    switch (status) {
-      case 'done': return { bg: 'bg-emerald-100 dark:bg-emerald-900/30', text: 'text-emerald-700 dark:text-emerald-400', label: 'Tamamlandı' };
-      case 'working':
-      case 'in_progress':
-        return { bg: 'bg-amber-100 dark:bg-amber-900/30', text: 'text-amber-700 dark:text-amber-400', label: 'Devam Ediyor' };
-      case 'stuck': return { bg: 'bg-red-100 dark:bg-red-900/30', text: 'text-red-700 dark:text-red-400', label: 'Takıldı' };
-      case 'review': return { bg: 'bg-blue-100 dark:bg-blue-900/30', text: 'text-blue-700 dark:text-blue-400', label: 'İncelemede' };
-      default: return { bg: 'bg-slate-100 dark:bg-slate-800', text: 'text-slate-700 dark:text-slate-400', label: 'Yapılacak' };
-    }
+  // Effects for auto-expand
+  useEffect(() => {
+    const wState = {};
+    const pState = {};
+
+    groupedData.forEach(g => {
+      wState[g.id] = true;
+      g.projects.forEach(p => {
+        pState[p.id] = true;
+      });
+    });
+    setExpandedWorkspaces(prev => ({ ...prev, ...wState }));
+    setExpandedProjects(prev => ({ ...prev, ...pState }));
+  }, [groupedData.length, filter]);
+
+
+  // Handlers
+  const handleFilterChange = (newFilter) => {
+    setFilter(newFilter);
+    setSearchParams({ filter: newFilter });
   };
 
   const handleTaskClick = (task) => {
@@ -237,227 +170,374 @@ const Dashboard = () => {
     setIsModalOpen(true);
   };
 
-  if (loading) return <div className="h-full bg-gray-50 dark:bg-gray-900 p-8 overflow-hidden"><DashboardSkeleton /></div>;
+  const toggleWorkspace = (id) => {
+    setExpandedWorkspaces(prev => ({ ...prev, [id]: !prev[id] }));
+  };
+
+  const toggleProject = (id) => {
+    setExpandedProjects(prev => ({ ...prev, [id]: !prev[id] }));
+  };
+
+  const getStatusBadge = (status) => {
+    switch (status) {
+      case 'in_progress':
+      case 'working': return <span className="text-amber-600 bg-amber-50 px-2 py-0.5 rounded text-[10px] font-bold">Devam Ediyor</span>;
+      case 'todo': return <span className="text-slate-600 bg-slate-100 px-2 py-0.5 rounded text-[10px] font-bold">Yapılacak</span>;
+      case 'planning': return <span className="text-slate-600 bg-slate-100 px-2 py-0.5 rounded text-[10px] font-bold">Planlanıyor</span>;
+      case 'backlog': return <span className="text-slate-400 bg-slate-50 px-2 py-0.5 rounded text-[10px] font-bold">Backlog</span>;
+      case 'done': return <span className="text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded text-[10px] font-bold">Tamamlandı</span>;
+      case 'stuck': return <span className="text-rose-600 bg-rose-50 px-2 py-0.5 rounded text-[10px] font-bold">Takıldı</span>;
+      case 'review': return <span className="text-blue-600 bg-blue-50 px-2 py-0.5 rounded text-[10px] font-bold">İncelemede</span>;
+      default: return <span className="text-slate-500 bg-slate-50 px-2 py-0.5 rounded text-[10px] font-bold">{status}</span>;
+    }
+  };
+
+
+  if (loadingStats) return <div className="p-8"><DashboardSkeleton /></div>;
 
   return (
-    <div className="h-full bg-gradient-to-br from-blue-50/20 via-emerald-50/20 to-amber-50/20 dark:from-gray-900 dark:via-blue-950/10 dark:to-emerald-950/10 overflow-y-auto relative">
-      {/* Soft Animated Gradient Background */}
-      <div className="absolute inset-0 pointer-events-none overflow-hidden opacity-30">
-        <motion.div
-          animate={{ x: [0, 100, 0], y: [0, -100, 0] }}
-          transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
-          className="absolute top-0 left-1/4 w-96 h-96 bg-gradient-to-br from-blue-200 to-cyan-200 dark:from-blue-900 dark:to-cyan-900 rounded-full blur-3xl"
-        />
-        <motion.div
-          animate={{ x: [0, -100, 0], y: [0, 100, 0] }}
-          transition={{ duration: 25, repeat: Infinity, ease: "linear" }}
-          className="absolute bottom-0 right-1/4 w-96 h-96 bg-gradient-to-br from-emerald-200 to-teal-200 dark:from-emerald-900 dark:to-teal-900 rounded-full blur-3xl"
-        />
-      </div>
+    <div className="h-full bg-gray-50/50 dark:bg-gray-900 p-4 lg:p-6 overflow-y-auto">
+      <div className="max-w-[1600px] mx-auto space-y-6">
 
-      <div className="relative z-10 max-w-[1600px] mx-auto p-6 lg:p-8 space-y-8">
-
-        {/* Premium Header */}
-        <motion.div
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-2"
-        >
-          <div className="space-y-0.5">
-            <h1 className="text-xl font-bold text-slate-900 dark:text-white tracking-tight">
+        {/* Header - More Compact */}
+        <div className="flex justify-between items-center">
+          <div>
+            <h1 className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
               Merhaba, {user?.fullName?.split(' ')[0]} 👋
             </h1>
-            <p className="text-[11px] font-medium text-slate-400 flex items-center gap-1.5 capitalize tracking-wider">
-              <Calendar size={12} className="text-indigo-400" />
+            <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1 flex items-center gap-1">
+              <Calendar size={12} />
               {new Date().toLocaleDateString('tr-TR', { weekday: 'long', day: 'numeric', month: 'long' })}
             </p>
           </div>
 
-          {/* Elegant Date Filter */}
-          <div className="flex items-center gap-1 bg-white/60 dark:bg-gray-800/60 backdrop-blur-sm p-1 rounded-xl border border-slate-100 dark:border-gray-700 shadow-sm">
-            {[
-              { id: 'week', label: 'Haftalık' },
-              { id: 'month', label: 'Aylık' },
-              { id: 'year', label: 'Yıllık' }
-            ].map(option => (
-              <button
-                key={option.id}
-                onClick={() => setDateFilter(option.id)}
-                className={`px-4 py-1.5 text-[11px] font-bold capitalize tracking-wide rounded-lg transition-all ${dateFilter === option.id
-                  ? 'bg-indigo-600 text-white shadow-md shadow-indigo-200 dark:shadow-none'
-                  : 'text-slate-500 dark:text-gray-400 hover:bg-slate-50 dark:hover:bg-gray-700'
-                  }`}
-              >
-                {option.label}
-              </button>
-            ))}
-          </div>
-        </motion.div>
-
-        {/* Weekly Progress Component */}
-        <WeeklyProgress
-          totalTasks={stats.myTasks.length}
-          activeTasks={stats.myInProgressTasks.length}
-          overdueTasks={stats.overdueTasks.length}
-          completionRate={stats.averageProgress}
-        />
-
-        {/* INTEGRATED: Quick Stats & Task Grid */}
-        <div className="space-y-6">
-
-          {/* Quick Stats (Now Acting as Filters) */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1 }}
-            className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4"
+          <button
+            onClick={() => setShowNewTaskModal(true)}
+            className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-xs font-bold shadow-sm shadow-indigo-200 transition-colors flex items-center gap-2"
           >
-            {quickStats.map((stat, index) => {
-              const isActive = filter === stat.id;
-              return (
-                <motion.div
-                  key={index}
-                  whileHover={{ y: -2 }}
-                  onClick={stat.action}
-                  className={`bg-white dark:bg-gray-800 rounded-xl border transition-all duration-300 cursor-pointer p-4 group relative overflow-hidden
-                    ${isActive
-                      ? 'border-indigo-500/50 shadow-lg shadow-indigo-100 dark:shadow-none bg-indigo-50/10'
-                      : 'border-slate-50 dark:border-gray-700/50 hover:bg-slate-50/50 dark:hover:bg-gray-700/30'
-                    }`}
-                >
-                  <div className="flex items-center gap-4 mb-2.5">
-                    <div className={`p-1.5 rounded-lg transition-all duration-300 ${isActive ? 'bg-indigo-600 text-white' : `${stat.bgColor} ${stat.textColor} opacity-80`}`}>
-                      {React.cloneElement(stat.icon, { size: 18 })}
-                    </div>
-                    <div className="text-2xl font-bold text-slate-900 dark:text-white leading-none">{stat.value}</div>
-                  </div>
-                  <div>
-                    <div className="text-[11px] font-medium tracking-wide capitalize text-slate-500 dark:text-gray-400">{stat.title}</div>
-                  </div>
-
-                  {isActive && (
-                    <motion.div
-                      layoutId="activeIndicator"
-                      className="absolute bottom-0 left-4 right-4 h-0.5 bg-indigo-500 rounded-full"
-                    />
-                  )}
-                </motion.div>
-              );
-            })}
-          </motion.div>
-
-          {/* Elegant Task Table - Replaces Grid */}
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.2 }}
-            className="bg-white/40 dark:bg-slate-800/40 backdrop-blur-sm rounded-xl border border-slate-100/50 dark:border-gray-800/50 shadow-sm overflow-hidden"
-          >
-            {/* Table Header */}
-            <div className="grid grid-cols-[1fr_200px_150px_150px_100px] gap-4 px-6 py-3 bg-slate-50/50 dark:bg-gray-900/40 border-b border-slate-100/50 dark:border-gray-800/30">
-              <div className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 capitalize tracking-wider pl-8">Görev Adı</div>
-              <div className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 capitalize tracking-wider">Proje</div>
-              <div className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 capitalize tracking-wider">Son Tarih</div>
-              <div className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 capitalize tracking-wider">Durum</div>
-              <div className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 capitalize tracking-wider text-center">İlerleme</div>
+            <div className="bg-white/20 p-0.5 rounded">
+              <Activity size={14} />
             </div>
-
-            {/* Table Body */}
-            <div className="divide-y divide-slate-50/50 dark:divide-gray-800/20">
-              {filteredTasks.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-20 text-slate-300">
-                  <Search size={32} className="opacity-10 mb-3" />
-                  <h3 className="text-[11px] font-medium opacity-30 italic tracking-widest uppercase">Henüz bir kayıt bulunamadı</h3>
-                </div>
-              ) : (
-                filteredTasks.map(task => {
-                  const statusStyle = getStatusStyle(task.status);
-                  const projectColor = getProjectColor(task.projectId);
-                  const isOverdue = task.dueDate && new Date(task.dueDate) < new Date() && task.status !== 'done';
-
-                  return (
-                    <div
-                      key={task.id}
-                      onClick={() => handleTaskClick(task)}
-                      className="group grid grid-cols-[1fr_200px_150px_150px_100px] gap-4 px-6 py-4 items-center hover:bg-white/60 dark:hover:bg-gray-800/60 transition-colors cursor-pointer relative"
-                    >
-                      {/* Task Name Column with Status Icon */}
-                      <div className="flex items-center gap-4 min-w-0">
-                        <div className={`shrink-0 w-5 h-5 rounded-full flex items-center justify-center border ${task.status === 'done'
-                          ? 'border-emerald-200 bg-emerald-50 text-emerald-500'
-                          : 'border-slate-200 bg-white text-slate-300 group-hover:border-indigo-300 group-hover:text-indigo-400'
-                          }`}>
-                          {task.status === 'done' ? <CheckCircle size={12} /> : <div className="w-1.5 h-1.5 rounded-full bg-current" />}
-                        </div>
-                        <h3 className="text-[13px] font-medium text-slate-700 dark:text-gray-200 truncate pr-4">
-                          {task.title}
-                        </h3>
-                      </div>
-
-                      {/* Project Column */}
-                      <div className="flex items-center gap-2 min-w-0">
-                        <div className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: projectColor }} />
-                        <span className="text-[12px] text-slate-400 dark:text-gray-500 truncate">
-                          {getProjectName(task.projectId)}
-                        </span>
-                      </div>
-
-                      {/* Deadline Column */}
-                      <div className="flex items-center gap-1.5">
-                        <span className={`text-[12px] ${isOverdue ? 'text-rose-400 font-medium' : 'text-slate-400'}`}>
-                          {task.dueDate ? new Date(task.dueDate).toLocaleDateString('tr-TR', { day: 'numeric', month: 'short', year: 'numeric' }) : '-'}
-                        </span>
-                        {task.priority === 'urgent' && !isOverdue && (
-                          <span className="text-[9px] text-rose-500 capitalize tracking-tighter">Acil</span>
-                        )}
-                      </div>
-
-                      {/* Status Column */}
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <div className={`w-1.5 h-1.5 rounded-full ${statusStyle.text.replace('text-', 'bg-')} bg-opacity-70`} />
-                          <span className={`text-[11px] font-medium ${statusStyle.text}`}>
-                            {statusStyle.label}
-                          </span>
-                        </div>
-                      </div>
-
-                      {/* Progress Column */}
-                      <div className="flex items-center gap-2 justify-center pr-2">
-                        <div className="w-full max-w-[60px] h-1.5 bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden">
-                          <div
-                            className="h-full bg-indigo-500 rounded-full transition-all duration-500"
-                            style={{ width: `${task.progress || 0}%` }}
-                          />
-                        </div>
-                        <span className="text-[10px] font-bold text-slate-400 min-w-[28px]">{task.progress || 0}%</span>
-                      </div>
-                    </div>
-                  );
-                })
-              )}
-            </div>
-          </motion.div>
+            Hızlı Görev
+          </button>
         </div>
 
-      </div >
+        {/* Weekly Progress Bar - Compact */}
+        <div className="bg-white dark:bg-slate-800 rounded-xl p-5 border border-slate-100 dark:border-slate-700 shadow-sm">
+          <div className="flex items-center justify-between mb-3">
+            <div>
+              <h2 className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-1">Haftalık İlerleme</h2>
+              {/* Progress Bar Container */}
+              <div className="flex items-center gap-3 w-[300px] lg:w-[400px]">
+                <div className="flex-1 h-2 bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden">
+                  <motion.div
+                    initial={{ width: 0 }}
+                    animate={{ width: `${stats.progressRate}%` }}
+                    transition={{ duration: 1, ease: "easeOut" }}
+                    className="h-full bg-indigo-500 rounded-full"
+                  />
+                </div>
+                <span className="text-indigo-600 dark:text-indigo-400 font-bold text-xs">%{stats.progressRate}</span>
+              </div>
+            </div>
+
+            {/* Stats Row */}
+            <div className="flex gap-8 text-center">
+              <div>
+                <div className="text-xl font-bold text-slate-900 dark:text-white">{stats.total}</div>
+                <div className="text-[10px] text-slate-500 font-medium mt-0.5">Toplam Görev</div>
+              </div>
+              <div>
+                <div className="text-xl font-bold text-indigo-600 dark:text-indigo-400">{stats.continueCount}</div>
+                <div className="text-[10px] text-slate-500 font-medium mt-0.5">Devam Eden</div>
+              </div>
+              <div>
+                <div className="text-xl font-bold text-rose-500 dark:text-rose-400">{stats.overdue}</div>
+                <div className="text-[10px] text-slate-500 font-medium mt-0.5">Geciken</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Stat Cards Grid - Compact */}
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+          {/* Total */}
+          <div className="bg-white dark:bg-slate-800 p-3.5 rounded-xl border border-indigo-100 dark:border-indigo-900/30 shadow-sm ring-1 ring-indigo-50 dark:ring-0">
+            <div className="flex items-center gap-3 mb-2">
+              <div className="p-1.5 bg-indigo-100 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 rounded-lg">
+                <Target size={16} />
+              </div>
+              <span className="text-xl font-bold text-slate-900 dark:text-white">{stats.total}</span>
+            </div>
+            <div className="text-[10px] text-slate-500 font-medium">Toplam Görev</div>
+          </div>
+
+          {/* Not Started */}
+          <div className="bg-white dark:bg-slate-800 p-3.5 rounded-xl border border-slate-100 dark:border-slate-700 shadow-sm hover:shadow-md transition-shadow">
+            <div className="flex items-center gap-3 mb-2">
+              <div className="p-1.5 bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-400 rounded-lg">
+                <Calendar size={16} />
+              </div>
+              <span className="text-xl font-bold text-slate-900 dark:text-white">{stats.todo}</span>
+            </div>
+            <div className="text-[10px] text-slate-500 font-medium">Başlanmadı</div>
+          </div>
+
+          {/* In Progress */}
+          <div className="bg-white dark:bg-slate-800 p-3.5 rounded-xl border border-slate-100 dark:border-slate-700 shadow-sm hover:shadow-md transition-shadow">
+            <div className="flex items-center gap-3 mb-2">
+              <div className="p-1.5 bg-amber-100 dark:bg-amber-500/20 text-amber-600 dark:text-amber-400 rounded-lg">
+                <Zap size={16} />
+              </div>
+              <span className="text-xl font-bold text-slate-900 dark:text-white">{stats.inProgress}</span>
+            </div>
+            <div className="text-[10px] text-slate-500 font-medium">Devam Ediyor</div>
+          </div>
+
+          {/* Stuck */}
+          <div className="bg-white dark:bg-slate-800 p-3.5 rounded-xl border border-slate-100 dark:border-slate-700 shadow-sm hover:shadow-md transition-shadow">
+            <div className="flex items-center gap-3 mb-2">
+              <div className="p-1.5 bg-rose-100 dark:bg-rose-500/20 text-rose-600 dark:text-rose-400 rounded-lg">
+                <AlertCircle size={16} />
+              </div>
+              <span className="text-xl font-bold text-slate-900 dark:text-white">{stats.stuck}</span>
+            </div>
+            <div className="text-[10px] text-slate-500 font-medium">Takıldı</div>
+          </div>
+
+          {/* Review */}
+          <div className=" bg-white dark:bg-slate-800 p-3.5 rounded-xl border border-slate-100 dark:border-slate-700 shadow-sm hover:shadow-md transition-shadow">
+            <div className="flex items-center gap-3 mb-2">
+              <div className="p-1.5 bg-blue-100 dark:bg-blue-500/20 text-blue-600 dark:text-blue-400 rounded-lg">
+                <Search size={16} />
+              </div>
+              <span className="text-xl font-bold text-slate-900 dark:text-white">{stats.review}</span>
+            </div>
+            <div className="text-[10px] text-slate-500 font-medium">İncelemede</div>
+          </div>
+
+          {/* Overdue */}
+          <div className="bg-white dark:bg-slate-800 p-3.5 rounded-xl border border-slate-100 dark:border-slate-700 shadow-sm hover:shadow-md transition-shadow">
+            <div className="flex items-center gap-3 mb-2">
+              <div className="p-1.5 bg-rose-50 dark:bg-rose-900/20 text-rose-500 dark:text-rose-400 rounded-lg">
+                <Clock size={16} />
+              </div>
+              <span className="text-xl font-bold text-slate-900 dark:text-white">{stats.overdue}</span>
+            </div>
+            <div className="text-[10px] text-slate-500 font-medium">Gecikti</div>
+          </div>
+        </div>
+
+        {/* Filter Buttons - Compact */}
+        <div className="flex gap-3">
+          <button
+            onClick={() => handleFilterChange('in_progress')}
+            className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-bold transition-all ${filter === 'in_progress'
+              ? 'bg-indigo-600 text-white shadow-md shadow-indigo-200 dark:shadow-none'
+              : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-50 border border-transparent hover:border-slate-200'
+              }`}
+          >
+            <Zap size={14} />
+            Devam Eden
+            <span className={`ml-1 px-1.5 py-0.5 rounded-md text-[10px] ${filter === 'in_progress' ? 'bg-white/20' : 'bg-slate-100 dark:bg-slate-700'
+              }`}>
+              {stats.continueCount}
+            </span>
+          </button>
+
+          <button
+            onClick={() => handleFilterChange('done')}
+            className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-bold transition-all ${filter === 'done'
+              ? 'bg-emerald-600 text-white shadow-md shadow-emerald-200 dark:shadow-none'
+              : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-50 border border-transparent hover:border-slate-200'
+              }`}
+          >
+            <CheckCircle2 size={14} />
+            Tamamlandı
+            <span className={`ml-1 px-1.5 py-0.5 rounded-md text-[10px] ${filter === 'done' ? 'bg-white/20' : 'bg-slate-100 dark:bg-slate-700'
+              }`}>
+              {stats.doneCount}
+            </span>
+          </button>
+        </div>
+
+
+        {/* Task List (Accordions) */}
+        <div className="space-y-3 pb-8">
+          {groupedData.length === 0 ? (
+            <div className="bg-white dark:bg-slate-800 rounded-xl p-12 text-center border border-slate-100 dark:border-slate-700">
+              <div className="w-12 h-12 bg-slate-50 dark:bg-slate-700 rounded-full flex items-center justify-center mx-auto mb-3">
+                <FileText className="text-slate-400" size={24} />
+              </div>
+              <h3 className="text-slate-900 dark:text-white font-medium text-sm">Görev Bulunamadı</h3>
+              <p className="text-slate-500 text-xs mt-0.5">Seçili filtreye uygun görev yok.</p>
+            </div>
+          ) : (
+            groupedData.map(workspace => (
+              <div key={workspace.id} className="bg-indigo-50/30 dark:bg-slate-800/30 rounded-xl overflow-hidden border border-indigo-50/50 dark:border-slate-700/50">
+                {/* Workspace Header */}
+                <div
+                  className="p-3 flex items-center gap-2 cursor-pointer hover:bg-indigo-50/50 dark:hover:bg-slate-700/30 transition-colors"
+                  onClick={() => toggleWorkspace(workspace.id)}
+                >
+                  <button className="p-0.5 rounded hover:bg-indigo-100 dark:hover:bg-slate-700 text-slate-500 transition-colors">
+                    {expandedWorkspaces[workspace.id] ? <ChevronDown size={18} className="text-indigo-600" /> : <ChevronRight size={18} />}
+                  </button>
+                  <div className="font-bold text-slate-800 dark:text-slate-200 flex items-center gap-2 text-sm">
+                    <div className="w-6 h-6 rounded bg-indigo-100 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-300 flex items-center justify-center text-xs">
+                      {/* Simple Icon based on Name - Initials if no check */}
+                      {workspace.name.substring(0, 2).toUpperCase()}
+                    </div>
+                    {workspace.name}
+                  </div>
+                  <div className="ml-auto text-[10px] font-bold bg-white dark:bg-slate-700 px-2.5 py-1 rounded-full text-indigo-600 dark:text-indigo-300 shadow-sm ring-1 ring-indigo-50 dark:ring-0">
+                    {workspace.projects.reduce((acc, p) => acc + p.tasks.length, 0)} görev
+                  </div>
+                </div>
+
+                {/* Projects List */}
+                <AnimatePresence>
+                  {expandedWorkspaces[workspace.id] && (
+                    <motion.div
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: "auto", opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      className="border-t border-indigo-100/50 dark:border-slate-700/50"
+                    >
+                      {workspace.projects.map(project => (
+                        <div key={project.id} className="bg-white/50 dark:bg-slate-800/50">
+                          {/* Project Header - More Compact */}
+                          <div
+                            className="pl-10 pr-4 py-2.5 flex items-center gap-2 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-700/50 text-xs group"
+                            onClick={() => toggleProject(project.id)}
+                          >
+                            <div className={`w-2 h-2 rounded-full ring-2 ring-white dark:ring-slate-800`} style={{ backgroundColor: project.color || '#cbd5e1' }}></div>
+                            <span className="font-bold text-slate-700 dark:text-slate-300 group-hover:text-indigo-600 transition-colors">{project.name}</span>
+                            <span className="ml-auto text-[10px] bg-slate-100 dark:bg-slate-700 px-2 py-0.5 rounded text-slate-500 font-medium">
+                              {project.tasks.length}
+                            </span>
+                          </div>
+
+                          {/* Tasks List */}
+                          <AnimatePresence>
+                            {(expandedProjects[project.id] !== false) && (
+                              <motion.div
+                                initial={{ height: 0 }}
+                                animate={{ height: "auto" }}
+                                exit={{ height: 0 }}
+                              >
+                                {project.tasks.length === 0 ? (
+                                  <div className="px-10 py-2 text-[10px] text-slate-400 italic">Bu projede görev yok.</div>
+                                ) : (
+                                  <div className="bg-white dark:bg-slate-900 border-t border-slate-50 dark:border-slate-800/50">
+                                    {/* Table Header - Clean and Small */}
+                                    <div className="grid grid-cols-12 px-10 py-2 bg-slate-50/30 dark:bg-slate-800/30 text-[9px] font-bold text-slate-400 uppercase tracking-wider border-b border-slate-50 dark:border-slate-800/50">
+                                      <div className="col-span-5">Görev</div>
+                                      <div className="col-span-2">Bitiş</div>
+                                      <div className="col-span-2">Durum</div>
+                                      <div className="col-span-1 text-center">Kişi</div>
+                                      <div className="col-span-2 text-right">İlerleme</div>
+                                    </div>
+
+                                    {/* Task Rows - Compact */}
+                                    {project.tasks.map(task => (
+                                      <div
+                                        key={task.id}
+                                        onClick={() => handleTaskClick(task)}
+                                        className="grid grid-cols-12 px-10 py-3 hover:bg-slate-50 dark:hover:bg-slate-800/80 border-b border-slate-50 dark:border-slate-800/50 items-center cursor-pointer group transition-all"
+                                      >
+                                        <div className="col-span-5 flex items-center gap-3">
+                                          <div className={`p-1 rounded-full transition-colors flex-shrink-0 ${task.status === 'done' ? 'bg-emerald-50 text-emerald-500' : 'bg-slate-100 group-hover:bg-white text-slate-300 group-hover:text-indigo-500 group-hover:ring-2 ring-indigo-50'}`}>
+                                            {task.status === 'done' ? <CheckCircle2 size={14} /> : <div className="w-3.5 h-3.5 rounded-full border-2 border-current" />}
+                                          </div>
+                                          <span className={`text-xs font-semibold truncate ${task.status === 'done' ? 'text-slate-400 line-through' : 'text-slate-700 dark:text-slate-200 group-hover:text-indigo-600'}`}>
+                                            {task.title}
+                                          </span>
+                                        </div>
+                                        <div className="col-span-2 text-[10px] font-medium text-slate-500">
+                                          {task.dueDate ? new Date(task.dueDate).toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' }) : '-'}
+                                        </div>
+                                        <div className="col-span-2">
+                                          {getStatusBadge(task.status)}
+                                        </div>
+                                        <div className="col-span-1 flex justify-center">
+                                          {task.assignees && task.assignees.length > 0 ? (
+                                            <div className="flex -space-x-1.5">
+                                              {task.assignees.slice(0, 3).map((assignee, idx) => {
+                                                // Assignee is now an object: { id, fullName, avatar }
+                                                const avatarSrc = getAvatarUrl(assignee.avatar);
+
+                                                // Initials fallback logic
+                                                const initials = assignee.fullName
+                                                  ? assignee.fullName.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase()
+                                                  : '??';
+
+                                                return (
+                                                  <div
+                                                    key={idx}
+                                                    className="w-6 h-6 rounded-full border-2 border-white dark:border-slate-800 bg-slate-200 flex items-center justify-center text-[8px] font-bold text-slate-600 shadow-sm overflow-hidden"
+                                                    title={assignee.fullName}
+                                                  >
+                                                    {assignee.avatar ? (
+                                                      <>
+                                                        <img
+                                                          src={avatarSrc}
+                                                          alt={assignee.fullName || 'User'}
+                                                          className="w-full h-full rounded-full object-cover"
+                                                          onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'flex'; }}
+                                                        />
+                                                        <span className="hidden w-full h-full items-center justify-center bg-indigo-50 text-indigo-600">{initials}</span>
+                                                      </>
+                                                    ) : (
+                                                      <span className="w-full h-full flex items-center justify-center bg-indigo-50 text-indigo-600">{initials}</span>
+                                                    )}
+                                                  </div>
+                                                );
+                                              })}
+                                            </div>
+                                          ) : (
+                                            <span className="text-slate-300">-</span>
+                                          )}
+                                        </div>
+                                        <div className="col-span-2 flex items-center justify-end gap-2">
+                                          <div className="w-16 h-1.5 bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden">
+                                            <div className={`h-full rounded-full ${task.progress === 100 ? 'bg-emerald-500' : 'bg-indigo-500'}`} style={{ width: `${task.progress || 0}%` }}></div>
+                                          </div>
+                                          <span className="text-[9px] font-bold text-slate-400 w-5 text-right">{task.progress || 0}%</span>
+                                        </div>
+                                      </div>
+                                    ))}
+                                  </div>
+                                )}
+                              </motion.div>
+                            )}
+                          </AnimatePresence>
+                        </div>
+                      ))}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+            ))
+          )}
+        </div>
+
+      </div>
 
       <NewTaskModal
         isOpen={showNewTaskModal}
         onClose={() => setShowNewTaskModal(false)}
       />
 
-      {
-        isModalOpen && selectedTask && (
-          <ModernTaskModal
-            task={selectedTask}
-            isOpen={isModalOpen}
-            onClose={() => setIsModalOpen(false)}
-            initialSection="activity"
-          />
-        )
-      }
-    </div >
+      {isModalOpen && selectedTask && (
+        <ModernTaskModal
+          task={selectedTask}
+          isOpen={isModalOpen}
+          onClose={() => setIsModalOpen(false)}
+          initialSection="subtasks"
+        />
+      )}
+    </div>
   );
 };
 

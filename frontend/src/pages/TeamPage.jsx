@@ -12,7 +12,7 @@ const TeamPage = () => {
     // Calculate stats for each user
     const stats = {};
     users.forEach(user => {
-      const userId = user.id || user._id;
+      const userId = user.id;
       const userTasks = tasks.filter(t => t.assignees?.includes(userId));
       const completedTasks = userTasks.filter(t => t.status === 'done').length;
       const inProgressTasks = userTasks.filter(t => t.status === 'working').length;
@@ -93,7 +93,7 @@ const TeamPage = () => {
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {users.map(user => {
-              const userId = user.id || user._id;
+              const userId = user.id;
               const stats = teamStats[userId] || { total: 0, completed: 0, inProgress: 0 };
               const completionRate = stats.total > 0
                 ? Math.round((stats.completed / stats.total) * 100)

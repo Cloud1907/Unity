@@ -1,21 +1,28 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
+import { AnimatePresence, motion } from 'framer-motion';
 import { Plus, MoreHorizontal, User, Calendar, GitMerge, MessageSquare, Trash2, TrendingUp } from 'lucide-react';
+import { tasksAPI } from '../services/api';
+import { toast } from 'sonner';
 import { useDataState, useDataActions } from '../contexts/DataContext';
 import { useAuth } from '../contexts/AuthContext';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
 import ModernTaskModal from './ModernTaskModal';
 import NewTaskModal from './NewTaskModal';
 import InlineLabelPicker from './InlineLabelPicker';
+import InlineAssigneePicker from './InlineAssigneePicker';
 import InlineTextEdit from './InlineTextEdit';
 import ConfirmModal from './ui/ConfirmModal';
 import confetti from 'canvas-confetti';
 import { KanbanSkeleton } from './skeletons/KanbanSkeleton';
 import EmptyState from './ui/EmptyState';
+import { getAvatarUrl, getUserColor, getInitials } from '../utils/avatarHelper';
+import { filterProjectUsers } from '../utils/userHelper';
+import { toSkyISOString } from '../utils/dateUtils';
 
 // Monday.com renk paleti - TAM eşleşme
 const STATUS_COLORS = {
-  todo: { bg: '#c4c4c4', text: '#323338', label: 'Yapılacak', lightBg: '#f0f0f0' },
+  todo: { bg: '#c4c4c4', text: '#323338', label: 'Başlanmadı', lightBg: '#f0f0f0' },
   working: { bg: '#fdab3d', text: '#FFFFFF', label: 'Devam Ediyor', lightBg: '#fff4e6' },
   review: { bg: '#579bfc', text: '#FFFFFF', label: 'İncelemede', lightBg: '#e8f2ff' },
   done: { bg: '#00c875', text: '#FFFFFF', label: 'Tamamlandı', lightBg: '#e6f7ed' },
@@ -58,13 +65,6 @@ const celebrateTask = () => {
   }
 };
 
-const getUserColor = (user) => {
-  if (user?.color) return user.color;
-  // Fallback: Generate consistent color from name
-  const colors = ['#e2445c', '#00c875', '#fdab3d', '#579bfc', '#a25ddc', '#784bd1', '#ff642e', '#F59E0B']; // Added #F59E0B (Yellow)
-  const index = (user?.fullName?.length || 0) % colors.length;
-  return colors[index];
-};
 
 // Inline Status Dropdown Component with Portal
 const InlineStatusDropdown = ({ currentStatus, onStatusChange, taskId }) => {
@@ -76,10 +76,15 @@ const InlineStatusDropdown = ({ currentStatus, onStatusChange, taskId }) => {
   useEffect(() => {
     if (isOpen && buttonRef.current) {
       const rect = buttonRef.current.getBoundingClientRect();
-      setPosition({
-        top: rect.bottom + window.scrollY + 4,
-        left: rect.left + window.scrollX
-      });
+      const viewportWidth = window.innerWidth;
+      const viewportHeight = window.innerHeight;
+      const popoverWidth = 180;
+      const popoverHeight = 250;
+      let top = rect.bottom + 4;
+      let left = rect.left;
+      if (top + popoverHeight > viewportHeight) top = Math.max(8, rect.top - popoverHeight - 8);
+      if (left + popoverWidth > viewportWidth) left = Math.max(8, viewportWidth - popoverWidth - 12);
+      setPosition({ top, left });
     }
   }, [isOpen]);
 
@@ -129,10 +134,10 @@ const InlineStatusDropdown = ({ currentStatus, onStatusChange, taskId }) => {
         {currentConfig.label}
       </button>
 
-      {isOpen && createPortal(
+      {isOpen && document.body && createPortal(
         <div
           ref={dropdownRef}
-          className="bg-white dark:bg-slate-900 rounded-xl shadow-2xl border border-gray-200 dark:border-slate-700 min-w-[180px] py-2"
+          className="bg-white dark:bg-slate-900 rounded-xl shadow-2xl border border-gray-200 dark:border-slate-700 min-w-[180px] py-2 animate-in fade-in slide-in-from-top-2 duration-200"
           style={{
             position: 'fixed',
             top: `${position.top}px`,
@@ -185,10 +190,15 @@ const InlinePriorityDropdown = ({ currentPriority, onChange }) => {
   useEffect(() => {
     if (isOpen && buttonRef.current) {
       const rect = buttonRef.current.getBoundingClientRect();
-      setPosition({
-        top: rect.bottom + window.scrollY + 4,
-        left: rect.left + window.scrollX
-      });
+      const viewportWidth = window.innerWidth;
+      const viewportHeight = window.innerHeight;
+      const popoverWidth = 140;
+      const popoverHeight = 200;
+      let top = rect.bottom + 4;
+      let left = rect.left;
+      if (top + popoverHeight > viewportHeight) top = Math.max(8, rect.top - popoverHeight - 8);
+      if (left + popoverWidth > viewportWidth) left = Math.max(8, viewportWidth - popoverWidth - 12);
+      setPosition({ top, left });
     }
   }, [isOpen]);
 
@@ -225,10 +235,10 @@ const InlinePriorityDropdown = ({ currentPriority, onChange }) => {
         {currentConfig.icon} {currentConfig.label}
       </button>
 
-      {isOpen && createPortal(
+      {isOpen && document.body && createPortal(
         <div
           ref={dropdownRef}
-          className="bg-white dark:bg-slate-900 rounded-lg shadow-2xl border border-gray-200 dark:border-slate-700 min-w-[140px] py-1"
+          className="bg-white dark:bg-slate-900 rounded-lg shadow-2xl border border-gray-200 dark:border-slate-700 min-w-[140px] py-1 animate-in fade-in slide-in-from-top-2 duration-200"
           style={{
             position: 'fixed',
             top: `${position.top}px`,
@@ -269,10 +279,24 @@ const InlineDatePickerSmall = ({ value, onChange }) => {
   useEffect(() => {
     if (isOpen && buttonRef.current) {
       const rect = buttonRef.current.getBoundingClientRect();
-      setPosition({
-        top: rect.bottom + window.scrollY + 4,
-        left: rect.left + window.scrollX
-      });
+      const viewportWidth = window.innerWidth;
+      const viewportHeight = window.innerHeight;
+
+      const popoverWidth = 280;
+      const popoverHeight = 350;
+
+      let top = rect.bottom + 4;
+      let left = rect.left;
+
+      if (top + popoverHeight > viewportHeight) {
+        top = Math.max(8, rect.top - popoverHeight - 8);
+      }
+      if (left + popoverWidth > viewportWidth) {
+        left = Math.max(8, viewportWidth - popoverWidth - 12);
+      }
+
+      setPosition({ top, left });
+
       if (value) {
         setCurrentMonth(new Date(value));
       }
@@ -316,7 +340,7 @@ const InlineDatePickerSmall = ({ value, onChange }) => {
 
   const handleDateClick = (day) => {
     const selectedDate = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), day);
-    onChange(selectedDate.toISOString());
+    onChange(toSkyISOString(selectedDate));
     setIsOpen(false);
   };
 
@@ -362,7 +386,7 @@ const InlineDatePickerSmall = ({ value, onChange }) => {
         <span>{formatDate(value)}</span>
       </button>
 
-      {isOpen && createPortal(
+      {isOpen && document.body && createPortal(
         <div
           ref={datePickerRef}
           className="bg-white dark:bg-slate-900 rounded-xl shadow-2xl border border-gray-200 dark:border-slate-700 p-4"
@@ -434,7 +458,7 @@ const InlineDatePickerSmall = ({ value, onChange }) => {
           <div className="flex gap-2 mt-4 pt-3 border-t border-gray-200 dark:border-gray-700">
             <button
               onClick={() => {
-                onChange(new Date().toISOString());
+                onChange(toSkyISOString(new Date()));
                 setIsOpen(false);
               }}
               className="flex-1 px-3 py-1.5 text-xs font-medium bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/50 rounded transition-colors"
@@ -468,6 +492,7 @@ const CompactTaskCard = React.memo(({
   isDragging,
   users,
   projectId,
+  workspaceId,
   onStatusChange,
   onTaskClick,
   onUpdate,
@@ -477,61 +502,24 @@ const CompactTaskCard = React.memo(({
   autoFocus, // NEW: Prop to auto-focus the title
   currentUser // Passed from parent for permission checks
 }) => {
-  // Normalize assignees to IDs
-  const assigneeIds = (task.assignees || []).map(a => a.userId || a.id || a);
-  const assignees = users.filter(u => assigneeIds.includes(u.id || u._id));
-  const [isHovered, setIsHovered] = useState(false);
-  const [showAssigneeMenu, setShowAssigneeMenu] = useState(false);
-  const [assigneeMenuPosition, setAssigneeMenuPosition] = useState({ top: 0, left: 0 });
-  // Removed local showMenu state, using props instead
+  // Normalize assignees to IDs with robust matching
+  const assigneeIds = (task.assignees || []).map(a => String(a.userId || a.id || a));
 
-  const assigneeButtonRef = useRef(null);
-  const assigneeMenuRef = useRef(null);
+  const assignees = users.filter(u => assigneeIds.includes(String(u.id))); // Strict ID
+  const [isHovered, setIsHovered] = useState(false);
   const menuRef = useRef(null);
 
   // Is THIS card's menu open?
-  const showMenu = activeMenuTaskId === task._id;
-
-  // Position assignee menu
-  useEffect(() => {
-    if (showAssigneeMenu && assigneeButtonRef.current) {
-      const rect = assigneeButtonRef.current.getBoundingClientRect();
-      setAssigneeMenuPosition({
-        top: rect.bottom + window.scrollY + 4,
-        left: rect.left + window.scrollX
-      });
-    }
-  }, [showAssigneeMenu]);
-
-  // Close menus on outside click - Only for ASSIGNEE menu locally.
-  // Main menu is handled by parent, but we can also have a loose click handler if needed,
-  // usually lifting state means parent handles "close on outside", OR efficient local handling.
-  // Ideally, if I click outside, 'onToggleMenu(null)' should be called.
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (assigneeMenuRef.current && !assigneeMenuRef.current.contains(event.target) &&
-        assigneeButtonRef.current && !assigneeButtonRef.current.contains(event.target)) {
-        setShowAssigneeMenu(false);
+  const showMenu = activeMenuTaskId === task.id;
+  const getIds = (list, key = 'userId') => {
+    if (!list) return [];
+    return list.map(item => {
+      // Simplification using strict ID if object, else assume ID
+      if (typeof item === 'object' && item !== null) {
+        return String(item[key] || item.id || item); // Prioritize key then ID
       }
-      // If menu is open and click is outside menu AND not on trigger
-      if (showMenu && menuRef.current && !menuRef.current.contains(event.target) && !event.target.closest('.card-menu-trigger')) {
-        onToggleMenu(null); // Close menu
-      }
-    };
-    if (showAssigneeMenu || showMenu) {
-      document.addEventListener('mousedown', handleClickOutside);
-    }
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [showAssigneeMenu, showMenu, onToggleMenu]);
-
-  const toggleAssignee = (userId) => {
-    // Normalize current assignees to IDs
-    const currentAssigneeIds = (task.assignees || []).map(a => a.userId || a.id || a);
-
-    const newAssignees = currentAssigneeIds.includes(userId)
-      ? currentAssigneeIds.filter(id => id !== userId)
-      : [...currentAssigneeIds, userId];
-    onUpdate(task._id, { assignees: newAssignees });
+      return String(item);
+    });
   };
 
   return (
@@ -556,13 +544,17 @@ const CompactTaskCard = React.memo(({
       }}
     >
       <div className="flex items-start justify-between gap-2 mb-2 relative">
-        <div className="flex-1 min-w-0">
+        <div className="flex-1 min-w-0 flex items-center gap-2">
+          <div
+            className="w-2 h-2 rounded-full shrink-0 mt-0.5"
+            style={{ backgroundColor: STATUS_COLORS[task.status]?.bg || STATUS_COLORS.todo.bg }}
+          />
           <InlineTextEdit
             value={task.title}
-            onSave={(newTitle) => onUpdate(task._id, { title: newTitle })}
+            onSave={(newTitle) => onUpdate(task.id, { title: newTitle })}
             startEditing={autoFocus}
-            className="text-sm font-medium text-gray-900 dark:text-gray-100 leading-tight !p-0 hover:!bg-transparent truncate block"
-            inputClassName="w-full bg-white dark:bg-slate-800 border border-indigo-500 rounded px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500 resize-none overflow-hidden leading-normal min-h-[24px]"
+            className="text-[13px] font-medium text-gray-800 dark:text-gray-200 leading-tight !p-0 hover:!bg-transparent truncate block"
+            inputClassName="w-full bg-white dark:bg-slate-800 border border-indigo-500 rounded px-2 py-0.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500 resize-none overflow-hidden leading-normal min-h-[20px]"
           />
         </div>
 
@@ -572,7 +564,7 @@ const CompactTaskCard = React.memo(({
           onClick={(e) => {
             e.stopPropagation();
             // Toggle logic: if already open, close (null). If closed, open (this task id)
-            onToggleMenu(showMenu ? null : task._id);
+            onToggleMenu(showMenu ? null : task.id);
           }}
         >
           <MoreHorizontal size={14} className="text-gray-400" />
@@ -589,7 +581,7 @@ const CompactTaskCard = React.memo(({
               <button
                 onClick={() => {
                   onToggleMenu(null); // Close menu
-                  onDelete(task._id);
+                  onDelete(task.id);
                 }}
                 className="w-full text-left px-3 py-2 text-xs text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center gap-2"
               >
@@ -600,48 +592,6 @@ const CompactTaskCard = React.memo(({
           </div>
         )}
 
-        {showAssigneeMenu && createPortal(
-          <div
-            ref={assigneeMenuRef}
-            role="menu"
-            className="bg-white dark:bg-slate-900 rounded-lg shadow-2xl border border-gray-200 dark:border-slate-700 min-w-[200px] py-2"
-            style={{
-              position: 'fixed',
-              top: `${assigneeMenuPosition.top}px`,
-              left: `${assigneeMenuPosition.left}px`,
-              zIndex: 999999
-            }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="px-3 py-1.5 text-xs font-semibold text-gray-500 border-b border-gray-100">
-              Kişi Ata
-            </div>
-            <div className="max-h-48 overflow-y-auto">
-              {users.map(user => (
-                <button
-                  key={user.id || user._id}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    toggleAssignee(user.id || user._id);
-                  }}
-                  className="w-full flex items-center gap-2 px-3 py-2 text-xs hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors"
-                >
-                  <Avatar className="w-6 h-6">
-                    <AvatarImage src={user.avatar} />
-                    <AvatarFallback className="text-[10px]">
-                      {user.fullName?.charAt(0)}
-                    </AvatarFallback>
-                  </Avatar>
-                  <span className="flex-1 text-left text-gray-900 dark:text-gray-200">{user.fullName}</span>
-                  {(task.assignees || []).includes(user.id || user._id) && (
-                    <span className="text-blue-600 text-sm">✓</span>
-                  )}
-                </button>
-              ))}
-            </div>
-          </div>,
-          document.body
-        )}
       </div>
 
       {/* Priority & Date Row */}
@@ -649,19 +599,19 @@ const CompactTaskCard = React.memo(({
         {/* Priority */}
         <InlinePriorityDropdown
           currentPriority={task.priority}
-          onChange={(newPriority) => onUpdate(task._id, { priority: newPriority })}
+          onChange={(newPriority) => onUpdate(task.id, { priority: newPriority })}
         />
 
         {/* Date */}
         <InlineDatePickerSmall
           value={task.dueDate}
-          onChange={(newDate) => onUpdate(task._id, { dueDate: newDate })}
+          onChange={(newDate) => onUpdate(task.id, { dueDate: newDate })}
         />
       </div>
 
       {/* Task Indicators */}
       <div className="flex items-center gap-2 mb-2">
-        {task.subtasks?.length > 0 && (
+        {(task.subtaskCount > 0 || task.subtasksCount > 0 || task.subtasks?.length > 0) && (
           <div
             className="flex items-center gap-1 px-1.5 py-0.5 bg-gray-50 dark:bg-slate-700/50 rounded border border-gray-100 dark:border-slate-700 text-gray-500 dark:text-gray-400 hover:border-[#6366f1] transition-colors cursor-pointer"
             title="Alt Görevler"
@@ -672,38 +622,41 @@ const CompactTaskCard = React.memo(({
           >
             <GitMerge size={10} className="rotate-90 text-[#6366f1] dark:text-[#818cf8]" />
             <span className="text-[9px] font-bold">
-              {task.subtasks.filter(st => st.isCompleted).length}/{task.subtasks.length}
+              {task.subtasks?.length > 0
+                ? `${task.subtasks.filter(s => s.isCompleted).length}/${task.subtasks.length}`
+                : `${Math.round(((task.progress || 0) / 100) * (task.subtaskCount || task.subtasksCount || 0))}/${task.subtaskCount || task.subtasksCount || 0}`
+              }
             </span>
           </div>
         )}
 
         {/* Attachments */}
-        {task.attachments?.length > 0 && (
+        {(task.attachmentCount > 0 || task.attachmentsCount > 0 || task.attachments?.length > 0) && (
           <div
             className="flex items-center gap-1 px-1.5 py-0.5 bg-gray-50 dark:bg-slate-700/50 rounded border border-gray-100 dark:border-slate-700 text-gray-500 dark:text-gray-400 hover:border-[#6366f1] transition-colors cursor-pointer"
-            title={`${task.attachments.length} dosya`}
+            title={`${task.attachmentCount || task.attachmentsCount || task.attachments?.length} dosya`}
             onClick={(e) => {
               e.stopPropagation();
               onTaskClick(task, 'files');
             }}
           >
             <TrendingUp size={10} className="rotate-90 text-[#6366f1]" />
-            <span className="text-[9px] font-bold">{task.attachments.length}</span>
+            <span className="text-[9px] font-bold">{task.attachmentCount || task.attachmentsCount || task.attachments?.length || 0}</span>
           </div>
         )}
 
         {/* Comments */}
-        {task.comments?.length > 0 && (
+        {(task.commentCount > 0 || task.commentsCount > 0 || task.comments?.length > 0) && (
           <div
             className="flex items-center gap-1 px-1.5 py-0.5 bg-gray-50 dark:bg-slate-700/50 rounded border border-gray-100 dark:border-slate-700 text-gray-500 dark:text-gray-400 hover:border-[#00c875] transition-colors cursor-pointer"
-            title={`${task.comments.length} yorum`}
+            title={`${task.commentCount || task.commentsCount || task.comments?.length} yorum`}
             onClick={(e) => {
               e.stopPropagation();
               onTaskClick(task, 'comments');
             }}
           >
             <MessageSquare size={10} className="text-[#00c875]" />
-            <span className="text-[9px] font-bold">{task.comments.length}</span>
+            <span className="text-[9px] font-bold">{task.commentCount || task.commentsCount || task.comments?.length || 0}</span>
           </div>
         )}
       </div>
@@ -711,120 +664,56 @@ const CompactTaskCard = React.memo(({
       {/* Labels Row */}
       <div className="mb-2">
         <InlineLabelPicker
-          taskId={task._id}
-          currentLabels={(task.labels || []).map(l => l.labelId || l.id || l)}
+          taskId={task.id}
+          currentLabels={task.labels || task.labelIds || []}
           projectId={projectId}
           onUpdate={(taskId, newLabels) => onUpdate(taskId, { labels: newLabels })}
         />
       </div>
 
-      {/* Bottom Section - Assignee (Status Eliminated) */}
+      {/* Bottom Section - Assignee */}
       <div className="flex items-center gap-2">
-        {/* Assignee - Clickable to add/remove */}
-        <button
-          ref={assigneeButtonRef}
-          onClick={(e) => {
-            e.stopPropagation();
-            setShowAssigneeMenu(!showAssigneeMenu);
+        <InlineAssigneePicker
+          assigneeIds={assigneeIds}
+          allUsers={users}
+          workspaceId={workspaceId}
+          onChange={(newAssignees) => {
+            // Update using 'assignees' key to match TaskRow / Backend behavior
+            onUpdate(task.id, { assignees: newAssignees });
           }}
-          className="flex items-center -space-x-1.5 hover:scale-105 transition-transform"
-        >
-          {assignees.slice(0, 2).map((assignee, idx) => {
-            // Find full user details to get correct color
-            const fullUser = users?.find(u => (u.id === assignee.id || u._id === assignee._id) || (u.id === assignee.userId)) || assignee;
-
-            return (
-              <Avatar
-                key={assignee.id || assignee._id}
-                className="w-6 h-6 border-2 border-white dark:border-slate-700 ring-1 ring-gray-200 dark:ring-slate-600 hover:ring-blue-400 transition-all hover:z-10"
-                style={{ zIndex: 2 - idx }}
-                title={fullUser.fullName || assignee.fullName}
-              >
-                {/* AvatarImage removed as per user request */}
-                <AvatarFallback
-                  className="text-[10px] font-bold text-white border-2 border-white"
-                  style={{ backgroundColor: getUserColor(fullUser) }}
-                >
-                  {(fullUser.fullName || assignee.fullName)?.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase()}
-                </AvatarFallback>
-              </Avatar>
-            );
-          })}
-          {assignees.length > 2 && (
-            <div className="w-6 h-6 rounded-full bg-gradient-to-br from-gray-200 to-gray-300 border-2 border-white flex items-center justify-center text-[9px] font-bold text-gray-700">
-              +{assignees.length - 2}
-            </div>
-          )}
-          {assignees.length === 0 && (
-            <div className="w-6 h-6 rounded-full border-2 border-dashed border-gray-300 dark:border-gray-600 flex items-center justify-center hover:border-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/30 transition-all">
-              <User size={12} className="text-gray-400" />
-            </div>
-          )}
-        </button>
-
-        {/* Assignee Menu Portal */}
-        {showAssigneeMenu && createPortal(
-          <div
-            ref={assigneeMenuRef}
-            role="menu"
-            className="bg-white dark:bg-slate-900 rounded-lg shadow-2xl border border-gray-200 dark:border-slate-700 min-w-[200px] py-2"
-            style={{
-              position: 'fixed',
-              top: `${assigneeMenuPosition.top}px`,
-              left: `${assigneeMenuPosition.left}px`,
-              zIndex: 999999
-            }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="px-3 py-1.5 text-xs font-semibold text-gray-500 border-b border-gray-100">
-              Kişi Ata
-            </div>
-            <div className="max-h-48 overflow-y-auto">
-              {users.map(user => (
-                <button
-                  key={user.id || user._id}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    toggleAssignee(user.id || user._id);
-                  }}
-                  className="w-full flex items-center gap-2 px-3 py-2 text-xs hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors"
-                >
-                  <Avatar className="w-6 h-6">
-                    <AvatarImage src={user.avatar} />
-                    <AvatarFallback className="text-[10px]">
-                      {user.fullName?.charAt(0)}
-                    </AvatarFallback>
-                  </Avatar>
-                  <span className="flex-1 text-left text-gray-900 dark:text-gray-200">{user.fullName}</span>
-                  {(assigneeIds || []).includes(user.id || user._id) && (
-                    <span className="text-blue-600 text-sm">✓</span>
-                  )}
-                </button>
-              ))}
-            </div>
-          </div>,
-          document.body
-        )}
-        {/* Creator Info - Moved to Right of Assignees */}
-        {!!task.createdBy && task.createdBy > 0 && (
-          <div className="ml-auto flex items-center h-6">
-            <p className="text-[9px] text-gray-400 dark:text-gray-500 flex items-center gap-1 opacity-70 hover:opacity-100 transition-opacity whitespace-nowrap">
-              <span className="font-light">Oluşturan:</span>
-              <span className="font-normal text-gray-500 dark:text-gray-400">
-                {users.find(u => u.id === task.createdBy || u._id === task.createdBy)?.fullName || 'Bilinmeyen'}
-              </span>
-            </p>
-          </div>
-        )}
+        />
       </div>
-    </div >
+      {/* Creator Info - Moved to Right of Assignees */}
+      {!!task.createdBy && task.createdBy > 0 && (
+        <div className="ml-auto flex items-center h-6">
+          <p className="text-[9px] text-gray-400 dark:text-gray-500 flex items-center gap-1 opacity-70 hover:opacity-100 transition-opacity whitespace-nowrap">
+            <span className="font-light">Oluşturan:</span>
+            <span className="font-normal text-gray-500 dark:text-gray-400">
+              {users.find(u => u.id === task.createdBy)?.fullName || 'Bilinmeyen'}
+            </span>
+          </p>
+        </div>
+      )}
+    </div>
   );
 });
 
 const KanbanViewV2 = ({ boardId, searchQuery, filters }) => {
-  const { tasks, users, loading } = useDataState();
+  const { tasks, users: allUsers, projects, loading, labels } = useDataState();
   const { fetchTasks, fetchLabels, updateTaskStatus, updateTask, deleteTask } = useDataActions();
   const { user: currentUser } = useAuth();
+
+  // Project-based user filtering
+  const projectUsers = React.useMemo(() => {
+    const project = projects.find(p => p.id === Number(boardId));
+    return filterProjectUsers(project, allUsers);
+  }, [allUsers, boardId, projects]);
+
+  // Extract workspace ID for user filtering
+  const workspaceId = React.useMemo(() => {
+    const project = projects.find(p => p.id === Number(boardId));
+    return project?.departmentId || null;
+  }, [boardId, projects]);
 
   const [draggedTask, setDraggedTask] = useState(null);
   const [dragOverColumn, setDragOverColumn] = useState(null);
@@ -846,6 +735,9 @@ const KanbanViewV2 = ({ boardId, searchQuery, filters }) => {
   // Track newly created task for auto-focus
   const [justCreatedTaskId, setJustCreatedTaskId] = useState(null);
 
+  // Per-component fetch removed to avoid infinite loops on empty boards.
+  // DataContext handles the global initial fetch.
+  /*
   useEffect(() => {
     if (boardId) {
       // Optimize: Only fetch if we don't have tasks for this board
@@ -853,20 +745,38 @@ const KanbanViewV2 = ({ boardId, searchQuery, filters }) => {
       if (!hasTasks) {
         fetchTasks(boardId);
       }
-      // Ensure labels are loaded centrally
-      fetchLabels(boardId);
+      // Ensure labels are loaded centrally - Guarded to prevent loop
+      const hasLabels = labels?.some(l => l.projectId === Number(boardId));
+      if (!hasLabels) {
+        fetchLabels(boardId);
+      }
     }
-  }, [boardId, fetchTasks, fetchLabels]);
+  }, [boardId, fetchTasks, fetchLabels, tasks, labels]);
+  */
 
   const filteredTasks = React.useMemo(() => {
     let filtered = tasks.filter(task => task.projectId === Number(boardId));
+
+    // Filter out 'done' tasks older than 7 days (User Request) - DISABLED
+    /*
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
+    filtered = filtered.filter(t => {
+      if (t.status === 'done') {
+        const updateDate = t.updatedAt ? new Date(t.updatedAt) : new Date(t.createdAt || Date.now());
+        return updateDate > sevenDaysAgo;
+      }
+      return true;
+    });
+    */
 
     // Apply Search
     if (searchQuery) {
       const lowerQuery = searchQuery.toLowerCase();
       filtered = filtered.filter(task =>
         task.title?.toLowerCase().includes(lowerQuery) ||
-        users.find(u => task.assignees?.includes(u._id))?.fullName?.toLowerCase().includes(lowerQuery)
+        projectUsers.find(u => task.assignees?.includes(u.id))?.fullName?.toLowerCase().includes(lowerQuery)
       );
     }
 
@@ -891,7 +801,7 @@ const KanbanViewV2 = ({ boardId, searchQuery, filters }) => {
     }
 
     return filtered;
-  }, [tasks, boardId, searchQuery, filters, users]);
+  }, [tasks, boardId, searchQuery, filters, projectUsers]);
 
 
   const tasksByStatus = React.useMemo(() => {
@@ -955,7 +865,7 @@ const KanbanViewV2 = ({ boardId, searchQuery, filters }) => {
         celebrateTask();
       }
 
-      await updateTaskStatus(draggedTask._id, newStatus);
+      await updateTaskStatus(draggedTask.id, newStatus);
     }
 
     setDraggedTask(null);
@@ -1003,40 +913,27 @@ const KanbanViewV2 = ({ boardId, searchQuery, filters }) => {
       progress: 0,
       labels: [],
       subtasks: [],
-      startDate: new Date().toISOString()
+      startDate: toSkyISOString(new Date())
     };
 
     try {
-      // Use same base URL logic as api.js
-      const getBaseUrl = () => {
-        // Always use relative path - works in all environments
-        return '';
-      };
+      // Use tasksAPI to create task - automatically handles Auth and URL
+      const response = await tasksAPI.create(newTask);
 
-      const API_URL = getBaseUrl();
-      const token = localStorage.getItem('token');
+      const createdTask = response.data; // axios response structure
 
-      const response = await fetch(`${API_URL}/api/tasks`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify(newTask)
-      });
+      await fetchTasks(boardId);
+      // Set the new task ID to trigger auto-focus
+      setJustCreatedTaskId(createdTask.id);
 
-      if (response.ok) {
-        const createdTask = await response.json();
-        await fetchTasks(boardId);
-        // Set the new task ID to trigger auto-focus
-        setJustCreatedTaskId(createdTask._id || createdTask.id);
+      // Clear the focus target after a delay to prevent re-focusing on re-renders
+      setTimeout(() => setJustCreatedTaskId(null), 2000);
 
-        // Clear the focus target after a delay to prevent re-focusing on re-renders
-        setTimeout(() => setJustCreatedTaskId(null), 2000);
-      }
     } catch (error) {
       console.error('Failed to create task:', error);
+      toast.error('Görev oluşturulamadı'); // Added toast for better UX
     }
+
   };
 
   if (loading) {
@@ -1119,27 +1016,38 @@ const KanbanViewV2 = ({ boardId, searchQuery, filters }) => {
                   className={`flex-1 overflow-y-auto overflow-x-hidden px-4 py-5 scrollbar-thin scrollbar-thumb-gray-200 dark:scrollbar-thumb-slate-800 transition-colors duration-200 ${isDropTarget ? 'bg-blue-50/30 dark:bg-blue-900/10' : 'bg-transparent'}`}
                 >
                   <div className="space-y-4">
-                    {columnTasks.map(task => (
-                      <CompactTaskCard
-                        key={task._id}
-                        task={task}
-                        onDragStart={(e) => handleDragStart(e, task)}
-                        onDragEnd={handleDragEnd}
-                        isDragging={draggedTask?._id === task._id}
+                    <AnimatePresence mode="popLayout" initial={false}>
+                      {columnTasks.map(task => (
+                        <motion.div
+                          key={task.id}
+                          layout
+                          layoutId={task.id} // Enable shared element transition between columns
+                          initial={{ opacity: 0, scale: 0.95 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          exit={{ opacity: 0, scale: 0.9, transition: { duration: 0.15 } }}
+                          transition={{ duration: 0.2, type: "spring", stiffness: 200, damping: 25 }}
+                        >
+                          <CompactTaskCard
+                            task={task}
+                            onDragStart={(e) => handleDragStart(e, task)}
+                            onDragEnd={handleDragEnd}
+                            isDragging={draggedTask?.id === task.id}
 
-                        users={users}
-                        projectId={boardId}
-                        onStatusChange={handleStatusChange}
-                        onTaskClick={handleTaskClick}
-                        onUpdate={handleUpdateTask}
-                        onDelete={handleDeleteRequest}
-                        activeMenuTaskId={activeMenuTaskId}
-                        onToggleMenu={setActiveMenuTaskId}
-                        autoFocus={task._id === justCreatedTaskId}
-                        currentUser={currentUser}
-                      />
-
-                    ))}
+                            users={projectUsers}
+                            projectId={boardId}
+                            workspaceId={workspaceId}
+                            onStatusChange={handleStatusChange}
+                            onTaskClick={handleTaskClick}
+                            onUpdate={handleUpdateTask}
+                            onDelete={handleDeleteRequest}
+                            activeMenuTaskId={activeMenuTaskId}
+                            onToggleMenu={setActiveMenuTaskId}
+                            autoFocus={task.id === justCreatedTaskId}
+                            currentUser={currentUser}
+                          />
+                        </motion.div>
+                      ))}
+                    </AnimatePresence>
                   </div>
 
                   {/* Empty State */}

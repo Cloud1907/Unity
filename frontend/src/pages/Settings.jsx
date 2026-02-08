@@ -78,30 +78,55 @@ const Settings = () => {
   const handleAvatarUpload = async (e) => {
     const file = e.target.files[0];
     if (file) {
+      // User requested 5MB limit
+      if (file.size > 5 * 1024 * 1024) {
+        toast.error('Dosya boyutu çok büyük (Maksimum 5MB)');
+        return;
+      }
+
       try {
-        const formData = new FormData();
-        formData.append('file', file);
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          const img = new Image();
+          img.onload = () => {
+            // "Resolution Fix": Resize to high-quality but manageable dimensions (max 512px)
+            const canvas = document.createElement('canvas');
+            const MAX_SIZE = 512;
+            let width = img.width;
+            let height = img.height;
 
-        const userJson = localStorage.getItem('user');
-        const user = userJson ? JSON.parse(userJson) : null;
-        const userId = user?.id || user?._id;
+            if (width > height) {
+              if (width > MAX_SIZE) {
+                height *= MAX_SIZE / width;
+                width = MAX_SIZE;
+              }
+            } else {
+              if (height > MAX_SIZE) {
+                width *= MAX_SIZE / height;
+                height = MAX_SIZE;
+              }
+            }
 
-        // Use 'api' instance to ensure base URL and interceptors are used
-        const response = await api.post('/files/upload', formData, {
-          headers: {
-            'Content-Type': 'multipart/form-data',
-          },
-        });
+            canvas.width = width;
+            canvas.height = height;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0, width, height);
 
-        const data = response.data;
-        const avatarUrl = data.url;
-
-        setAvatarPreview(avatarUrl);
-        setFormData({ ...formData, avatar: avatarUrl }); // Update form data too
-        toast.success('Avatar yüklendi! Kaydet butonuna basmayı unutmayın.');
+            // Use JPEG with 0.8 quality for excellent balance between looks and size
+            const base64String = canvas.toDataURL('image/jpeg', 0.85);
+            setAvatarPreview(base64String);
+            setFormData(prev => ({ ...prev, avatar: base64String }));
+            toast.success('Avatar optimize edildi! Kaydetmeyi unutmayın.');
+          };
+          img.src = event.target.result;
+        };
+        reader.onerror = () => {
+          toast.error('Dosya okuma hatası.');
+        };
+        reader.readAsDataURL(file);
       } catch (error) {
-        console.error('Avatar upload error:', error);
-        toast.error('Avatar yüklenemedi. Lütfen tekrar deneyin.');
+        console.error('Avatar processing error:', error);
+        toast.error('Avatar işlenemedi.');
       }
     }
   };

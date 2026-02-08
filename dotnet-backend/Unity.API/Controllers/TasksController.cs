@@ -10,6 +10,8 @@ using Unity.Infrastructure.Services;
 
 using Microsoft.AspNetCore.SignalR;
 using Unity.API.Hubs;
+using Unity.Core.DTOs.Dashboard;
+using Unity.Core.DTOs;
 
 namespace Unity.API.Controllers
 {
@@ -20,18 +22,20 @@ namespace Unity.API.Controllers
     {
         private readonly AppDbContext _context;
         private readonly IAuditService _auditService;
+        private readonly IActivityLogger _activityLogger;
         private readonly IHubContext<AppHub> _hubContext;
 
-        public TasksController(AppDbContext context, IAuditService auditService, IHubContext<AppHub> hubContext)
+        public TasksController(AppDbContext context, IAuditService auditService, IActivityLogger activityLogger, IHubContext<AppHub> hubContext)
         {
             _context = context;
             _auditService = auditService;
+            _activityLogger = activityLogger;
             _hubContext = hubContext;
         }
 
         private int GetCurrentUserId()
         {
-            var claimId = User.FindFirst("id")?.Value 
+            var claimId = User.FindFirst("id")?.Value
                           ?? User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 
             if (int.TryParse(claimId, out int userId))
@@ -47,55 +51,190 @@ namespace Unity.API.Controllers
             var user = await _context.Users.AsNoTracking()
                 .Include(u => u.Departments)
                 .FirstOrDefaultAsync(u => u.Id == userId);
-            
+
             return user ?? throw new UnauthorizedAccessException("User not found.");
         }
 
         // ... methods ...
 
-        [HttpGet]
-        public async Task<ActionResult<IEnumerable<TaskItem>>> GetTasks([FromQuery] int? projectId, [FromQuery] string? status, [FromQuery] int? assignedTo)
-        {
-            var currentUser = await GetCurrentUserWithDeptsAsync();
-            var query = _context.Tasks.AsNoTracking()
-                .Include(t => t.Assignees)
-                .Include(t => t.Labels)
-                .AsQueryable();
 
+        [HttpGet("dashboard/stats")]
+        public async Task<ActionResult<DashboardStatsDto>> GetDashboardStats()
+        {
+            var userId = Int32.Parse(User.FindFirst("id")?.Value ?? "0");
+
+            // 1. RELIABLE STATS: Direct LINQ Query (Bypass view issues)
+            var stats = await _context.TaskAssignees
+                .Where(ta => ta.UserId == userId && ta.Task != null && !ta.Task.IsDeleted)
+                .Select(ta => ta.Task)
+                .GroupBy(t => 1) // Dummy group to aggregate
+                .Select(g => new DashboardStatsDto
+                {
+                    UserId = userId,
+                    TotalTasks = g.Count(),
+                    CompletedTasks = g.Count(t => t.Status == "done"),
+                    TodoTasks = g.Count(t => t.Status == "todo"),
+                    InProgressTasks = g.Count(t => t.Status == "working" || t.Status == "in_progress"),
+                    StuckTasks = g.Count(t => t.Status == "stuck"),
+                    ReviewTasks = g.Count(t => t.Status == "review"),
+                    OverdueTasks = g.Count(t => t.DueDate != null && t.DueDate < DateTime.UtcNow && t.Status != "done"),
+                    AverageProgress = g.Average(t => (double)t.Progress)
+                })
+                .FirstOrDefaultAsync();
+
+            if (stats == null)
+            {
+                return Ok(new DashboardStatsDto { UserId = userId });
+            }
+
+            return Ok(stats);
+        }
+
+        [HttpGet("dashboard/tasks")]
+        public async Task<ActionResult<PaginatedTasksResponse>> GetDashboardTasks([FromQuery] int page = 1, [FromQuery] int pageSize = 20)
+        {
+            var userId = Int32.Parse(User.FindFirst("id")?.Value ?? "0");
+
+            // 2. TASKS: Pagination & DTO Projection (Include all assigned tasks)
+            var baseQuery = _context.Tasks.AsNoTracking()
+                .Where(t => t.Assignees.Any(a => a.UserId == userId) && !t.IsDeleted);
+
+            var totalCount = await baseQuery.CountAsync();
+
+            var tasks = await baseQuery
+                .OrderByDescending(t => t.Priority)
+                .ThenBy(t => t.DueDate)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .Select(t => new DashboardTaskDto
+                {
+                    Id = t.Id,
+                    Title = t.Title,
+                    Status = t.Status,
+                    Priority = t.Priority,
+                    DueDate = t.DueDate,
+                    Progress = t.Progress,
+                    ProjectId = t.ProjectId,
+                    ProjectName = t.Project.Name,
+                    ProjectColor = t.Project.Color,
+                    Assignees = t.Assignees.Select(a => new DashboardAssigneeDto
+                    {
+                        Id = a.User.Id,
+                        FullName = a.User.FullName,
+                        Avatar = a.User.Avatar
+                    }).ToList()
+                }).ToListAsync();
+
+            return Ok(new
+            {
+                Tasks = tasks,
+                TotalCount = totalCount,
+                Page = page,
+                PageSize = pageSize,
+                HasMore = (page * pageSize) < totalCount
+            });
+        }
+
+
+
+        [HttpGet]
+        public async Task<ActionResult<PaginatedTasksResponse>> GetTasks(
+            [FromQuery] int? projectId,
+            [FromQuery] string? status,
+            [FromQuery] int? assignedTo,
+            [FromQuery] int page = 1,
+            [FromQuery] int pageSize = 500)
+        {
+            // ULTRA-FAST: Minimal query for list view
+            var query = _context.Tasks.AsNoTracking()
+                .Where(t => !t.IsDeleted);
+
+            // Apply filters
             if (projectId.HasValue)
                 query = query.Where(t => t.ProjectId == projectId.Value);
-            
+
             if (!string.IsNullOrEmpty(status))
                 query = query.Where(t => t.Status == status);
 
             if (assignedTo.HasValue)
                 query = query.Where(t => t.Assignees.Any(a => a.UserId == assignedTo.Value));
 
-            // Basic Visibility Filter: 
-            // Admin sees all. 
-            // Others see tasks from projects where they are Owner, Member, or Project is Public (handled by project visibility usually).
-            // For simplicity in this quick fix, we return the query results filtered by params. 
-            // Real-world would need strict project-level filtering join.
-            
-            if (currentUser.Role != "admin")
+            var totalCount = await query.CountAsync();
+
+            // SINGLE QUERY - No sub-selects, no includes, just flat data
+            var tasks = await query
+                .OrderByDescending(t => t.CreatedAt)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .Select(t => new TaskItemDto
+                {
+                    Id = t.Id,
+                    Title = t.Title,
+                    Status = t.Status,
+                    Priority = t.Priority,
+                    DueDate = t.DueDate,
+                    Progress = t.Progress,
+                    ProjectId = t.ProjectId,
+                    ProjectName = t.Project.Name,
+                    ProjectColor = t.Project.Color,
+                    // ULTRA-FAST: Return empty for list view, load on demand
+                    AssigneeIds = new List<int>(),
+                    LabelIds = new List<int>(),
+                    // REAL COUNTS: Constitution Rule #2 - "No Zero-Count Rule"
+                    SubtaskCount = t.Subtasks.Count(),
+                    CommentCount = t.Comments.Count(),
+                    AttachmentCount = t.Attachments.Count(),
+                    CreatedBy = t.CreatedBy
+                })
+                .ToListAsync();
+
+            // BATCH LOAD: Assignees and Labels in 2 separate queries (much faster than N+1)
+            var taskIds = tasks.Select(t => t.Id).ToList();
+
+            if (taskIds.Any())
             {
-               // Simplified: Only show tasks where user is assignee, creator, or project member
-               // This requires joining Projects. 
+                var assignees = await _context.TaskAssignees
+                    .Where(a => a.TaskId.HasValue && taskIds.Contains(a.TaskId.Value))
+                    .Select(a => new { a.TaskId, a.UserId })
+                    .ToListAsync();
+
+                var labels = await _context.TaskLabels
+                    .Where(l => taskIds.Contains(l.TaskId))
+                    .Select(l => new { l.TaskId, l.LabelId })
+                    .ToListAsync();
+
+                var assigneesByTask = assignees.GroupBy(a => a.TaskId).ToDictionary(g => g.Key, g => g.Select(a => a.UserId).ToList());
+                var labelsByTask = labels.GroupBy(l => l.TaskId).ToDictionary(g => g.Key, g => g.Select(l => l.LabelId).ToList());
+
+                foreach (var task in tasks)
+                {
+                    if (assigneesByTask.TryGetValue(task.Id, out var aIds))
+                        task.AssigneeIds = aIds;
+                    if (labelsByTask.TryGetValue(task.Id, out var lIds))
+                        task.LabelIds = lIds;
+                }
             }
 
-            var tasks = await query.ToListAsync();
-            return Ok(tasks);
+            return Ok(new PaginatedTasksResponse
+            {
+                Tasks = tasks,
+                TotalCount = totalCount,
+                Page = page,
+                PageSize = pageSize,
+                HasMore = (page * pageSize) < totalCount
+            });
         }
 
-        [HttpGet("{id}")]
+        [HttpGet("{id:int}")]
         public async Task<ActionResult<TaskItem>> GetTask(int id)
         {
             var task = await _context.Tasks.AsNoTracking()
-                .Include(t => t.Assignees)
+                .Include(t => t.Assignees).ThenInclude(a => a.User)
                 .Include(t => t.Labels)
-                .Include(t => t.Subtasks)
+                .Include(t => t.Subtasks).ThenInclude(s => s.Assignees)
                 .Include(t => t.Comments).ThenInclude(c => c.User)
                 .Include(t => t.Attachments)
+                .AsSplitQuery() // PERFORMANCE FIX: Optimizes deep tree loading
                 .FirstOrDefaultAsync(t => t.Id == id);
 
             if (task == null) return NotFound();
@@ -104,39 +243,125 @@ namespace Unity.API.Controllers
         }
 
         [HttpPost]
-        public async Task<ActionResult<TaskItem>> PostTask(TaskItem task)
+        public async Task<ActionResult<TaskItem>> PostTask([FromBody] JsonElement body)
         {
             var currentUser = await GetCurrentUserWithDeptsAsync();
 
-            task.AssignedBy = currentUser.Id;
-            task.CreatedBy = currentUser.Id; // Set creator
-            task.CreatedAt = TimeHelper.Now;
-            task.UpdatedAt = TimeHelper.Now;
-            
-            // Ensure valid project
-            if (task.ProjectId > 0)
+            var task = new TaskItem
             {
-                // Verify project existence and write permission could be added here
-                // For now, assuming if they can see it they can add to it (standard flow)
+                AssignedBy = currentUser.Id,
+                CreatedBy = currentUser.Id,
+                CreatedAt = TimeHelper.Now,
+                UpdatedAt = TimeHelper.Now,
+                Status = "todo",
+                Priority = "medium",
+                Progress = 0
+            };
+
+            if (body.TryGetProperty("title", out var titleProp) && titleProp.ValueKind == JsonValueKind.String)
+                task.Title = titleProp.GetString();
+            else
+                return BadRequest(new { message = "Title is required" });
+
+            if (body.TryGetProperty("description", out var descProp) && descProp.ValueKind == JsonValueKind.String)
+                task.Description = descProp.GetString();
+            else if (body.TryGetProperty("Description", out var descProp2) && descProp2.ValueKind == JsonValueKind.String)
+                task.Description = descProp2.GetString();
+
+            if (body.TryGetProperty("status", out var statusProp) && statusProp.ValueKind == JsonValueKind.String)
+                task.Status = statusProp.GetString();
+
+            if (body.TryGetProperty("priority", out var priorityProp) && priorityProp.ValueKind == JsonValueKind.String)
+                task.Priority = priorityProp.GetString();
+
+            if (body.TryGetProperty("projectId", out var pidProp) && pidProp.ValueKind == JsonValueKind.Number)
+                task.ProjectId = pidProp.GetInt32();
+            else if (body.TryGetProperty("project", out var projProp) && projProp.ValueKind == JsonValueKind.Object)
+            {
+                if (projProp.TryGetProperty("id", out var pidProp2) && pidProp2.ValueKind == JsonValueKind.Number)
+                    task.ProjectId = pidProp2.GetInt32();
+            }
+
+            // Handle Labels
+            if (body.TryGetProperty("labels", out var labelsProp) && labelsProp.ValueKind == JsonValueKind.Array)
+            {
+                foreach (var item in labelsProp.EnumerateArray())
+                {
+                    int? lKey = null;
+                    if (item.ValueKind == JsonValueKind.Number) lKey = item.GetInt32();
+                    else if (item.ValueKind == JsonValueKind.String && int.TryParse(item.GetString(), out var val)) lKey = val;
+                    else if (item.ValueKind == JsonValueKind.Object)
+                    {
+                        if (item.TryGetProperty("id", out var idProp) || item.TryGetProperty("labelId", out idProp))
+                        {
+                            if (idProp.ValueKind == JsonValueKind.Number) lKey = idProp.GetInt32();
+                            else if (idProp.ValueKind == JsonValueKind.String && int.TryParse(idProp.GetString(), out var valObj)) lKey = valObj;
+                        }
+                    }
+
+                    if (lKey.HasValue)
+                    {
+                        task.Labels.Add(new TaskLabel { LabelId = lKey.Value });
+                    }
+                }
+            }
+
+            // Handle Assignees
+            if (body.TryGetProperty("assignees", out var assigneesProp) && assigneesProp.ValueKind == JsonValueKind.Array)
+            {
+                foreach (var item in assigneesProp.EnumerateArray())
+                {
+                    int? uid = null;
+                    if (item.ValueKind == JsonValueKind.Number) uid = item.GetInt32();
+                    else if (item.ValueKind == JsonValueKind.Object)
+                    {
+                        if (item.TryGetProperty("id", out var idProp) || item.TryGetProperty("userId", out idProp))
+                            uid = idProp.GetInt32();
+                    }
+
+                    if (uid.HasValue) task.Assignees.Add(new TaskAssignee { UserId = uid.Value });
+                }
+            }
+
+            // Auto-assign creator if no assignees?
+            if (task.Assignees.Count == 0)
+            {
+                task.Assignees.Add(new TaskAssignee { UserId = currentUser.Id });
             }
 
             _context.Tasks.Add(task);
             await _context.SaveChangesAsync();
 
+            // CLEAN READ PATTERN: Ensure we return the full object with all relationships
+            _context.ChangeTracker.Clear();
+
+            var freshTask = await _context.Tasks.AsNoTracking()
+                .Include(t => t.Assignees).ThenInclude(a => a.User)
+                .Include(t => t.Labels).ThenInclude(l => l.Label)
+                .Include(t => t.Subtasks).ThenInclude(s => s.Assignees)
+                .Include(t => t.Comments).ThenInclude(c => c.User)
+                .Include(t => t.Attachments)
+                .FirstOrDefaultAsync(t => t.Id == task.Id);
+
+            if (freshTask != null)
+            {
+                freshTask.LabelIds = freshTask.Labels.Select(l => l.LabelId).ToList();
+                freshTask.AssigneeIds = freshTask.Assignees.Select(a => a.UserId).ToList();
+            }
+
             await _auditService.LogAsync(
-                currentUser.Id.ToString(), 
-                "CREATE_TASK", 
-                "Task", 
-                task.Id.ToString(), 
-                null, 
-                task, 
+                currentUser.Id.ToString(),
+                "CREATE_TASK",
+                "Task",
+                task.Id.ToString(),
+                null,
+                freshTask ?? (object)task,
                 $"Task '{task.Title}' created."
             );
 
-            // Broadcast
-            await _hubContext.Clients.All.SendAsync("TaskCreated", task);
+            await _hubContext.Clients.All.SendAsync("TaskCreated", freshTask ?? task);
 
-            return CreatedAtAction(nameof(GetTask), new { id = task.Id }, task);
+            return CreatedAtAction(nameof(GetTask), new { id = task.Id }, freshTask ?? task);
         }
 
         private async Task<bool> HasWriteAccessAsync(TaskItem task, User user)
@@ -147,27 +372,27 @@ namespace Unity.API.Controllers
             if (task.CreatedBy == user.Id) { Console.WriteLine(" - Access GRANTED: Creator"); return true; }
             if (task.AssignedBy == user.Id) { Console.WriteLine(" - Access GRANTED: Assigner"); return true; }
             if (task.Assignees != null && task.Assignees.Any(ta => ta.UserId == user.Id)) { Console.WriteLine(" - Access GRANTED: Assignee"); return true; }
-            
+
             // Allow Write Access if User is Project Owner OR Project Member
             var project = await _context.Projects
                 .Include(p => p.Members)
                 .FirstOrDefaultAsync(p => p.Id == task.ProjectId);
-                
+
             if (project != null)
             {
-               Console.WriteLine($" - Project Check: Owner={project.Owner}, MembersCount={project.Members.Count}");
-               // Permit access if project is Public
-               if (!project.IsPrivate) { Console.WriteLine(" - Access GRANTED: Public Project"); return true; }
-               
-               if (project.Owner == user.Id) { Console.WriteLine(" - Access GRANTED: Project Owner"); return true; }
-               if (project.Members.Any(pm => pm.UserId == user.Id)) { Console.WriteLine(" - Access GRANTED: Project Member"); return true; }
+                Console.WriteLine($" - Project Check: Owner={project.Owner}, MembersCount={project.Members.Count}");
+                // Permit access if project is Public
+                if (!project.IsPrivate) { Console.WriteLine(" - Access GRANTED: Public Project"); return true; }
+
+                if (project.Owner == user.Id) { Console.WriteLine(" - Access GRANTED: Project Owner"); return true; }
+                if (project.Members.Any(pm => pm.UserId == user.Id)) { Console.WriteLine(" - Access GRANTED: Project Member"); return true; }
             }
-            
+
             Console.WriteLine(" - Access DENIED");
             return false;
         }
 
-        [HttpPut("{id}")]
+        [HttpPut("{id:int}")]
         public async Task<ActionResult<TaskItem>> PutTask(int id, TaskItem task)
         {
 
@@ -178,7 +403,7 @@ namespace Unity.API.Controllers
             var existingTask = await _context.Tasks
                 .Include(t => t.Assignees)
                 .Include(t => t.Labels)
-                .Include(t => t.Subtasks)
+                .Include(t => t.Subtasks).ThenInclude(s => s.Assignees)
                 .Include(t => t.Comments).ThenInclude(c => c.User)
                 .Include(t => t.Attachments)
                 .FirstOrDefaultAsync(t => t.Id == id);
@@ -192,9 +417,10 @@ namespace Unity.API.Controllers
             var currentUser = await GetCurrentUserWithDeptsAsync();
             if (!await HasWriteAccessAsync(existingTask, currentUser))
             {
-                return StatusCode(403, new { 
-                    message = "Bu görevi güncelleme yetkiniz yok. Sadece görev sahibi, proje üyeleri veya atanan kişiler düzenleyebilir.", 
-                    title = "Yetkisiz İşlem" 
+                return StatusCode(403, new
+                {
+                    message = "Bu görevi güncelleme yetkiniz yok. Sadece görev sahibi, proje üyeleri veya atanan kişiler düzenleyebilir.",
+                    title = "Yetkisiz İşlem"
                 });
             }
 
@@ -210,7 +436,6 @@ namespace Unity.API.Controllers
             existingTask.StartDate = task.StartDate;
             existingTask.TShirtSize = task.TShirtSize;
             existingTask.Progress = task.Progress;
-            existingTask.IsPrivate = task.IsPrivate;
             existingTask.UpdatedAt = TimeHelper.Now;
 
             // Update Assignees
@@ -242,7 +467,7 @@ namespace Unity.API.Controllers
             try
             {
                 await _context.SaveChangesAsync();
-                
+
 
 
                 // CLEAN READ PATTERN:
@@ -253,7 +478,7 @@ namespace Unity.API.Controllers
                 var freshTask = await _context.Tasks.AsNoTracking()
                     .Include(t => t.Assignees)
                     .Include(t => t.Labels)
-                    .Include(t => t.Subtasks)
+                    .Include(t => t.Subtasks).ThenInclude(s => s.Assignees)
                     .Include(t => t.Comments).ThenInclude(c => c.User)
                     .Include(t => t.Attachments)
                     .FirstOrDefaultAsync(t => t.Id == id);
@@ -261,18 +486,18 @@ namespace Unity.API.Controllers
                 var userId = GetCurrentUserId();
                 // Async audit (fire and forget or await)
                 await _auditService.LogAsync(
-                    userId.ToString(), 
-                    "UPDATE_TASK", 
-                    "Task", 
-                    task.Id.ToString(), 
-                    oldStateClone, 
+                    userId.ToString(),
+                    "UPDATE_TASK",
+                    "Task",
+                    task.Id.ToString(),
+                    oldStateClone,
                     task, // New state (approx)
                     $"Task '{task.Title}' updated."
                 );
 
                 // Clean read
                 // ... (code omitted for brevity in call) ...
-                
+
                 // Broadcast
                 await _hubContext.Clients.All.SendAsync("TaskUpdated", freshTask);
 
@@ -285,13 +510,13 @@ namespace Unity.API.Controllers
             }
         }
 
-        [HttpPatch("{id}")]
+        [HttpPatch("{id:int}")]
         public async Task<ActionResult<TaskItem>> PatchTask(int id, [FromBody] JsonElement body)
         {
             var task = await _context.Tasks
                 .Include(t => t.Assignees)
                 .Include(t => t.Labels)
-                .Include(t => t.Subtasks)
+                .Include(t => t.Subtasks).ThenInclude(s => s.Assignees)
                 .Include(t => t.Comments).ThenInclude(c => c.User)
                 .Include(t => t.Attachments)
                 .FirstOrDefaultAsync(t => t.Id == id);
@@ -302,58 +527,87 @@ namespace Unity.API.Controllers
             var currentUser = await GetCurrentUserWithDeptsAsync();
             if (!await HasWriteAccessAsync(task, currentUser))
             {
-                 return StatusCode(403, new { 
-                    message = "Bu görevi güncelleme yetkiniz yok.", 
-                    title = "Yetkisiz İşlem" 
+                return StatusCode(403, new
+                {
+                    message = "Bu görevi güncelleme yetkiniz yok.",
+                    title = "Yetkisiz İşlem"
                 });
             }
 
-            // Audit: Capture old state? 
-            // Patch is partial, difficult to log full diff without deep clone. 
-            // Skipping detailed audit payload for perf, just action log.
+            // Capture old values for logging
+            var oldStartDate = task.StartDate;
+            var oldDueDate = task.DueDate;
 
             foreach (var property in body.EnumerateObject())
             {
                 switch (property.Name.ToLower())
                 {
                     case "title":
-                        if (property.Value.ValueKind == JsonValueKind.String) 
+                        if (property.Value.ValueKind == JsonValueKind.String)
+                        {
+                            var oldTitle = task.Title;
                             task.Title = property.Value.GetString();
+                            await _activityLogger.LogChangeAsync(currentUser.Id, "UPDATE", "Task", task.Id.ToString(), "Title", oldTitle, task.Title);
+                        }
                         break;
                     case "description":
-                        if (property.Value.ValueKind == JsonValueKind.String) 
+                        if (property.Value.ValueKind == JsonValueKind.String)
+                        {
+                            var oldDesc = task.Description;
                             task.Description = property.Value.GetString();
-                        else if (property.Value.ValueKind == JsonValueKind.Null) 
+                            await _activityLogger.LogChangeAsync(currentUser.Id, "UPDATE", "Task", task.Id.ToString(), "Description", oldDesc, task.Description);
+                        }
+                        else if (property.Value.ValueKind == JsonValueKind.Null)
+                        {
+                            var oldDesc = task.Description;
                             task.Description = null;
+                            await _activityLogger.LogChangeAsync(currentUser.Id, "UPDATE", "Task", task.Id.ToString(), "Description", oldDesc, null);
+                        }
                         break;
                     case "status":
-                        if (property.Value.ValueKind == JsonValueKind.String) 
+                        if (property.Value.ValueKind == JsonValueKind.String)
+                        {
+                            var oldStatus = task.Status;
                             task.Status = property.Value.GetString();
+                            await _activityLogger.LogChangeAsync(currentUser.Id, "UPDATE", "Task", task.Id.ToString(), "Status", oldStatus, task.Status);
+                        }
                         break;
                     case "priority":
-                        if (property.Value.ValueKind == JsonValueKind.String) 
+                        if (property.Value.ValueKind == JsonValueKind.String)
+                        {
+                            var oldPriority = task.Priority;
                             task.Priority = property.Value.GetString();
+                            await _activityLogger.LogChangeAsync(currentUser.Id, "UPDATE", "Task", task.Id.ToString(), "Priority", oldPriority, task.Priority);
+                        }
                         break;
                     case "tshirtsize":
-                        if (property.Value.ValueKind == JsonValueKind.String) 
+                        if (property.Value.ValueKind == JsonValueKind.String)
+                        {
+                            var oldSize = task.TShirtSize;
                             task.TShirtSize = property.Value.GetString();
-                        else if (property.Value.ValueKind == JsonValueKind.Null) 
+                            await _activityLogger.LogChangeAsync(currentUser.Id, "UPDATE", "Task", task.Id.ToString(), "TShirtSize", oldSize, task.TShirtSize);
+                        }
+                        else if (property.Value.ValueKind == JsonValueKind.Null)
+                        {
+                            var oldSize = task.TShirtSize;
                             task.TShirtSize = null;
+                            await _activityLogger.LogChangeAsync(currentUser.Id, "UPDATE", "Task", task.Id.ToString(), "TShirtSize", oldSize, null);
+                        }
                         break;
                     case "startdate":
-                        if (property.Value.TryGetDateTime(out var startDate)) 
+                        if (property.Value.TryGetDateTime(out var startDate))
                             task.StartDate = startDate.ToUniversalTime();
-                        else if (property.Value.ValueKind == JsonValueKind.Null) 
+                        else if (property.Value.ValueKind == JsonValueKind.Null)
                             task.StartDate = null;
                         break;
                     case "duedate":
-                        if (property.Value.TryGetDateTime(out var dueDate)) 
+                        if (property.Value.TryGetDateTime(out var dueDate))
                             task.DueDate = dueDate.ToUniversalTime();
-                        else if (property.Value.ValueKind == JsonValueKind.Null) 
+                        else if (property.Value.ValueKind == JsonValueKind.Null)
                             task.DueDate = null;
                         break;
                     case "progress":
-                        if (property.Value.ValueKind == JsonValueKind.Number && property.Value.TryGetInt32(out var progress)) 
+                        if (property.Value.ValueKind == JsonValueKind.Number && property.Value.TryGetInt32(out var progress))
                             task.Progress = progress;
                         else if (property.Value.ValueKind == JsonValueKind.String && int.TryParse(property.Value.GetString(), out var pParsed))
                             task.Progress = pParsed;
@@ -361,23 +615,73 @@ namespace Unity.API.Controllers
                     case "assignees":
                         if (property.Value.ValueKind == JsonValueKind.Array)
                         {
-                            var list = new List<int>();
+                            var newAssigneeIds = new HashSet<int>();
                             foreach (var item in property.Value.EnumerateArray())
                             {
-                                if (item.ValueKind == JsonValueKind.Number) list.Add(item.GetInt32());
+                                int? uid = null;
+                                if (item.ValueKind == JsonValueKind.Number) uid = item.GetInt32();
+                                else if (item.ValueKind == JsonValueKind.String && int.TryParse(item.GetString(), out var val)) uid = val;
+
+                                if (uid.HasValue) newAssigneeIds.Add(uid.Value);
                             }
-                            task.Assignees = list.Select(uid => new TaskAssignee { UserId = uid }).ToList();
+
+                            // Capture old set for logging
+                            var oldAssigneeIds = task.Assignees.Select(a => a.UserId).ToHashSet();
+
+                            // Sync Logic for Assignees (Surrogate Key Safe)
+                            var toRemove = task.Assignees.Where(a => !newAssigneeIds.Contains(a.UserId)).ToList();
+                            foreach (var r in toRemove)
+                            {
+                                _context.TaskAssignees.Remove(r);
+                                await _activityLogger.LogChangeAsync(currentUser.Id, "UNASSIGN", "Task", task.Id.ToString(), "Assignee", r.UserId, null);
+                            }
+
+                            var existingIds = task.Assignees.Select(a => a.UserId).ToHashSet();
+                            foreach (var newId in newAssigneeIds)
+                            {
+                                if (!existingIds.Contains(newId))
+                                {
+                                    task.Assignees.Add(new TaskAssignee { UserId = newId, TaskId = id });
+                                    await _activityLogger.LogChangeAsync(currentUser.Id, "ASSIGN", "Task", task.Id.ToString(), "Assignee", null, newId);
+                                }
+                            }
                         }
                         break;
                     case "labels":
                         if (property.Value.ValueKind == JsonValueKind.Array)
                         {
-                            var list = new List<int>();
+                            var newLabelIds = new HashSet<int>();
                             foreach (var item in property.Value.EnumerateArray())
                             {
-                                if (item.ValueKind == JsonValueKind.Number) list.Add(item.GetInt32());
+                                int? lKey = null;
+                                if (item.ValueKind == JsonValueKind.Number) lKey = item.GetInt32();
+                                else if (item.ValueKind == JsonValueKind.String && int.TryParse(item.GetString(), out var val)) lKey = val;
+                                else if (item.ValueKind == JsonValueKind.Object)
+                                {
+                                    if (item.TryGetProperty("id", out var idProp) || item.TryGetProperty("Id", out idProp) || item.TryGetProperty("labelId", out idProp) || item.TryGetProperty("LabelId", out idProp))
+                                    {
+                                        if (idProp.ValueKind == JsonValueKind.Number) lKey = idProp.GetInt32();
+                                        else if (idProp.ValueKind == JsonValueKind.String && int.TryParse(idProp.GetString(), out var valObj)) lKey = valObj;
+                                    }
+                                }
+
+                                if (lKey.HasValue) newLabelIds.Add(lKey.Value);
                             }
-                            task.Labels = list.Select(lid => new TaskLabel { LabelId = lid }).ToList();
+
+                            // Sync Logic for Labels (Composite Key Safe)
+                            // Remove ones not in new list
+                            var toRemove = task.Labels.Where(l => !newLabelIds.Contains(l.LabelId)).ToList();
+                            foreach (var r in toRemove) _context.TaskLabels.Remove(r);
+
+                            // Add new ones
+                            var existingLabelIds = task.Labels.Select(l => l.LabelId).ToHashSet();
+                            foreach (var newId in newLabelIds)
+                            {
+                                if (!existingLabelIds.Contains(newId))
+                                {
+                                    task.Labels.Add(new TaskLabel { LabelId = newId, TaskId = id });
+                                }
+                            }
                         }
                         break;
                     case "subtasks":
@@ -405,7 +709,7 @@ namespace Unity.API.Controllers
                                     Url = item.TryGetProperty("url", out var urlProp) ? urlProp.GetString() : "",
                                     Type = item.TryGetProperty("type", out var typeProp) ? typeProp.GetString() : "unknown",
                                     Size = item.TryGetProperty("size", out var sizeProp) && sizeProp.ValueKind == JsonValueKind.Number ? sizeProp.GetInt64() : 0,
-                                    CreatedBy = currentUser.Id, 
+                                    CreatedBy = currentUser.Id,
                                     CreatedAt = TimeHelper.Now
                                 });
                             }
@@ -440,48 +744,80 @@ namespace Unity.API.Controllers
             }
 
             task.UpdatedAt = TimeHelper.Now;
-            
+
             // DEBUG: Log attachments being saved
             Console.WriteLine($"[DEBUG] PatchTask {id}: Attachments count = {task.Attachments?.Count ?? 0}");
             foreach (var att in task.Attachments ?? new List<Attachment>())
             {
                 Console.WriteLine($"[DEBUG]   - Attachment: Id={att.Id}, Name={att.Name}, Url={att.Url}");
             }
-            
-            await _context.SaveChangesAsync();
-            
+
+            try
+            {
+                await _context.SaveChangesAsync();
+
+                // Detailed Activity Logging for Dates
+                if (oldStartDate != task.StartDate)
+                {
+                    await _activityLogger.LogChangeAsync(currentUser.Id, "UPDATE", "Task", task.Id.ToString(), "StartDate", oldStartDate, task.StartDate);
+                }
+                if (oldDueDate != task.DueDate)
+                {
+                    await _activityLogger.LogChangeAsync(currentUser.Id, "UPDATE", "Task", task.Id.ToString(), "DueDate", oldDueDate, task.DueDate);
+                }
+            }
+            catch (Exception dbEx)
+            {
+                Console.WriteLine($"[CRITICAL] DB Save Failed: {dbEx}");
+                return StatusCode(500, new { message = "Veritabanı kayıt hatası", error = dbEx.Message });
+            }
+
             // CLEAN READ PATTERN: Ensure we return the full object with all relationships
             _context.ChangeTracker.Clear();
 
             var freshTask = await _context.Tasks.AsNoTracking()
-                .Include(t => t.Assignees)
-                .Include(t => t.Labels)
-                .Include(t => t.Subtasks)
+                .Include(t => t.Assignees).ThenInclude(a => a.User)
+                .Include(t => t.Labels).ThenInclude(l => l.Label)
+                .Include(t => t.Subtasks).ThenInclude(s => s.Assignees)
                 .Include(t => t.Comments).ThenInclude(c => c.User)
                 .Include(t => t.Attachments)
                 .FirstOrDefaultAsync(t => t.Id == id);
 
+            if (freshTask != null)
+            {
+                freshTask.LabelIds = freshTask.Labels.Select(l => l.LabelId).ToList();
+                freshTask.AssigneeIds = freshTask.Assignees.Select(a => a.UserId).ToList();
+            }
+
             // Broadcast
-            await _hubContext.Clients.All.SendAsync("TaskUpdated", freshTask);
+            try
+            {
+                await _hubContext.Clients.All.SendAsync("TaskUpdated", freshTask);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[WARNING] SignalR Broadcast Failed: {ex.Message}");
+            }
 
             return Ok(freshTask);
         }
 
-        [HttpPut("{id}/status")]
+        [HttpPut("{id:int}/status")]
         public async Task<ActionResult<TaskItem>> UpdateStatus(int id, [FromQuery] string status)
         {
             var task = await _context.Tasks
                 .Include(t => t.Assignees)
                 .FirstOrDefaultAsync(t => t.Id == id);
             if (task == null) return NotFound();
-            
+
             // Security Check
             var currentUser = await GetCurrentUserWithDeptsAsync();
             if (!await HasWriteAccessAsync(task, currentUser))
             {
-                 return StatusCode(403, new { 
-                    message = "Bu görevin durumunu güncelleme yetkiniz yok.", 
-                    title = "Yetkisiz İşlem" 
+                return StatusCode(403, new
+                {
+                    message = "Bu görevin durumunu güncelleme yetkiniz yok.",
+                    title = "Yetkisiz İşlem"
                 });
             }
 
@@ -489,30 +825,36 @@ namespace Unity.API.Controllers
             task.Status = status;
             task.UpdatedAt = TimeHelper.Now;
             await _context.SaveChangesAsync();
-            
+
             var userId = GetCurrentUserId();
-            await _auditService.LogAsync(
-                userId.ToString(), 
-                "UPDATE_STATUS", 
-                "Task", 
-                task.Id.ToString(), 
-                new { Status = oldStatus }, 
-                new { Status = status }, 
-                $"Task status changed to {status}."
+            await _activityLogger.LogChangeAsync(
+                userId,
+                "UPDATE",
+                "Task",
+                task.Id.ToString(),
+                "Status",
+                oldStatus,
+                status
             );
-            
+
             // CLEAN READ PATTERN:
             // Clear the change tracker to remove stale state from memory
             _context.ChangeTracker.Clear();
 
             // Re-fetch with subtasks to prevent UI wipe on broadcast
             var freshTask = await _context.Tasks.AsNoTracking()
-                .Include(t => t.Assignees)
-                .Include(t => t.Labels)
-                .Include(t => t.Subtasks)
+                .Include(t => t.Assignees).ThenInclude(a => a.User)
+                .Include(t => t.Labels).ThenInclude(l => l.Label)
+                .Include(t => t.Subtasks).ThenInclude(s => s.Assignees)
                 .Include(t => t.Comments).ThenInclude(c => c.User)
                 .Include(t => t.Attachments)
                 .FirstOrDefaultAsync(t => t.Id == id);
+
+            if (freshTask != null)
+            {
+                freshTask.LabelIds = freshTask.Labels.Select(l => l.LabelId).ToList();
+                freshTask.AssigneeIds = freshTask.Assignees.Select(a => a.UserId).ToList();
+            }
 
             // Broadcast
             await _hubContext.Clients.All.SendAsync("TaskUpdated", freshTask);
@@ -520,7 +862,7 @@ namespace Unity.API.Controllers
             return Ok(freshTask);
         }
 
-        [HttpPost("{id}/subtasks")]
+        [HttpPost("{id:int}/subtasks")]
         public async Task<ActionResult<Subtask>> CreateSubtask(int id, [FromBody] Unity.Core.DTOs.CreateSubtaskRequest request)
         {
             var task = await _context.Tasks
@@ -532,7 +874,7 @@ namespace Unity.API.Controllers
             // Basic write access check
             if (!await HasWriteAccessAsync(task, currentUser))
             {
-                 return StatusCode(403, new { message = "Yetkisiz işlem." });
+                return StatusCode(403, new { message = "Yetkisiz işlem." });
             }
 
             var subtask = new Subtask
@@ -542,10 +884,14 @@ namespace Unity.API.Controllers
                 IsCompleted = request.IsCompleted,
                 CreatedBy = currentUser.Id,
                 CreatedAt = TimeHelper.Now,
-                AssigneeId = request.AssigneeId,
                 StartDate = request.StartDate,
                 DueDate = request.DueDate
             };
+
+            if (request.AssigneeId.HasValue)
+            {
+                subtask.Assignees.Add(new TaskAssignee { UserId = request.AssigneeId.Value });
+            }
 
             _context.Subtasks.Add(subtask);
             await _context.SaveChangesAsync();
@@ -557,7 +903,7 @@ namespace Unity.API.Controllers
             var parentTask = await _context.Tasks.AsNoTracking()
                 .Include(t => t.Assignees)
                 .Include(t => t.Labels)
-                .Include(t => t.Subtasks)
+                .Include(t => t.Subtasks).ThenInclude(s => s.Assignees)
                 .Include(t => t.Comments).ThenInclude(c => c.User)
                 .Include(t => t.Attachments)
                 .FirstOrDefaultAsync(t => t.Id == id);
@@ -570,7 +916,7 @@ namespace Unity.API.Controllers
             return Ok(subtask);
         }
 
-        [HttpPost("{id}/comments")]
+        [HttpPost("{id:int}/comments")]
         public async Task<ActionResult<Comment>> CreateComment(int id, [FromBody] Unity.Core.DTOs.CreateCommentRequest request)
         {
             var task = await _context.Tasks
@@ -583,8 +929,8 @@ namespace Unity.API.Controllers
             // Assuming anyone who can view internal tasks can comment
             if (!await HasWriteAccessAsync(task, currentUser))
             {
-                 // Maybe relax for comments? For now keep consistent.
-                 return StatusCode(403, new { message = "Yetkisiz işlem." });
+                // Maybe relax for comments? For now keep consistent.
+                return StatusCode(403, new { message = "Yetkisiz işlem." });
             }
 
             var comment = new Comment
@@ -601,7 +947,7 @@ namespace Unity.API.Controllers
             return Ok(comment);
         }
 
-        [HttpDelete("{id}")]
+        [HttpDelete("{id:int}")]
         public async Task<IActionResult> DeleteTask(int id)
         {
             var task = await _context.Tasks.FindAsync(id);
@@ -610,14 +956,15 @@ namespace Unity.API.Controllers
             var currentUser = await GetCurrentUserWithDeptsAsync();
 
             // Strict Delete Permission: Only Creator or Admin
-            if (task.CreatedBy != currentUser.Id && currentUser.Role != "admin") 
+            if (task.CreatedBy != currentUser.Id && currentUser.Role != "admin")
             {
-                return StatusCode(403, new { 
+                return StatusCode(403, new
+                {
                     message = "Görevi sadece oluşturan kişi veya yönetici silebilir.",
                     title = "Yetkisiz İşlem"
                 });
             }
-            
+
             _context.Tasks.Remove(task);
             await _context.SaveChangesAsync();
 
@@ -631,7 +978,7 @@ namespace Unity.API.Controllers
         {
 
             var subtask = await _context.Subtasks.FindAsync(subtaskId);
-            if (subtask == null) 
+            if (subtask == null)
             {
 
                 return NotFound();
@@ -647,7 +994,7 @@ namespace Unity.API.Controllers
             if (!await HasWriteAccessAsync(task, currentUser))
             {
 
-                 return StatusCode(403, new { message = "Yetkisiz işlem." });
+                return StatusCode(403, new { message = "Yetkisiz işlem." });
             }
 
             _context.Subtasks.Remove(subtask);
@@ -660,7 +1007,7 @@ namespace Unity.API.Controllers
             var parentTask = await _context.Tasks.AsNoTracking()
                  .Include(t => t.Assignees)
                  .Include(t => t.Labels)
-                 .Include(t => t.Subtasks)
+                 .Include(t => t.Subtasks).ThenInclude(s => s.Assignees)
                  .Include(t => t.Comments).ThenInclude(c => c.User)
                  .Include(t => t.Attachments)
                  .FirstOrDefaultAsync(t => t.Id == task.Id);
@@ -687,15 +1034,15 @@ namespace Unity.API.Controllers
             if (task == null) return NotFound();
 
             var currentUser = await GetCurrentUserWithDeptsAsync();
-            
+
             // Allow if admin, task owner, or comment creator
-            bool canDelete = currentUser.Role == "admin" || 
+            bool canDelete = currentUser.Role == "admin" ||
                              task.AssignedBy == currentUser.Id ||
                              comment.CreatedBy == currentUser.Id;
 
             if (!canDelete)
             {
-                 return StatusCode(403, new { message = "Yorumu silme yetkiniz yok." });
+                return StatusCode(403, new { message = "Yorumu silme yetkiniz yok." });
             }
 
             _context.Comments.Remove(comment);
@@ -706,7 +1053,7 @@ namespace Unity.API.Controllers
         [HttpDelete("attachments/{attachmentId}")]
         public async Task<IActionResult> DeleteAttachment(int attachmentId)
         {
-             // ... existing code
+            // ... existing code
             var attachment = await _context.Attachments.FindAsync(attachmentId);
             if (attachment == null) return NotFound();
 
@@ -717,20 +1064,20 @@ namespace Unity.API.Controllers
             if (task == null) return NotFound();
 
             var currentUser = await GetCurrentUserWithDeptsAsync();
-            
+
             // Allow if admin, task owner, or uploader
-            bool canDelete = currentUser.Role == "admin" || 
+            bool canDelete = currentUser.Role == "admin" ||
                              task.AssignedBy == currentUser.Id ||
                              attachment.CreatedBy == currentUser.Id;
 
             if (!canDelete)
             {
-                 return StatusCode(403, new { message = "Dosyayı silme yetkiniz yok." });
+                return StatusCode(403, new { message = "Dosyayı silme yetkiniz yok." });
             }
 
             // Optional: Delete physical file from 'wwwroot/uploads' if needed
             // For now, just removing DB record.
-            
+
             _context.Attachments.Remove(attachment);
             await _context.SaveChangesAsync();
 
@@ -740,7 +1087,9 @@ namespace Unity.API.Controllers
         [HttpPut("subtasks/{subtaskId}")]
         public async Task<ActionResult<Subtask>> UpdateSubtask(int subtaskId, [FromBody] JsonElement body)
         {
-            var subtask = await _context.Subtasks.FindAsync(subtaskId);
+            var subtask = await _context.Subtasks
+                .Include(s => s.Assignees)
+                .FirstOrDefaultAsync(s => s.Id == subtaskId);
             if (subtask == null) return NotFound();
 
             var task = await _context.Tasks
@@ -752,8 +1101,12 @@ namespace Unity.API.Controllers
             var currentUser = await GetCurrentUserWithDeptsAsync();
             if (!await HasWriteAccessAsync(task, currentUser))
             {
-                 return StatusCode(403, new { message = "Yetkisiz işlem." });
+                return StatusCode(403, new { message = "Yetkisiz işlem." });
             }
+
+            // Capture old values for logging
+            var oldSubStartDate = subtask.StartDate;
+            var oldSubDueDate = subtask.DueDate;
 
             // ROBUST PARTIAL UPDATE (PATCH-LIKE BEHAVIOR)
             // We iterate over the JSON properties to determine what to update.
@@ -775,19 +1128,66 @@ namespace Unity.API.Controllers
                 {
                     if (property.Value.ValueKind == JsonValueKind.Number)
                     {
-                        subtask.AssigneeId = property.Value.GetInt32();
+                        var newUid = property.Value.GetInt32();
+                        subtask.Assignees.Clear();
+                        subtask.Assignees.Add(new TaskAssignee { UserId = newUid, SubtaskId = subtaskId });
+                        await _activityLogger.LogChangeAsync(currentUser.Id, "ASSIGN", "Subtask", subtask.Id.ToString(), "Assignee", null, newUid);
+                    }
+                    else if (property.Value.ValueKind == JsonValueKind.String && int.TryParse(property.Value.GetString(), out var uid))
+                    {
+                        subtask.Assignees.Clear();
+                        subtask.Assignees.Add(new TaskAssignee { UserId = uid, SubtaskId = subtaskId });
+                        await _activityLogger.LogChangeAsync(currentUser.Id, "ASSIGN", "Subtask", subtask.Id.ToString(), "Assignee", null, uid);
                     }
                     else if (property.Value.ValueKind == JsonValueKind.Null)
                     {
-                        subtask.AssigneeId = null; // Explicitly clear assignment
+                        subtask.Assignees.Clear();
+                        await _activityLogger.LogChangeAsync(currentUser.Id, "UNASSIGN", "Subtask", subtask.Id.ToString(), "Assignee", null, null);
                     }
-                    // If missing from JSON, do nothing (preserve existing)
+                }
+                else if (property.NameEquals("assignees"))
+                {
+                    if (property.Value.ValueKind == JsonValueKind.Array)
+                    {
+                        Console.WriteLine($"[DEBUG] UpdateSubtask Assignees: Processing array...");
+                        var newAssigneeIds = new HashSet<int>();
+                        foreach (var item in property.Value.EnumerateArray())
+                        {
+                            int? uid = null;
+                            if (item.ValueKind == JsonValueKind.Number) uid = item.GetInt32();
+                            else if (item.ValueKind == JsonValueKind.String && int.TryParse(item.GetString(), out var parsed)) uid = parsed;
+
+                            if (uid.HasValue) newAssigneeIds.Add(uid.Value);
+                        }
+                        Console.WriteLine($"[DEBUG] New Assignee IDs: {string.Join(",", newAssigneeIds)}");
+
+                        // Remove removed assignees
+                        var toRemove = subtask.Assignees.Where(a => !newAssigneeIds.Contains(a.UserId)).ToList();
+                        Console.WriteLine($"[DEBUG] Removing {toRemove.Count} assignees...");
+                        foreach (var item in toRemove)
+                        {
+                            _context.TaskAssignees.Remove(item);
+                            await _activityLogger.LogChangeAsync(currentUser.Id, "UNASSIGN", "Subtask", subtask.Id.ToString(), "Assignee", item.UserId, null);
+                        }
+
+                        // Add new assignees
+                        var existingIds = subtask.Assignees.Select(a => a.UserId).ToHashSet();
+                        foreach (var newId in newAssigneeIds)
+                        {
+                            if (!existingIds.Contains(newId))
+                            {
+                                Console.WriteLine($"[DEBUG] Adding assignee {newId} to subtask {subtaskId}");
+                                subtask.Assignees.Add(new TaskAssignee { UserId = newId, SubtaskId = subtaskId });
+                                await _activityLogger.LogChangeAsync(currentUser.Id, "ASSIGN", "Subtask", subtask.Id.ToString(), "Assignee", null, newId);
+                            }
+                        }
+                    }
                 }
                 else if (property.NameEquals("startDate"))
                 {
                     if (property.Value.ValueKind == JsonValueKind.String && property.Value.TryGetDateTime(out var date))
                     {
-                        subtask.StartDate = date;
+                        subtask.StartDate = date.ToUniversalTime();
                     }
                     else if (property.Value.ValueKind == JsonValueKind.Null)
                     {
@@ -798,7 +1198,7 @@ namespace Unity.API.Controllers
                 {
                     if (property.Value.ValueKind == JsonValueKind.String && property.Value.TryGetDateTime(out var date))
                     {
-                        subtask.DueDate = date;
+                        subtask.DueDate = date.ToUniversalTime();
                     }
                     else if (property.Value.ValueKind == JsonValueKind.Null)
                     {
@@ -807,7 +1207,25 @@ namespace Unity.API.Controllers
                 }
             }
 
-            await _context.SaveChangesAsync();
+            try
+            {
+                await _context.SaveChangesAsync();
+
+                // Log date changes for subtasks
+                if (oldSubStartDate != subtask.StartDate)
+                {
+                    await _activityLogger.LogChangeAsync(currentUser.Id, "UPDATE", "Subtask", subtask.Id.ToString(), "StartDate", oldSubStartDate, subtask.StartDate);
+                }
+                if (oldSubDueDate != subtask.DueDate)
+                {
+                    await _activityLogger.LogChangeAsync(currentUser.Id, "UPDATE", "Subtask", subtask.Id.ToString(), "DueDate", oldSubDueDate, subtask.DueDate);
+                }
+            }
+            catch (Exception dbEx)
+            {
+                Console.WriteLine($"[CRITICAL] Subtask DB Save Failed: {dbEx}");
+                return StatusCode(500, new { message = "Alt görev kayıt hatası", error = dbEx.Message });
+            }
 
             // Clear tracker to ensure fresh read
             _context.ChangeTracker.Clear();
@@ -816,14 +1234,14 @@ namespace Unity.API.Controllers
             var parentTask = await _context.Tasks.AsNoTracking()
                  .Include(t => t.Assignees)
                  .Include(t => t.Labels)
-                 .Include(t => t.Subtasks)
+                 .Include(t => t.Subtasks).ThenInclude(s => s.Assignees)
                  .Include(t => t.Comments).ThenInclude(c => c.User)
                  .Include(t => t.Attachments)
                  .FirstOrDefaultAsync(t => t.Id == task.Id);
 
             if (parentTask != null)
             {
-                await _hubContext.Clients.All.SendAsync("TaskUpdated", parentTask);
+                try { await _hubContext.Clients.All.SendAsync("TaskUpdated", parentTask); } catch (Exception ex) { Console.WriteLine($"[WARNING] SignalR Failed: {ex.Message}"); }
             }
 
             return Ok(subtask);

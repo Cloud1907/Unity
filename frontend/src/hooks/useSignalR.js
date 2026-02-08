@@ -2,9 +2,9 @@ import { useRef, useEffect, useCallback, useMemo } from 'react';
 import { HubConnectionBuilder } from '@microsoft/signalr';
 import { normalizeEntity, getId } from '../utils/entityHelpers';
 import { updateTaskInTree } from '../utils/taskHelpers';
-import { toast } from 'react-hot-toast';
+import { toast } from 'sonner';
 
-export const useSignalR = (isAuthenticated, setTasks, setProjects, setDepartments, getBackendUrl) => {
+export const useSignalR = (isAuthenticated, setTasks, setProjects, setDepartments, setLabels, getBackendUrl, lastInteractionByTaskIdRef = { current: {} }) => {
     const connectionRef = useRef(null);
 
     useEffect(() => {
@@ -45,16 +45,38 @@ export const useSignalR = (isAuthenticated, setTasks, setProjects, setDepartment
 
         connection.on('TaskUpdated', (updatedTask) => {
             const normalized = normalizeEntity(updatedTask);
-            setTasks(prev => {
-                return updateTaskInTree(prev, normalized.id, normalized);
-            });
-            toast.info(`Görev güncellendi: ${normalized.title}`);
+            const taskId = normalized.id;
+            const lastLocal = lastInteractionByTaskIdRef?.current?.[taskId];
+            const incomingTime = normalized.updatedAt ? new Date(normalized.updatedAt).getTime() : 0;
+            if (lastLocal && incomingTime < lastLocal) {
+                return; // Ignore stale SignalR update; user's optimistic edit is newer
+            }
+            setTasks(prev => updateTaskInTree(prev, taskId, normalized));
         });
 
         connection.on('TaskDeleted', (taskId) => {
             const targetId = getId(taskId);
             setTasks(prev => prev.filter(t => t.id !== targetId));
             toast.info('Bir görev silindi');
+        });
+
+        // Label Events
+        connection.on('LabelCreated', (newLabel) => {
+            const normalized = normalizeEntity(newLabel);
+            setLabels(prev => {
+                if (prev.some(l => l.id === normalized.id)) return prev;
+                return [...prev, normalized];
+            });
+        });
+
+        connection.on('LabelUpdated', (updatedLabel) => {
+            const normalized = normalizeEntity(updatedLabel);
+            setLabels(prev => prev.map(l => l.id === normalized.id ? normalized : l));
+        });
+
+        connection.on('LabelDeleted', (labelId) => {
+            const targetId = getId(labelId);
+            setLabels(prev => prev.filter(l => l.id !== targetId));
         });
 
         // New Workspace/Project Events
@@ -79,7 +101,7 @@ export const useSignalR = (isAuthenticated, setTasks, setProjects, setDepartment
         return () => {
             connection.stop();
         };
-    }, [isAuthenticated, getBackendUrl, setTasks, setProjects, setDepartments]);
+    }, [isAuthenticated, getBackendUrl, setTasks, setProjects, setDepartments, lastInteractionByTaskIdRef]);
 
     const joinProjectGroup = useCallback(async (projectId) => {
         if (!connectionRef.current || connectionRef.current.state !== 'Connected') {

@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
-import { Plus, ChevronDown, Settings } from 'lucide-react';
+import { Plus, ChevronDown } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useDataState, useDataActions } from '../contexts/DataContext';
 import { useAuth } from '../contexts/AuthContext';
@@ -13,44 +13,23 @@ import EmptyState from './ui/EmptyState';
 // Import shared constants
 import { statuses, priorities, tShirtSizes, COLUMNS, generateGridTemplate, getDefaultColumnVisibility, EXPANDER_COLUMN_WIDTH, TASK_COLUMN_WIDTH } from '../constants/taskConstants';
 import { filterProjectUsers } from '../utils/userHelper';
-import { normalizeAssignees, normalizeLabels } from '../utils/entityUtils';
 
 // GRID_TEMPLATE export removed as it's no longer used
 
 const MainTable = ({ boardId, searchQuery, filters, groupBy }) => {
-  const { tasks: rawTasks, users, projects, labels, loading } = useDataState();
+  const { tasks, tasksHasMore, users, projects, labels, loading } = useDataState();
   const { user: currentUser } = useAuth();
 
   // Column visibility state - Disabled as per user request
   const visibleColumns = getDefaultColumnVisibility();
 
-  const tasks = useMemo(() => {
-    return rawTasks.map(t => ({
-      ...t,
-      // Normalize IDs using centralized utility
-      id: t.id || t.Id,
-      dueDate: t.dueDate || t.DueDate,
-      startDate: t.startDate || t.StartDate,
-      assignees: normalizeAssignees(t.assignees),
-      labels: normalizeLabels(t.labels)
-    }));
-  }, [rawTasks]);
+  // REMOVED: Local masking/mapping of tasks. Reference stability is now handled by useTasks + entityHelpers.
+  // const tasks = useMemo(...) -> Removed to prevent object reference recycling on every render.
 
-  // Filter out 'done' tasks older than 7 days
-  const filteredTasks = useMemo(() => {
-    const sevenDaysAgo = new Date();
-    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
 
-    return tasks.filter(t => {
-      if (t.status === 'done') {
-        const updateDate = t.updatedAt ? new Date(t.updatedAt) : new Date(t.createdAt); // Fallback to createdAt if updated is missing
-        return updateDate > sevenDaysAgo;
-      }
-      return true;
-    });
-  }, [tasks]);
+  // NOTE: filteredTasks was removed - logic merged into boardTasks useMemo for performance
 
-  const { fetchTasks, fetchLabels, updateTaskStatus, updateTask, createTask, deleteTask, updateSubtask } = useDataActions();
+  const { fetchTasks, loadMoreTasks, fetchLabels, updateTaskStatus, updateTask, createTask, deleteTask, updateSubtask } = useDataActions();
   const [selectedTask, setSelectedTask] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalInitialSection, setModalInitialSection] = useState('activity');
@@ -75,19 +54,23 @@ const MainTable = ({ boardId, searchQuery, filters, groupBy }) => {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  // Fetch data on board change
-  // Fetch data on board change
+  // Fetch data on board change - WITH CACHE CONTROL
+  // Performance Fix: Only fetch if we don't have tasks for this board
+  const hasBoardTasks = useMemo(() => {
+    return tasks.some(t => t.projectId === Number(boardId));
+  }, [tasks, boardId]);
+
   useEffect(() => {
     if (boardId) {
-      // Optimization: Only fetch if we don't have tasks for this board?
-      // DANGER: If project is empty, this causes infinite loop if 'tasks' is a dependency.
-      // Logic: fetch returns 0 items -> tasks changes -> effect runs -> hasTasks is false -> fetch runs -> ...
-      // Fix: Just fetch on boardId change. The data layer should handle dedup or we accept one network call per board switch.
-      fetchTasks(boardId);
+      // Skip fetch if we already have tasks for this board (cache hit)
+      if (!hasBoardTasks) {
+        fetchTasks(boardId);
+      }
+      // Labels are lightweight, always fetch for consistency
       fetchLabels(boardId);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [boardId, fetchTasks, fetchLabels]);
+  }, [boardId, hasBoardTasks, fetchTasks, fetchLabels]);
 
   // Project-based user filtering
   const projectUsers = useMemo(() => {
@@ -95,9 +78,10 @@ const MainTable = ({ boardId, searchQuery, filters, groupBy }) => {
     return filterProjectUsers(project, users);
   }, [users, boardId, projects]);
 
-  // Filter tasks for current board
+  // Filter tasks for current board - OPTIMIZED: Merged filteredTasks into this useMemo
   const boardTasks = useMemo(() => {
-    let filtered = filteredTasks.filter(t => t.projectId === Number(boardId));
+    // Step 1: Filter by board (was in filteredTasks, now direct)
+    let filtered = tasks.filter(t => t.projectId === Number(boardId));
 
     filtered = filtered.filter(t => {
       // ONLY filter if it explicitly has a parent ID.
@@ -142,7 +126,7 @@ const MainTable = ({ boardId, searchQuery, filters, groupBy }) => {
     }
 
     return filtered;
-  }, [filteredTasks, boardId, searchQuery, filters, projectUsers]);
+  }, [tasks, boardId, searchQuery, filters, projectUsers]);
 
   // Grouped Tasks
   const groupedTasks = useMemo(() => {
@@ -315,8 +299,17 @@ const MainTable = ({ boardId, searchQuery, filters, groupBy }) => {
           });
         }
       });
+
+    // 4. Load More Row
+    if (tasksHasMore) {
+      items.push({
+        type: 'LOAD_MORE',
+        id: `load-more-${boardId}`
+      });
+    }
+
     return items;
-  }, [groupedTasks, expandedRows, groupBy]);
+  }, [groupedTasks, expandedRows, groupBy, tasksHasMore, boardId]);
 
 
 
@@ -483,6 +476,7 @@ const MainTable = ({ boardId, searchQuery, filters, groupBy }) => {
                         index={item.index}
                         users={filteredUsers}
                         boardId={boardId}
+                        workspaceId={projects.find(p => p.id === Number(boardId))?.departmentId || null}
                         statuses={statuses}
                         priorities={priorities}
                         tShirtSizes={tShirtSizes}
@@ -557,6 +551,22 @@ const MainTable = ({ boardId, searchQuery, filters, groupBy }) => {
                         ))}
                         <div className="h-full bg-clip-padding border-r border-slate-200 dark:border-slate-700" style={{ boxSizing: 'border-box' }}></div>
                       </div>
+                    </motion.div>
+                  );
+                }
+                if (item.type === 'LOAD_MORE') {
+                  return (
+                    <motion.div
+                      key={item.id}
+                      className="flex justify-center py-6 border-b border-slate-200 dark:border-slate-700 bg-slate-50/10"
+                    >
+                      <button
+                        onClick={() => loadMoreTasks(boardId)}
+                        className="px-8 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-full text-[11px] font-bold text-slate-500 hover:text-indigo-600 hover:border-indigo-200 transition-all flex items-center gap-2 shadow-sm"
+                      >
+                        <ChevronDown size={14} />
+                        DAHA FAZLA YÜKLE
+                      </button>
                     </motion.div>
                   );
                 }

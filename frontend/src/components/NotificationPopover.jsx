@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { ScrollArea } from './ui/scroll-area';
 import { Bell, Clock, Info, CheckCircle2 } from 'lucide-react';
 import { notificationsAPI } from '../services/api';
 import { formatDistanceToNow } from 'date-fns';
 import { tr } from 'date-fns/locale';
 
-const NotificationPopover = ({ isOpen, onClose }) => {
+const NotificationPopover = ({ isOpen, onClose, position }) => {
     const [notifications, setNotifications] = useState([]);
     const [loading, setLoading] = useState(false);
 
@@ -29,8 +30,14 @@ const NotificationPopover = ({ isOpen, onClose }) => {
 
     if (!isOpen) return null;
 
-    return (
-        <div className="absolute right-0 top-full mt-2 w-80 bg-white dark:bg-slate-900 rounded-xl shadow-2xl border border-slate-200 dark:border-slate-800 z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+    return createPortal(
+        <div
+            className="fixed w-80 bg-white dark:bg-slate-900 rounded-xl shadow-2xl border border-slate-200 dark:border-slate-800 z-[99999] overflow-hidden animate-in fade-in zoom-in-95 duration-200"
+            style={{
+                top: position?.top || 0,
+                left: position?.left || 0
+            }}
+        >
             <div className="px-4 py-3 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-slate-50/80 dark:bg-slate-900/80 backdrop-blur-sm">
                 <h3 className="font-semibold text-sm text-slate-900 dark:text-slate-100 flex items-center gap-2">
                     <Bell size={14} className="text-indigo-600" />
@@ -83,7 +90,8 @@ const NotificationPopover = ({ isOpen, onClose }) => {
                     Yenile
                 </button>
             </div>
-        </div>
+        </div>,
+        document.body
     );
 };
 

@@ -5,9 +5,18 @@ import axios from 'axios';
 // This ensures the app works on any domain/protocol without hardcoded URLs
 
 const getBaseUrl = () => {
-  // FORCE relative path - works with any domain/protocol
-  // Frontend and backend are served from the same origin in production
-  return '';
+  if (process.env.REACT_APP_BACKEND_URL) {
+    return process.env.REACT_APP_BACKEND_URL;
+  }
+
+  // PRODUCTION FLEXIBILITY: Use the current origin (domain:port)
+  // This allows the setup to work on any server/IP/port out of the box
+  if (process.env.NODE_ENV === 'production') {
+    return window.location.origin;
+  }
+
+  // Fallback for local development
+  return 'http://localhost:8080';
 };
 
 const BASE_URL = getBaseUrl();
@@ -31,6 +40,13 @@ api.interceptors.request.use(
     }
 
 
+
+    // E2E Tracing: Generate a unique Trace ID for every request
+    const traceId = crypto.randomUUID();
+    config.headers['X-Trace-Id'] = traceId;
+
+    // Performance: Store start time
+    config.metadata = { startTime: new Date() };
 
     return config;
   },
@@ -57,6 +73,20 @@ const processQueue = (error, token = null) => {
 // Response interceptor
 api.interceptors.response.use(
   (response) => {
+    // Performance: Calculate and log duration
+    const { config } = response;
+    if (config?.metadata?.startTime) {
+      const duration = new Date() - config.metadata.startTime;
+      const url = config.url.replace(config.baseURL, '');
+
+      if (process.env.NODE_ENV === 'development') {
+        if (duration > 500) {
+          console.warn(`[SLOW API] ${config.method.toUpperCase()} ${url} took ${duration}ms`);
+        } else {
+          console.log(`[API] ${config.method.toUpperCase()} ${url} took ${duration}ms`);
+        }
+      }
+    }
     return response;
   },
   async (error) => {
@@ -124,6 +154,7 @@ export const authAPI = {
   login: (data) => api.post('/auth/login', data),
   getMe: () => api.get('/auth/me'),
   updateProfile: (data) => api.put('/auth/profile', data),
+  updatePreferences: (data) => api.put('/auth/preferences', data),
   changePassword: (data) => api.post('/auth/change-password', data),
   forgotPassword: (email) => api.post('/auth/forgot-password', { email }),
   refresh: (data) => api.post('/auth/refresh', data),
@@ -131,7 +162,7 @@ export const authAPI = {
 
 // Users API
 export const usersAPI = {
-  getAll: () => api.get('/users'),
+  getAll: (departmentId, workspaceId, search, page, pageSize) => api.get('/users', { params: { departmentId, workspace_id: workspaceId, search, page, pageSize } }),
   getById: (id) => api.get(`/users/${id}`),
   create: (data) => api.post('/users', data),
   update: (id, data) => api.put(`/users/${id}`, data),
@@ -156,13 +187,15 @@ export const projectsAPI = {
   create: (data) => api.post('/projects', data),
   update: (id, data) => api.put(`/projects/${id}`, data),
   delete: (id) => api.delete(`/projects/${id}`),
-  addMember: (id, userId) => api.post(`/projects/${id}/members`, { user_id: userId }),
+  addMember: (id, userId) => api.post(`/projects/${id}/members`, { userId: userId }),
   removeMember: (id, userId) => api.delete(`/projects/${id}/members/${userId}`),
   toggleFavorite: (id) => api.put(`/projects/${id}/favorite`),
 };
 
 // Tasks API
 export const tasksAPI = {
+  getDashboardStats: () => api.get('/tasks/dashboard/stats'),
+  getDashboardTasks: (page = 1, pageSize = 20) => api.get('/tasks/dashboard/tasks', { params: { page, pageSize } }),
   getAll: (params) => api.get('/tasks', { params }),
   getById: (id) => api.get(`/tasks/${id}`),
   create: (data) => api.post('/tasks', data),
@@ -170,7 +203,7 @@ export const tasksAPI = {
   delete: (id) => api.delete(`/tasks/${id}`),
   updateStatus: (id, status) => api.put(`/tasks/${id}/status`, null, { params: { status } }),
   updateProgress: (id, progress) => api.put(`/tasks/${id}/progress`, null, { params: { progress } }),
-  assign: (id, userId) => api.post(`/tasks/${id}/assign`, null, { params: { user_id: userId } }),
+  assign: (id, userId) => api.post(`/tasks/${id}/assign`, null, { params: { userId: userId } }),
 };
 
 
@@ -178,7 +211,10 @@ export const tasksAPI = {
 export const subtasksAPI = {
   getAll: (taskId) => api.get(`/tasks/${taskId}/subtasks`),
   create: (taskId, data) => api.post(`/tasks/${taskId}/subtasks`, data),
-  update: (id, data) => api.put(`/tasks/subtasks/${id}`, data),
+  update: async (id, data) => {
+    const res = await api.put(`/tasks/subtasks/${id}`, data);
+    return res;
+  },
   delete: (id) => api.delete(`/tasks/subtasks/${id}`),
 };
 
@@ -229,6 +265,11 @@ export const analyticsAPI = {
   getOverview: () => api.get('/analytics/overview'),
   getWorkload: () => api.get('/analytics/workload'),
   getProjectProgress: () => api.get('/analytics/project-progress'),
+};
+
+// Reports API
+export const reportsAPI = {
+  getProjectPdf: (projectId) => api.get(`/reports/project/${projectId}/pdf`, { responseType: 'blob' }),
 };
 
 export default api;

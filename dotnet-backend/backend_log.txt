@@ -1,0 +1,318 @@
+Unity.API/Properties/launchSettings.json içindeki başlatma ayarları kullanılıyor...
+Derleniyor...
+/Users/cloudsmac/Documents/AntiGravity/UnityApp/dotnet-backend/Unity.Infrastructure/Unity.Infrastructure.csproj : warning NU1903: 'Azure.Identity' 1.7.0 paketinde önem derecesi yüksek olan bilinen bir https://github.com/advisories/GHSA-5mfx-4wcx-rv27 güvenlik açığı var [/Users/cloudsmac/Documents/AntiGravity/UnityApp/dotnet-backend/Unity.API/Unity.API.csproj]
+/Users/cloudsmac/Documents/AntiGravity/UnityApp/dotnet-backend/Unity.API/Unity.API.csproj : warning NU1903: 'Azure.Identity' 1.7.0 paketinde önem derecesi yüksek olan bilinen bir https://github.com/advisories/GHSA-5mfx-4wcx-rv27 güvenlik açığı var
+/Users/cloudsmac/Documents/AntiGravity/UnityApp/dotnet-backend/Unity.API/Unity.API.csproj : warning NU1902: 'Azure.Identity' 1.7.0 paketinde önem derecesi orta olan bilinen bir https://github.com/advisories/GHSA-m5vv-6r4h-3vj9 güvenlik açığı var
+/Users/cloudsmac/Documents/AntiGravity/UnityApp/dotnet-backend/Unity.Infrastructure/Unity.Infrastructure.csproj : warning NU1902: 'Azure.Identity' 1.7.0 paketinde önem derecesi orta olan bilinen bir https://github.com/advisories/GHSA-m5vv-6r4h-3vj9 güvenlik açığı var [/Users/cloudsmac/Documents/AntiGravity/UnityApp/dotnet-backend/Unity.API/Unity.API.csproj]
+/Users/cloudsmac/Documents/AntiGravity/UnityApp/dotnet-backend/Unity.API/Unity.API.csproj : warning NU1902: 'Azure.Identity' 1.7.0 paketinde önem derecesi orta olan bilinen bir https://github.com/advisories/GHSA-wvxc-855f-jvrv güvenlik açığı var
+/Users/cloudsmac/Documents/AntiGravity/UnityApp/dotnet-backend/Unity.Infrastructure/Unity.Infrastructure.csproj : warning NU1902: 'Azure.Identity' 1.7.0 paketinde önem derecesi orta olan bilinen bir https://github.com/advisories/GHSA-wvxc-855f-jvrv güvenlik açığı var [/Users/cloudsmac/Documents/AntiGravity/UnityApp/dotnet-backend/Unity.API/Unity.API.csproj]
+/Users/cloudsmac/Documents/AntiGravity/UnityApp/dotnet-backend/Unity.API/Unity.API.csproj : warning NU1903: 'Microsoft.Data.SqlClient' 5.1.1 paketinde önem derecesi yüksek olan bilinen bir https://github.com/advisories/GHSA-98g6-xh36-x2p7 güvenlik açığı var
+/Users/cloudsmac/Documents/AntiGravity/UnityApp/dotnet-backend/Unity.Infrastructure/Unity.Infrastructure.csproj : warning NU1903: 'Microsoft.Data.SqlClient' 5.1.1 paketinde önem derecesi yüksek olan bilinen bir https://github.com/advisories/GHSA-98g6-xh36-x2p7 güvenlik açığı var [/Users/cloudsmac/Documents/AntiGravity/UnityApp/dotnet-backend/Unity.API/Unity.API.csproj]
+/Users/cloudsmac/Documents/AntiGravity/UnityApp/dotnet-backend/Unity.API/Unity.API.csproj : warning NU1902: 'Microsoft.IdentityModel.JsonWebTokens' 7.0.3 paketinde önem derecesi orta olan bilinen bir https://github.com/advisories/GHSA-59j7-ghrg-fj52 güvenlik açığı var
+/Users/cloudsmac/Documents/AntiGravity/UnityApp/dotnet-backend/Unity.Infrastructure/Unity.Infrastructure.csproj : warning NU1903: 'Microsoft.Extensions.Caching.Memory' 8.0.0 paketinde önem derecesi yüksek olan bilinen bir https://github.com/advisories/GHSA-qj66-m88j-hmgj güvenlik açığı var [/Users/cloudsmac/Documents/AntiGravity/UnityApp/dotnet-backend/Unity.API/Unity.API.csproj]
+/Users/cloudsmac/Documents/AntiGravity/UnityApp/dotnet-backend/Unity.API/Unity.API.csproj : warning NU1902: 'System.IdentityModel.Tokens.Jwt' 7.0.3 paketinde önem derecesi orta olan bilinen bir https://github.com/advisories/GHSA-59j7-ghrg-fj52 güvenlik açığı var
+/Users/cloudsmac/Documents/AntiGravity/UnityApp/dotnet-backend/Unity.Infrastructure/Unity.Infrastructure.csproj : warning NU1902: 'Microsoft.IdentityModel.JsonWebTokens' 6.24.0 paketinde önem derecesi orta olan bilinen bir https://github.com/advisories/GHSA-59j7-ghrg-fj52 güvenlik açığı var [/Users/cloudsmac/Documents/AntiGravity/UnityApp/dotnet-backend/Unity.API/Unity.API.csproj]
+/Users/cloudsmac/Documents/AntiGravity/UnityApp/dotnet-backend/Unity.Infrastructure/Unity.Infrastructure.csproj : warning NU1902: 'System.IdentityModel.Tokens.Jwt' 6.24.0 paketinde önem derecesi orta olan bilinen bir https://github.com/advisories/GHSA-59j7-ghrg-fj52 güvenlik açığı var [/Users/cloudsmac/Documents/AntiGravity/UnityApp/dotnet-backend/Unity.API/Unity.API.csproj]
+/Users/cloudsmac/Documents/AntiGravity/UnityApp/dotnet-backend/Unity.API/Unity.API.csproj : warning NU1903: 'Azure.Identity' 1.7.0 paketinde önem derecesi yüksek olan bilinen bir https://github.com/advisories/GHSA-5mfx-4wcx-rv27 güvenlik açığı var
+/Users/cloudsmac/Documents/AntiGravity/UnityApp/dotnet-backend/Unity.API/Unity.API.csproj : warning NU1902: 'Azure.Identity' 1.7.0 paketinde önem derecesi orta olan bilinen bir https://github.com/advisories/GHSA-m5vv-6r4h-3vj9 güvenlik açığı var
+/Users/cloudsmac/Documents/AntiGravity/UnityApp/dotnet-backend/Unity.API/Unity.API.csproj : warning NU1902: 'Azure.Identity' 1.7.0 paketinde önem derecesi orta olan bilinen bir https://github.com/advisories/GHSA-wvxc-855f-jvrv güvenlik açığı var
+/Users/cloudsmac/Documents/AntiGravity/UnityApp/dotnet-backend/Unity.API/Unity.API.csproj : warning NU1903: 'Microsoft.Data.SqlClient' 5.1.1 paketinde önem derecesi yüksek olan bilinen bir https://github.com/advisories/GHSA-98g6-xh36-x2p7 güvenlik açığı var
+/Users/cloudsmac/Documents/AntiGravity/UnityApp/dotnet-backend/Unity.API/Unity.API.csproj : warning NU1902: 'Microsoft.IdentityModel.JsonWebTokens' 7.0.3 paketinde önem derecesi orta olan bilinen bir https://github.com/advisories/GHSA-59j7-ghrg-fj52 güvenlik açığı var
+/Users/cloudsmac/Documents/AntiGravity/UnityApp/dotnet-backend/Unity.API/Unity.API.csproj : warning NU1902: 'System.IdentityModel.Tokens.Jwt' 7.0.3 paketinde önem derecesi orta olan bilinen bir https://github.com/advisories/GHSA-59j7-ghrg-fj52 güvenlik açığı var
+/Users/cloudsmac/Documents/AntiGravity/UnityApp/dotnet-backend/Unity.Infrastructure/Unity.Infrastructure.csproj : warning NU1903: 'Azure.Identity' 1.7.0 paketinde önem derecesi yüksek olan bilinen bir https://github.com/advisories/GHSA-5mfx-4wcx-rv27 güvenlik açığı var
+/Users/cloudsmac/Documents/AntiGravity/UnityApp/dotnet-backend/Unity.Infrastructure/Unity.Infrastructure.csproj : warning NU1902: 'Azure.Identity' 1.7.0 paketinde önem derecesi orta olan bilinen bir https://github.com/advisories/GHSA-m5vv-6r4h-3vj9 güvenlik açığı var
+/Users/cloudsmac/Documents/AntiGravity/UnityApp/dotnet-backend/Unity.Infrastructure/Unity.Infrastructure.csproj : warning NU1902: 'Azure.Identity' 1.7.0 paketinde önem derecesi orta olan bilinen bir https://github.com/advisories/GHSA-wvxc-855f-jvrv güvenlik açığı var
+/Users/cloudsmac/Documents/AntiGravity/UnityApp/dotnet-backend/Unity.Infrastructure/Unity.Infrastructure.csproj : warning NU1903: 'Microsoft.Data.SqlClient' 5.1.1 paketinde önem derecesi yüksek olan bilinen bir https://github.com/advisories/GHSA-98g6-xh36-x2p7 güvenlik açığı var
+/Users/cloudsmac/Documents/AntiGravity/UnityApp/dotnet-backend/Unity.Infrastructure/Unity.Infrastructure.csproj : warning NU1903: 'Microsoft.Extensions.Caching.Memory' 8.0.0 paketinde önem derecesi yüksek olan bilinen bir https://github.com/advisories/GHSA-qj66-m88j-hmgj güvenlik açığı var
+/Users/cloudsmac/Documents/AntiGravity/UnityApp/dotnet-backend/Unity.Infrastructure/Unity.Infrastructure.csproj : warning NU1902: 'Microsoft.IdentityModel.JsonWebTokens' 6.24.0 paketinde önem derecesi orta olan bilinen bir https://github.com/advisories/GHSA-59j7-ghrg-fj52 güvenlik açığı var
+/Users/cloudsmac/Documents/AntiGravity/UnityApp/dotnet-backend/Unity.Infrastructure/Unity.Infrastructure.csproj : warning NU1902: 'System.IdentityModel.Tokens.Jwt' 6.24.0 paketinde önem derecesi orta olan bilinen bir https://github.com/advisories/GHSA-59j7-ghrg-fj52 güvenlik açığı var
+warn: Microsoft.EntityFrameworkCore.Model.Validation[10622]
+      Entity 'Project' has a global query filter defined and is the required end of a relationship with the entity 'ProjectMember'. This may lead to unexpected results when the required entity is filtered out. Either configure the navigation as optional, or define matching query filters for both entities in the navigation. See https://go.microsoft.com/fwlink/?linkid=2131316 for more information.
+warn: Microsoft.EntityFrameworkCore.Model.Validation[10622]
+      Entity 'Project' has a global query filter defined and is the required end of a relationship with the entity 'TaskItem'. This may lead to unexpected results when the required entity is filtered out. Either configure the navigation as optional, or define matching query filters for both entities in the navigation. See https://go.microsoft.com/fwlink/?linkid=2131316 for more information.
+warn: Microsoft.EntityFrameworkCore.Model.Validation[10622]
+      Entity 'Department' has a global query filter defined and is the required end of a relationship with the entity 'UserDepartment'. This may lead to unexpected results when the required entity is filtered out. Either configure the navigation as optional, or define matching query filters for both entities in the navigation. See https://go.microsoft.com/fwlink/?linkid=2131316 for more information.
+warn: Microsoft.EntityFrameworkCore.Model.Validation[10622]
+      Entity 'Project' has a global query filter defined and is the required end of a relationship with the entity 'UserProjectPreference'. This may lead to unexpected results when the required entity is filtered out. Either configure the navigation as optional, or define matching query filters for both entities in the navigation. See https://go.microsoft.com/fwlink/?linkid=2131316 for more information.
+warn: Microsoft.EntityFrameworkCore.Model.Validation[10622]
+      Entity 'Department' has a global query filter defined and is the required end of a relationship with the entity 'UserWorkspacePreference'. This may lead to unexpected results when the required entity is filtered out. Either configure the navigation as optional, or define matching query filters for both entities in the navigation. See https://go.microsoft.com/fwlink/?linkid=2131316 for more information.
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (178ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      IF OBJECT_ID('dbo.TaskAssignees', 'U') IS NOT NULL DELETE FROM TaskAssignees WHERE TaskId IS NULL AND SubtaskId IS NULL
+DEBUG: Zombie TaskAssignees cleaned up.
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (180ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT 1
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (100ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT OBJECT_ID(N'[__EFMigrationsHistory]');
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (99ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT 1
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (170ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT OBJECT_ID(N'[__EFMigrationsHistory]');
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (175ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT [MigrationId], [ProductVersion]
+      FROM [__EFMigrationsHistory]
+      ORDER BY [MigrationId];
+info: Microsoft.EntityFrameworkCore.Migrations[20405]
+      No migrations were applied. The database is already up to date.
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (94ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      IF COL_LENGTH('Departments', 'IsMaster') IS NULL BEGIN ALTER TABLE Departments ADD IsMaster BIT NOT NULL DEFAULT 0 END
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (99ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      IF COL_LENGTH('Departments', 'CreatedAt') IS NULL BEGIN ALTER TABLE Departments ADD CreatedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE() END
+DEBUG: Checking/Creating UserColumnPreferences table...
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (98ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      
+                          IF OBJECT_ID('dbo.UserColumnPreferences', 'U') IS NULL
+                          BEGIN
+                              CREATE TABLE UserColumnPreferences (
+                                  Id INT IDENTITY(1,1) PRIMARY KEY,
+                                  UserId INT NOT NULL,
+                                  Preferences NVARCHAR(MAX) DEFAULT '{}',
+                                  CreatedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
+                                  UpdatedAt DATETIME2 NULL
+                              );
+                              CREATE INDEX IX_UserColumnPreferences_UserId ON UserColumnPreferences(UserId);
+                          END
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (187ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      IF COL_LENGTH('UserColumnPreferences', 'SidebarPreferences') IS NULL BEGIN ALTER TABLE UserColumnPreferences ADD SidebarPreferences NVARCHAR(MAX) NOT NULL DEFAULT '{}' END
+DEBUG: Table creation and migration logic executed.
+DEBUG: Checking/Creating UserWorkspacePreferences table...
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (38ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      
+                          IF OBJECT_ID('dbo.UserWorkspacePreferences', 'U') IS NULL
+                          BEGIN
+                              CREATE TABLE UserWorkspacePreferences (
+                                  Id INT IDENTITY(1,1) PRIMARY KEY,
+                                  UserId INT NOT NULL,
+                                  DepartmentId INT NOT NULL,
+                                  SortOrder INT NOT NULL DEFAULT 0,
+                                  IsVisible BIT NOT NULL DEFAULT 1,
+                                  IsCollapsed BIT NOT NULL DEFAULT 0,
+                                  CreatedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
+                                  UpdatedAt DATETIME2 NULL,
+                                  CONSTRAINT FK_UserWorkspacePreferences_User FOREIGN KEY (UserId) REFERENCES Users(Id) ON DELETE CASCADE,
+                                  CONSTRAINT FK_UserWorkspacePreferences_Department FOREIGN KEY (DepartmentId) REFERENCES Departments(Id) ON DELETE CASCADE
+                              );
+                              CREATE INDEX IX_UserWorkspacePreferences_UserId ON UserWorkspacePreferences(UserId);
+                              CREATE UNIQUE INDEX IX_UserWorkspacePreferences_UserDept ON UserWorkspacePreferences(UserId, DepartmentId);
+                          END
+DEBUG: Migrating SidebarPreferences JSON to UserWorkspacePreferences...
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (34ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT [u].[Id], [u].[CreatedAt], [u].[Preferences], [u].[SidebarPreferences], [u].[UpdatedAt], [u].[UserId]
+      FROM [UserColumnPreferences] AS [u]
+      WHERE [u].[SidebarPreferences] <> N'{}'
+DEBUG: UserWorkspacePreferences migration completed.
+DEBUG: Creating/Updating vw_DashboardTasks View...
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (186ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      
+                          IF OBJECT_ID('dbo.vw_DashboardTasks', 'V') IS NOT NULL
+                              DROP VIEW dbo.vw_DashboardTasks;
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (191ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      
+      CREATE VIEW vw_DashboardTasks AS
+      SELECT 
+          t.Id AS TaskId,
+          t.Title,
+          t.Status,
+          t.Priority,
+          t.Progress,
+          t.DueDate,
+          t.StartDate,
+          t.UpdatedAt,
+          t.ProjectId,
+          p.Name AS ProjectName,
+          p.Color AS ProjectColor,
+          p.DepartmentId,
+          d.Name AS DepartmentName,
+          d.Color AS DepartmentColor,
+          ta.UserId AS AssigneeId
+      FROM Tasks t
+      INNER JOIN Projects p ON t.ProjectId = p.Id AND p.IsDeleted = 0
+      INNER JOIN Departments d ON p.DepartmentId = d.Id AND d.IsDeleted = 0
+      LEFT JOIN TaskAssignees ta ON t.Id = ta.TaskId
+      WHERE t.IsDeleted = 0;
+DEBUG: vw_DashboardTasks View Created Successfully.
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (77ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      
+                          IF OBJECT_ID('dbo.vw_UserDashboardStats', 'V') IS NOT NULL DROP VIEW dbo.vw_UserDashboardStats;
+                          EXEC('
+                          CREATE VIEW dbo.vw_UserDashboardStats AS
+                          SELECT 
+                              u.Id as UserId,
+                              COUNT(t.Id) as TotalTasks,
+                              SUM(CASE WHEN t.Status = ''done'' THEN 1 ELSE 0 END) as CompletedTasks,
+                              SUM(CASE WHEN t.Status = ''todo'' THEN 1 ELSE 0 END) as TodoTasks,
+                              SUM(CASE WHEN t.Status IN (''working'', ''in_progress'') THEN 1 ELSE 0 END) as InProgressTasks,
+                              SUM(CASE WHEN t.Status = ''stuck'' THEN 1 ELSE 0 END) as StuckTasks,
+                              SUM(CASE WHEN t.Status = ''review'' THEN 1 ELSE 0 END) as ReviewTasks,
+                              SUM(CASE WHEN t.DueDate < GETDATE() AND t.Status != ''done'' THEN 1 ELSE 0 END) as OverdueTasks,
+                              COALESCE(AVG(t.Progress), 0) as AverageProgress
+                          FROM Users u
+                          LEFT JOIN TaskAssignees ta ON u.Id = ta.UserId
+                          LEFT JOIN Tasks t ON ta.TaskId = t.Id AND t.IsDeleted = 0
+                          WHERE u.IsDeleted = 0
+                          GROUP BY u.Id
+                          ');
+DEBUG: vw_UserDashboardStats View Created Successfully.
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (121ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      
+                          IF OBJECT_ID('dbo.vw_ProjectList', 'V') IS NOT NULL DROP VIEW dbo.vw_ProjectList;
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (42ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      
+      CREATE VIEW vw_ProjectList AS
+      SELECT 
+          p.Id AS Id,
+          p.Id AS ProjectId,
+          p.Name,
+          p.Description,
+          p.Icon,
+          p.Color,
+          p.Status,
+          p.Priority,
+          p.IsPrivate,
+          p.Owner,
+          p.DepartmentId,
+          p.CreatedAt,
+          p.UpdatedAt,
+          d.Name AS DepartmentName,
+          d.Color AS DepartmentColor,
+          (SELECT COUNT(*) FROM Tasks t WHERE t.ProjectId = p.Id AND t.IsDeleted = 0) AS TaskCount,
+          (SELECT COUNT(*) FROM Tasks t WHERE t.ProjectId = p.Id AND t.IsDeleted = 0 AND t.Status = 'done') AS CompletedTaskCount,
+          (SELECT COUNT(*) FROM ProjectMembers pm WHERE pm.ProjectId = p.Id) AS MemberCount
+      FROM Projects p
+      INNER JOIN Departments d ON p.DepartmentId = d.Id AND d.IsDeleted = 0
+      WHERE p.IsDeleted = 0;
+DEBUG: vw_ProjectList View Created Successfully.
+DEBUG: Creating Performance Indexes...
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (283ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      
+                          IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_Tasks_ProjectId_IsDeleted' AND object_id = OBJECT_ID('Tasks'))
+                          CREATE NONCLUSTERED INDEX IX_Tasks_ProjectId_IsDeleted 
+                          ON Tasks (ProjectId, IsDeleted)
+                          INCLUDE (Title, Status, Priority, DueDate, Progress, CreatedAt, CreatedBy)
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (123ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      
+                          IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_Tasks_Status' AND object_id = OBJECT_ID('Tasks'))
+                          CREATE NONCLUSTERED INDEX IX_Tasks_Status ON Tasks (Status)
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (111ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      
+                          IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_Tasks_CreatedAt' AND object_id = OBJECT_ID('Tasks'))
+                          CREATE NONCLUSTERED INDEX IX_Tasks_CreatedAt ON Tasks (CreatedAt DESC)
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (145ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      
+                          IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_TaskAssignees_UserId_TaskId' AND object_id = OBJECT_ID('TaskAssignees'))
+                          CREATE NONCLUSTERED INDEX IX_TaskAssignees_UserId_TaskId ON TaskAssignees (UserId, TaskId)
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (190ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      
+                          IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_TaskLabels_TaskId' AND object_id = OBJECT_ID('TaskLabels'))
+                          CREATE NONCLUSTERED INDEX IX_TaskLabels_TaskId ON TaskLabels (TaskId)
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (107ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      
+                          IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_Users_IsDeleted' AND object_id = OBJECT_ID('Users'))
+                          CREATE NONCLUSTERED INDEX IX_Users_IsDeleted ON Users (IsDeleted) WHERE IsDeleted = 0
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (38ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      
+                          IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_Projects_IsDeleted_DepartmentId' AND object_id = OBJECT_ID('Projects'))
+                          CREATE NONCLUSTERED INDEX IX_Projects_IsDeleted_DepartmentId ON Projects (IsDeleted, DepartmentId)
+      
+                      -- 8. Subtasks: CRITICAL for List View Counts
+                      IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_Subtasks_TaskId' AND object_id = OBJECT_ID('Subtasks'))
+                          CREATE NONCLUSTERED INDEX IX_Subtasks_TaskId ON Subtasks (TaskId)
+      
+                      -- 9. Comments: CRITICAL for List View Counts
+                      IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_Comments_TaskId' AND object_id = OBJECT_ID('Comments'))
+                          CREATE NONCLUSTERED INDEX IX_Comments_TaskId ON Comments (TaskId)
+DEBUG: Performance Indexes Created Successfully.
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (171ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT [u].[Id], [u].[Avatar], [u].[Color], [u].[CreatedAt], [u].[DeletedAt], [u].[Email], [u].[FullName], [u].[Gender], [u].[IsActive], [u].[IsDeleted], [u].[JobTitle], [u].[Manager], [u].[PasswordHash], [u].[Role], [u].[UpdatedAt], [u].[Username]
+      FROM [Users] AS [u]
+      WHERE [u].[Avatar] IS NOT NULL AND ([u].[Avatar] LIKE N'%notionists%' OR [u].[Avatar] LIKE N'%avataaars%')
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (189ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT [p].[Id], [p].[Budget], [p].[Color], [p].[CreatedAt], [p].[CreatedBy], [p].[DeletedAt], [p].[DepartmentId], [p].[Description], [p].[EndDate], [p].[Icon], [p].[IsDeleted], [p].[IsPrivate], [p].[Name], [p].[Owner], [p].[Priority], [p].[StartDate], [p].[Status], [p].[UpdatedAt]
+      FROM [Projects] AS [p]
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (79ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT [d].[Id], [d].[Color], [d].[CreatedAt], [d].[CreatedBy], [d].[DeletedAt], [d].[Description], [d].[HeadOfDepartment], [d].[IsDeleted], [d].[IsMaster], [d].[Name]
+      FROM [Departments] AS [d]
+CRITICAL ERROR DURING STARTUP: An item with the same key has already been added. Key: Yazılım
+warn: Microsoft.AspNetCore.Server.Kestrel[0]
+      Overriding address(es) 'http://localhost:8080'. Binding to endpoints defined via IConfiguration and/or UseKestrel() instead.
+fail: Microsoft.Extensions.Hosting.Internal.Host[11]
+      Hosting failed to start
+      System.IO.IOException: Failed to bind to address http://0.0.0.0:8080: address already in use.
+       ---> Microsoft.AspNetCore.Connections.AddressInUseException: Address already in use
+       ---> System.Net.Sockets.SocketException (48): Address already in use
+         at System.Net.Sockets.Socket.UpdateStatusAfterSocketErrorAndThrowException(SocketError error, Boolean disconnectOnFailure, String callerName)
+         at System.Net.Sockets.Socket.DoBind(EndPoint endPointSnapshot, SocketAddress socketAddress)
+         at System.Net.Sockets.Socket.Bind(EndPoint localEP)
+         at Microsoft.AspNetCore.Server.Kestrel.Transport.Sockets.SocketTransportOptions.CreateDefaultBoundListenSocket(EndPoint endpoint)
+         at Microsoft.AspNetCore.Server.Kestrel.Transport.Sockets.SocketConnectionListener.Bind()
+         --- End of inner exception stack trace ---
+         at Microsoft.AspNetCore.Server.Kestrel.Transport.Sockets.SocketConnectionListener.Bind()
+         at Microsoft.AspNetCore.Server.Kestrel.Transport.Sockets.SocketTransportFactory.BindAsync(EndPoint endpoint, CancellationToken cancellationToken)
+         at Microsoft.AspNetCore.Server.Kestrel.Core.Internal.Infrastructure.TransportManager.BindAsync(EndPoint endPoint, ConnectionDelegate connectionDelegate, EndpointConfig endpointConfig, CancellationToken cancellationToken)
+         at Microsoft.AspNetCore.Server.Kestrel.Core.KestrelServerImpl.<>c__DisplayClass28_0`1.<<StartAsync>g__OnBind|0>d.MoveNext()
+      --- End of stack trace from previous location ---
+         at Microsoft.AspNetCore.Server.Kestrel.Core.Internal.AddressBinder.BindEndpointAsync(ListenOptions endpoint, AddressBindContext context, CancellationToken cancellationToken)
+         --- End of inner exception stack trace ---
+         at Microsoft.AspNetCore.Server.Kestrel.Core.Internal.AddressBinder.BindEndpointAsync(ListenOptions endpoint, AddressBindContext context, CancellationToken cancellationToken)
+         at Microsoft.AspNetCore.Server.Kestrel.Core.ListenOptions.BindAsync(AddressBindContext context, CancellationToken cancellationToken)
+         at Microsoft.AspNetCore.Server.Kestrel.Core.Internal.AddressBinder.EndpointsStrategy.BindAsync(AddressBindContext context, CancellationToken cancellationToken)
+         at Microsoft.AspNetCore.Server.Kestrel.Core.KestrelServerImpl.BindAsync(CancellationToken cancellationToken)
+         at Microsoft.AspNetCore.Server.Kestrel.Core.KestrelServerImpl.StartAsync[TContext](IHttpApplication`1 application, CancellationToken cancellationToken)
+         at Microsoft.AspNetCore.Hosting.GenericWebHostService.StartAsync(CancellationToken cancellationToken)
+         at Microsoft.Extensions.Hosting.Internal.Host.<StartAsync>b__14_1(IHostedService service, CancellationToken token)
+         at Microsoft.Extensions.Hosting.Internal.Host.ForeachService[T](IEnumerable`1 services, CancellationToken token, Boolean concurrent, Boolean abortOnFirstException, List`1 exceptions, Func`3 operation)
+Unhandled exception. System.IO.IOException: Failed to bind to address http://0.0.0.0:8080: address already in use.
+ ---> Microsoft.AspNetCore.Connections.AddressInUseException: Address already in use
+ ---> System.Net.Sockets.SocketException (48): Address already in use
+   at System.Net.Sockets.Socket.UpdateStatusAfterSocketErrorAndThrowException(SocketError error, Boolean disconnectOnFailure, String callerName)
+   at System.Net.Sockets.Socket.DoBind(EndPoint endPointSnapshot, SocketAddress socketAddress)
+   at System.Net.Sockets.Socket.Bind(EndPoint localEP)
+   at Microsoft.AspNetCore.Server.Kestrel.Transport.Sockets.SocketTransportOptions.CreateDefaultBoundListenSocket(EndPoint endpoint)
+   at Microsoft.AspNetCore.Server.Kestrel.Transport.Sockets.SocketConnectionListener.Bind()
+   --- End of inner exception stack trace ---
+   at Microsoft.AspNetCore.Server.Kestrel.Transport.Sockets.SocketConnectionListener.Bind()
+   at Microsoft.AspNetCore.Server.Kestrel.Transport.Sockets.SocketTransportFactory.BindAsync(EndPoint endpoint, CancellationToken cancellationToken)
+   at Microsoft.AspNetCore.Server.Kestrel.Core.Internal.Infrastructure.TransportManager.BindAsync(EndPoint endPoint, ConnectionDelegate connectionDelegate, EndpointConfig endpointConfig, CancellationToken cancellationToken)
+   at Microsoft.AspNetCore.Server.Kestrel.Core.KestrelServerImpl.<>c__DisplayClass28_0`1.<<StartAsync>g__OnBind|0>d.MoveNext()
+--- End of stack trace from previous location ---
+   at Microsoft.AspNetCore.Server.Kestrel.Core.Internal.AddressBinder.BindEndpointAsync(ListenOptions endpoint, AddressBindContext context, CancellationToken cancellationToken)
+   --- End of inner exception stack trace ---
+   at Microsoft.AspNetCore.Server.Kestrel.Core.Internal.AddressBinder.BindEndpointAsync(ListenOptions endpoint, AddressBindContext context, CancellationToken cancellationToken)
+   at Microsoft.AspNetCore.Server.Kestrel.Core.ListenOptions.BindAsync(AddressBindContext context, CancellationToken cancellationToken)
+   at Microsoft.AspNetCore.Server.Kestrel.Core.Internal.AddressBinder.EndpointsStrategy.BindAsync(AddressBindContext context, CancellationToken cancellationToken)
+   at Microsoft.AspNetCore.Server.Kestrel.Core.KestrelServerImpl.BindAsync(CancellationToken cancellationToken)
+   at Microsoft.AspNetCore.Server.Kestrel.Core.KestrelServerImpl.StartAsync[TContext](IHttpApplication`1 application, CancellationToken cancellationToken)
+   at Microsoft.AspNetCore.Hosting.GenericWebHostService.StartAsync(CancellationToken cancellationToken)
+   at Microsoft.Extensions.Hosting.Internal.Host.<StartAsync>b__14_1(IHostedService service, CancellationToken token)
+   at Microsoft.Extensions.Hosting.Internal.Host.ForeachService[T](IEnumerable`1 services, CancellationToken token, Boolean concurrent, Boolean abortOnFirstException, List`1 exceptions, Func`3 operation)
+   at Microsoft.Extensions.Hosting.Internal.Host.StartAsync(CancellationToken cancellationToken)
+   at Microsoft.Extensions.Hosting.HostingAbstractionsHostExtensions.RunAsync(IHost host, CancellationToken token)
+   at Microsoft.Extensions.Hosting.HostingAbstractionsHostExtensions.RunAsync(IHost host, CancellationToken token)
+   at Microsoft.Extensions.Hosting.HostingAbstractionsHostExtensions.Run(IHost host)
+   at Program.<Main>$(String[] args) in /Users/cloudsmac/Documents/AntiGravity/UnityApp/dotnet-backend/Unity.API/Program.cs:line 157

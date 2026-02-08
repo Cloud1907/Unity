@@ -33,7 +33,7 @@ const MobileBoardView = ({
                 ) : (
                     tasks.map(task => (
                         <MobileTaskCard
-                            key={task._id}
+                            key={task.id}
                             task={task}
                             onClick={onTaskClick}
                             getStatusColor={getStatusColor}

@@ -13,6 +13,25 @@ const ConfirmModal = ({
     type = 'danger' // danger | warning | info
 }) => {
     const modalRef = useRef(null);
+    const [isLoading, setIsLoading] = React.useState(false);
+
+    const handleConfirm = async () => {
+        try {
+            setIsLoading(true);
+            await onConfirm();
+            onClose();
+        } catch (error) {
+            console.error("Confirmation action failed:", error);
+            // Optional: Show error here or let parent handle it
+            // We still close if parent doesn't explicitly return false?
+            // Safer to let parent close, but previous logic was auto-close.
+            // Let's assume onConfirm throws if failed and we might want to keep it open?
+            // For now, adhere to previous "Click -> Action -> Close" but await it.
+            onClose();
+        } finally {
+            setIsLoading(false);
+        }
+    };
 
     useEffect(() => {
         const handleEscape = (e) => {
@@ -74,16 +93,21 @@ const ConfirmModal = ({
                         {cancelText}
                     </button>
                     <button
-                        onClick={() => {
-                            onConfirm();
-                            onClose();
-                        }}
+                        onClick={handleConfirm}
+                        disabled={isLoading}
                         className={`px-4 py-2 text-sm font-bold text-white rounded-lg shadow-lg transition-all transform active:scale-95 ${type === 'danger' ? 'bg-red-600 hover:bg-red-700 shadow-red-500/30' :
                             type === 'warning' ? 'bg-amber-600 hover:bg-amber-700 shadow-amber-500/30' :
                                 'bg-blue-600 hover:bg-blue-700 shadow-blue-500/30'
                             }`}
                     >
-                        {confirmText}
+                        {isLoading ? (
+                            <div className="flex items-center gap-2">
+                                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                <span>İşleniyor...</span>
+                            </div>
+                        ) : (
+                            confirmText
+                        )}
                     </button>
                 </div>
             </div>

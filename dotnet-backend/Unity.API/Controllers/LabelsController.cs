@@ -7,6 +7,8 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.SignalR;
+using Unity.API.Hubs;
 
 namespace Unity.API.Controllers
 {
@@ -16,10 +18,24 @@ namespace Unity.API.Controllers
     public class LabelsController : ControllerBase
     {
         private readonly AppDbContext _context;
+        private readonly IHubContext<AppHub> _hubContext;
 
-        public LabelsController(AppDbContext context)
+        public LabelsController(AppDbContext context, IHubContext<AppHub> hubContext)
         {
             _context = context;
+            _hubContext = hubContext;
+        }
+
+        private int GetCurrentUserId()
+        {
+            var claimId = User.FindFirst("id")?.Value
+                          ?? User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+
+            if (int.TryParse(claimId, out int userId))
+            {
+                return userId;
+            }
+            throw new UnauthorizedAccessException("Invalid User Token.");
         }
 
         [HttpGet]
@@ -45,26 +61,28 @@ namespace Unity.API.Controllers
         {
             if (label.ProjectId <= 0)
                 return BadRequest("ProjectId is required");
-            
+
             if (string.IsNullOrEmpty(label.Name))
                 return BadRequest("Name is required");
 
             // Check duplicate name in project
             var exists = await _context.Labels
                 .AnyAsync(l => l.ProjectId == label.ProjectId && l.Name == label.Name);
-            
+
             if (exists)
             {
-                return Conflict(new { 
-                    detail = "Bu isimde bir etiket bu projede zaten mevcut.", 
+                return Conflict(new
+                {
+                    detail = "Bu isimde bir etiket bu projede zaten mevcut.",
                     message = "Bu isimde bir etiket bu projede zaten mevcut.",
                     title = "Tekrarlayan Kayıt"
                 });
             }
 
-            // Guid.NewGuid() removed for Int Identity
+            var userId = GetCurrentUserId();
             label.Id = 0;
-            
+            label.CreatedBy = userId;
+
             if (string.IsNullOrEmpty(label.Color))
                 label.Color = "#cccccc";
 
@@ -73,7 +91,35 @@ namespace Unity.API.Controllers
             _context.Labels.Add(label);
             await _context.SaveChangesAsync();
 
+            await _hubContext.Clients.All.SendAsync("LabelCreated", label);
+
             return Ok(label);
+        }
+
+        [HttpPut("{id}")]
+        public async Task<ActionResult<Label>> UpdateLabel(int id, [FromBody] Label label)
+        {
+            var existingLabel = await _context.Labels.FindAsync(id);
+            if (existingLabel == null)
+                return NotFound();
+
+            var userId = GetCurrentUserId();
+            var isAdmin = User.IsInRole("admin");
+
+            if (existingLabel.CreatedBy != userId && !isAdmin)
+            {
+                return StatusCode(403, new { message = "Bu etiketi sadece oluşturan kişi veya yönetici güncelleyebilir." });
+            }
+
+            existingLabel.Name = label.Name;
+            existingLabel.Color = label.Color;
+            // ProjectId and CreatedBy usually shouldn't change
+
+            await _context.SaveChangesAsync();
+
+            await _hubContext.Clients.All.SendAsync("LabelUpdated", existingLabel);
+
+            return Ok(existingLabel);
         }
 
         [HttpDelete("{id}")]
@@ -83,8 +129,22 @@ namespace Unity.API.Controllers
             if (label == null)
                 return NotFound();
 
+            var userId = GetCurrentUserId();
+            var isAdmin = User.IsInRole("admin");
+
+            if (label.CreatedBy != userId && !isAdmin)
+            {
+                return StatusCode(403, new { message = "Bu etiketi sadece oluşturan kişi veya yönetici silebilir." });
+            }
+
+            // Remove associations from TaskLabels junction table
+            var taskLabels = _context.TaskLabels.Where(tl => tl.LabelId == id);
+            _context.TaskLabels.RemoveRange(taskLabels);
+
             _context.Labels.Remove(label);
             await _context.SaveChangesAsync();
+
+            await _hubContext.Clients.All.SendAsync("LabelDeleted", id);
 
             return NoContent();
         }

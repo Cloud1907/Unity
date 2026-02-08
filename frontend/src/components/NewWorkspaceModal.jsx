@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useData } from '../contexts/DataContext';
 import { useAuth } from '../contexts/AuthContext';
+import { useUserList } from '../hooks/useUserList';
 import { Button } from './ui/button';
 import {
     Dialog,
@@ -63,7 +64,9 @@ const PREMIUM_ICONS = [
 ];
 
 const NewWorkspaceModal = ({ isOpen, onClose }) => {
-    const { createDepartment, users, fetchProjects } = useData();
+    const { createDepartment, fetchProjects } = useData();
+    // Global Mode: Fetch ALL users for workspace creation
+    const { users, loading: usersLoading } = useUserList({ global: true, enabled: isOpen });
     const { user } = useAuth();
     const [name, setName] = useState('');
     const [description, setDescription] = useState('');

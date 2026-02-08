@@ -60,6 +60,21 @@ export const AuthProvider = ({ children }) => {
     setLoading(false);
   };
 
+  /**
+   * Refetches user profile from backend to sync permissions/data
+   */
+  const refreshUser = async () => {
+    try {
+      const response = await authAPI.getMe();
+      setUser(response.data);
+      localStorage.setItem('user', JSON.stringify(response.data));
+      return { success: true, data: response.data };
+    } catch (error) {
+      console.error('Failed to refresh user:', error);
+      return { success: false, error };
+    }
+  };
+
   const login = async (email, password) => {
     try {
       const response = await authAPI.login({ email, password });
@@ -146,6 +161,31 @@ export const AuthProvider = ({ children }) => {
     localStorage.setItem('user', JSON.stringify(userData));
   };
 
+  // Update user preferences (column visibility, etc.) to backend
+  const updatePreferences = async (preferencesData) => {
+    try {
+      const response = await authAPI.updatePreferences(preferencesData);
+      // Update local user state with new preferences
+      const updatedUser = { ...user };
+      if (response.data?.columnPreferences) {
+        updatedUser.columnPreferences = response.data.columnPreferences;
+      }
+      if (response.data?.sidebarPreferences) {
+        updatedUser.sidebarPreferences = response.data.sidebarPreferences;
+      }
+      if (response.data?.workspacePreferences) {
+        updatedUser.workspacePreferences = response.data.workspacePreferences;
+      }
+
+      setUser(updatedUser);
+      localStorage.setItem('user', JSON.stringify(updatedUser));
+      return { success: true };
+    } catch (error) {
+      console.error('Failed to update preferences:', error);
+      return { success: false, error: error.response?.data?.message || 'Tercih güncellenemedi' };
+    }
+  };
+
   const value = {
     user,
     loading,
@@ -154,6 +194,8 @@ export const AuthProvider = ({ children }) => {
     forgotPassword,
     logout,
     updateUser,
+    refreshUser,
+    updatePreferences,
     isAuthenticated: !!user,
   };
 

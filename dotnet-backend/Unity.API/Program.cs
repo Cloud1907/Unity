@@ -1,7 +1,11 @@
 using Unity.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
+using QuestPDF.Infrastructure;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// QuestPDF License Configuration (Community)
+QuestPDF.Settings.License = LicenseType.Community;
 
 // Windows Service support removed (IIS managed)
 
@@ -14,23 +18,48 @@ builder.Services.AddControllers()
         options.JsonSerializerOptions.PropertyNameCaseInsensitive = true;
         options.JsonSerializerOptions.ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles;
     });
+
+// Increase request size limits (for Base64 avatars)
+builder.Services.Configure<Microsoft.AspNetCore.Http.Features.FormOptions>(options =>
+{
+    options.MultipartBodyLengthLimit = 10485760; // 10MB
+});
+builder.WebHost.ConfigureKestrel(serverOptions =>
+{
+    serverOptions.Limits.MaxRequestBodySize = 10485760; // 10MB
+});
+
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 // Services
 builder.Services.AddScoped<Unity.API.Services.IEmailService, Unity.API.Services.EmailService>();
 builder.Services.AddScoped<Unity.Infrastructure.Services.IAuditService, Unity.Infrastructure.Services.AuditService>();
+builder.Services.AddScoped<Unity.Infrastructure.Services.IActivityLogger, Unity.Infrastructure.Services.ActivityLogger>(); // New Enhanced Logger
+builder.Services.AddScoped<Unity.API.Services.IPdfService, Unity.API.Services.PdfService>();
 
 // CORS for local development
 builder.Services.AddCors(options =>
 {
+    var allowedOrigins = Environment.GetEnvironmentVariable("UNITY_ALLOWED_ORIGINS")?.Split(',', StringSplitOptions.RemoveEmptyEntries);
+    
     options.AddPolicy("AllowAll",
         builder =>
         {
-            builder.WithOrigins("http://localhost:3000", "http://127.0.0.1:3000") // Explicit origin required for AllowCredentials
+            if (allowedOrigins != null && allowedOrigins.Length > 0)
+            {
+                builder.WithOrigins(allowedOrigins)
+                       .AllowAnyMethod()
+                       .AllowAnyHeader()
+                       .AllowCredentials();
+            }
+            else
+            {
+               builder.WithOrigins("http://localhost:3000", "http://localhost:3001", "capacitor://localhost", "http://localhost")
                    .AllowAnyMethod()
                    .AllowAnyHeader()
                    .AllowCredentials();
+            }
         });
 });
 
@@ -93,6 +122,7 @@ app.UseStaticFiles();
 
 // ... (uploads static files) ...
 
+app.UseMiddleware<Unity.API.Middlewares.PerformanceLoggingMiddleware>();
 app.UseCors("AllowAll");
 
 app.UseAuthentication();

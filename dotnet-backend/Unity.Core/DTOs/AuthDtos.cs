@@ -27,7 +27,18 @@ namespace Unity.Core.DTOs
         public List<int>? Departments { get; set; }
         public string? JobTitle { get; set; }
         public string? Gender { get; set; }
+        public string? ColumnPreferences { get; set; }
+        public string? SidebarPreferences { get; set; }
+        public List<WorkspacePreferenceDto>? WorkspacePreferences { get; set; }
         public DateTime CreatedAt { get; set; }
+    }
+
+    public class WorkspacePreferenceDto
+    {
+        public int DepartmentId { get; set; }
+        public int SortOrder { get; set; }
+        public bool IsVisible { get; set; }
+        public bool IsCollapsed { get; set; }
     }
 
     public class UpdateProfileRequest
@@ -47,5 +58,25 @@ namespace Unity.Core.DTOs
         public string Role { get; set; } = "member";
         public List<int> Departments { get; set; } = new List<int>();
         public string? JobTitle { get; set; }
+    }
+
+    public class UpdatePreferencesRequest
+    {
+        /// <summary>
+        /// JSON string with column visibility settings.
+        /// Example: {"status":true,"priority":true,"tShirtSize":false}
+        /// </summary>
+        public string? ColumnPreferences { get; set; }
+
+        /// <summary>
+        /// JSON string with workspace order and visibility.
+        /// Example: {"order":[1,16,58], "visibility":{"1":true, "16":false}}
+        /// </summary>
+        public string? SidebarPreferences { get; set; }
+
+        /// <summary>
+        /// Structured workspace preferences (replaces SidebarPreferences JSON).
+        /// </summary>
+        public List<WorkspacePreferenceDto>? WorkspacePreferences { get; set; }
     }
 }

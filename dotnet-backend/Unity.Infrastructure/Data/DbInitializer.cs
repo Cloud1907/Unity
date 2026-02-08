@@ -1,4 +1,5 @@
 using Unity.Core.Models;
+using Unity.Core.Helpers;
 using Microsoft.EntityFrameworkCore;
 using System.Text.Json;
 using System.Data;
@@ -12,187 +13,433 @@ namespace Unity.Infrastructure.Data
     {
         public static void Initialize(AppDbContext context)
         {
-            context.Database.EnsureCreated();
+            // context.Database.EnsureCreated(); // EnsureCreated skips migrations. 
+
+            // CLEANUP: Remove zombie assignees that violate new constraints (Deep-Clean)
+            try
+            {
+                // We use raw SQL because migration might fail if we don't clean first.
+                // This targets the specific constraint issue: TaskId IS NULL OR SubtaskId IS NULL
+                var cleanupCmd = "IF OBJECT_ID('dbo.TaskAssignees', 'U') IS NOT NULL DELETE FROM TaskAssignees WHERE TaskId IS NULL AND SubtaskId IS NULL";
+                context.Database.ExecuteSqlRaw(cleanupCmd);
+                Console.WriteLine("DEBUG: Zombie TaskAssignees cleaned up.");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Cleanup Warning: {ex.Message}");
+            }
+
+            context.Database.Migrate(); // Auto-apply all pending migrations
 
             // Schema Migration Patch: Ensure IsMaster column exists
-            try {
+            try
+            {
                 // Check if column exists, if not add it (SQL Server syntax)
                 var command = "IF COL_LENGTH('Departments', 'IsMaster') IS NULL BEGIN ALTER TABLE Departments ADD IsMaster BIT NOT NULL DEFAULT 0 END";
                 context.Database.ExecuteSqlRaw(command);
-            } catch (Exception ex) {
+            }
+            catch (Exception ex)
+            {
                 Console.WriteLine($"Migration Warning: {ex.Message}");
             }
 
-            // DATA REPAIR: Standardize all users as male with professional silhouette avatars
-            try {
-                // Professional male silhouette avatar URL
-                string maleAvatar = "https://api.dicebear.com/7.x/notionists/svg?seed=Felix&backgroundColor=b6e3f4,c0aede,d1d4f9";
+            // Schema Migration Patch: Ensure CreatedAt column exists on Departments
+            try
+            {
+                var addCreatedAtCmd = "IF COL_LENGTH('Departments', 'CreatedAt') IS NULL BEGIN ALTER TABLE Departments ADD CreatedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE() END";
+                context.Database.ExecuteSqlRaw(addCreatedAtCmd);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Migration Warning (CreatedAt): {ex.Message}");
+            }
 
-                var allUsers = context.Users.ToList();
-                bool changed = false;
-                foreach (var u in allUsers) {
-                    bool userChanged = false;
-                    if (u.Gender != "male") { u.Gender = "male"; userChanged = true; }
-                    if (string.IsNullOrEmpty(u.Avatar) || !u.Avatar.Contains("notionists")) { u.Avatar = maleAvatar; userChanged = true; }
-                    
-                    // Legacy repair for Melih explicitly if still needed
-                    if (u.Email == "melih.bulut@univera.com.tr") {
-                        if (string.IsNullOrEmpty(u.FullName)) u.FullName = "Melih Bulut";
-                        if (string.IsNullOrEmpty(u.Role)) u.Role = "admin";
-                        if (string.IsNullOrEmpty(u.PasswordHash)) u.PasswordHash = BCrypt.Net.BCrypt.HashPassword("test123");
-                        userChanged = true;
+            // Schema Migration Patch: Create UserColumnPreferences table if not exists (New Requirement)
+            try
+            {
+                Console.WriteLine("DEBUG: Checking/Creating UserColumnPreferences table...");
+                var createTableCmd = @"
+                    IF OBJECT_ID('dbo.UserColumnPreferences', 'U') IS NULL
+                    BEGIN
+                        CREATE TABLE UserColumnPreferences (
+                            Id INT IDENTITY(1,1) PRIMARY KEY,
+                            UserId INT NOT NULL,
+                            Preferences NVARCHAR(MAX) DEFAULT '{}',
+                            CreatedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
+                            UpdatedAt DATETIME2 NULL
+                        );
+                        CREATE INDEX IX_UserColumnPreferences_UserId ON UserColumnPreferences(UserId);
+                    END";
+
+                // Use ExecuteSqlRaw without parameters and double-escape braces
+                context.Database.ExecuteSqlRaw(createTableCmd.Replace("{}", "{{}}"));
+
+                // Migration Patch: Ensure SidebarPreferences column exists if table existed previously
+                var addSidebarPrefsCmd = "IF COL_LENGTH('UserColumnPreferences', 'SidebarPreferences') IS NULL BEGIN ALTER TABLE UserColumnPreferences ADD SidebarPreferences NVARCHAR(MAX) NOT NULL DEFAULT '{{}}' END";
+                context.Database.ExecuteSqlRaw(addSidebarPrefsCmd);
+
+                Console.WriteLine("DEBUG: Table creation and migration logic executed.");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"CRITICAL ERROR: Table Creation FAILED: {ex.Message}");
+            }
+
+            // Schema Migration Patch: Create UserWorkspacePreferences table (Structured Preferences)
+            try
+            {
+                Console.WriteLine("DEBUG: Checking/Creating UserWorkspacePreferences table...");
+                var createWorkspacePrefsTable = @"
+                    IF OBJECT_ID('dbo.UserWorkspacePreferences', 'U') IS NULL
+                    BEGIN
+                        CREATE TABLE UserWorkspacePreferences (
+                            Id INT IDENTITY(1,1) PRIMARY KEY,
+                            UserId INT NOT NULL,
+                            DepartmentId INT NOT NULL,
+                            SortOrder INT NOT NULL DEFAULT 0,
+                            IsVisible BIT NOT NULL DEFAULT 1,
+                            IsCollapsed BIT NOT NULL DEFAULT 0,
+                            CreatedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
+                            UpdatedAt DATETIME2 NULL,
+                            CONSTRAINT FK_UserWorkspacePreferences_User FOREIGN KEY (UserId) REFERENCES Users(Id) ON DELETE CASCADE,
+                            CONSTRAINT FK_UserWorkspacePreferences_Department FOREIGN KEY (DepartmentId) REFERENCES Departments(Id) ON DELETE CASCADE
+                        );
+                        CREATE INDEX IX_UserWorkspacePreferences_UserId ON UserWorkspacePreferences(UserId);
+                        CREATE UNIQUE INDEX IX_UserWorkspacePreferences_UserDept ON UserWorkspacePreferences(UserId, DepartmentId);
+                    END";
+                context.Database.ExecuteSqlRaw(createWorkspacePrefsTable.Replace("{}", "{{}}"));
+
+                // Migrate existing SidebarPreferences JSON to UserWorkspacePreferences table
+                Console.WriteLine("DEBUG: Migrating SidebarPreferences JSON to UserWorkspacePreferences...");
+                var userPrefs = context.UserColumnPreferences
+                    .Where(p => p.SidebarPreferences != null && p.SidebarPreferences != "{}")
+                    .ToList();
+
+                foreach (var pref in userPrefs)
+                {
+                    try
+                    {
+                        var json = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(pref.SidebarPreferences);
+                        if (json == null) continue;
+
+                        var order = json.ContainsKey("order") && json["order"].ValueKind == JsonValueKind.Array
+                            ? json["order"].EnumerateArray().Select(e => e.GetInt32()).ToList()
+                            : new List<int>();
+
+                        var visibility = new Dictionary<int, bool>();
+                        if (json.ContainsKey("visibility") && json["visibility"].ValueKind == JsonValueKind.Object)
+                        {
+                            foreach (var prop in json["visibility"].EnumerateObject())
+                            {
+                                if (int.TryParse(prop.Name, out int deptId))
+                                {
+                                    visibility[deptId] = prop.Value.GetBoolean();
+                                }
+                            }
+                        }
+
+                        // Create UserWorkspacePreference entries
+                        for (int i = 0; i < order.Count; i++)
+                        {
+                            var deptId = order[i];
+                            var isVisible = visibility.ContainsKey(deptId) ? visibility[deptId] : true;
+
+                            // Check if already exists
+                            var exists = context.UserWorkspacePreferences
+                                .Any(uwp => uwp.UserId == pref.UserId && uwp.DepartmentId == deptId);
+
+                            if (!exists)
+                            {
+                                context.UserWorkspacePreferences.Add(new UserWorkspacePreference
+                                {
+                                    UserId = pref.UserId,
+                                    DepartmentId = deptId,
+                                    SortOrder = i,
+                                    IsVisible = isVisible,
+                                    IsCollapsed = false, // Default to expanded
+                                    CreatedAt = TimeHelper.Now
+                                });
+                            }
+                        }
+                    }
+                    catch (Exception migEx)
+                    {
+                        Console.WriteLine($"Migration warning for UserId {pref.UserId}: {migEx.Message}");
+                    }
+                }
+
+                context.SaveChanges();
+                Console.WriteLine("DEBUG: UserWorkspacePreferences migration completed.");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"CRITICAL ERROR: UserWorkspacePreferences Creation FAILED: {ex.Message}");
+            }
+
+            // Create SQL View for Dashboard Performance Optimization
+            try
+            {
+                Console.WriteLine("DEBUG: Creating/Updating vw_DashboardTasks View...");
+                var createViewCmd = @"
+                    IF OBJECT_ID('dbo.vw_DashboardTasks', 'V') IS NOT NULL
+                        DROP VIEW dbo.vw_DashboardTasks;";
+                context.Database.ExecuteSqlRaw(createViewCmd);
+
+                // Create the view (must be separate batch)
+                var viewSql = @"
+CREATE VIEW vw_DashboardTasks AS
+SELECT 
+    t.Id AS TaskId,
+    t.Title,
+    t.Status,
+    t.Priority,
+    t.Progress,
+    t.DueDate,
+    t.StartDate,
+    t.UpdatedAt,
+    t.ProjectId,
+    p.Name AS ProjectName,
+    p.Color AS ProjectColor,
+    p.DepartmentId,
+    d.Name AS DepartmentName,
+    d.Color AS DepartmentColor,
+    ta.UserId AS AssigneeId
+FROM Tasks t
+INNER JOIN Projects p ON t.ProjectId = p.Id AND p.IsDeleted = 0
+INNER JOIN Departments d ON p.DepartmentId = d.Id AND d.IsDeleted = 0
+LEFT JOIN TaskAssignees ta ON t.Id = ta.TaskId
+WHERE t.IsDeleted = 0;";
+                context.Database.ExecuteSqlRaw(viewSql);
+                Console.WriteLine("DEBUG: vw_DashboardTasks View Created Successfully.");
+
+                // Create View for Dashboard Statistics (Performance Optimization)
+                var createStatsViewCmd = @"
+                    CREATE OR REPLACE VIEW ""vw_UserDashboardStats"" AS
+                    SELECT 
+                        u.""Id"" as ""UserId"",
+                        COUNT(t.""Id"") as ""TotalTasks"",
+                        SUM(CASE WHEN t.""Status"" = 'done' THEN 1 ELSE 0 END) as ""CompletedTasks"",
+                        SUM(CASE WHEN t.""Status"" = 'todo' THEN 1 ELSE 0 END) as ""TodoTasks"",
+                        SUM(CASE WHEN t.""Status"" IN ('working', 'in_progress') THEN 1 ELSE 0 END) as ""InProgressTasks"",
+                        SUM(CASE WHEN t.""Status"" = 'stuck' THEN 1 ELSE 0 END) as ""StuckTasks"",
+                        SUM(CASE WHEN t.""Status"" = 'review' THEN 1 ELSE 0 END) as ""ReviewTasks"",
+                        SUM(CASE WHEN t.""DueDate"" < CURRENT_TIMESTAMP AND t.""Status"" != 'done' THEN 1 ELSE 0 END) as ""OverdueTasks"",
+                        COALESCE(AVG(t.""Progress""), 0) as ""AverageProgress""
+                    FROM ""Users"" u
+                    LEFT JOIN ""TaskAssignees"" ta ON u.""Id"" = ta.""UserId""
+                    LEFT JOIN ""Tasks"" t ON ta.""TaskId"" = t.""Id"" AND t.""IsDeleted"" = 0
+                    WHERE u.""IsDeleted"" = 0
+                    GROUP BY u.""Id"";";
+
+                // For SQL Server (Development Env), use CREATE VIEW, but since we might be on Postgres in prod or SQLite in test,
+                // we need dialect awareness. Assuming Postgres given the quotes in the Plan file, but usually local is SQL Server?
+                // Wait, User is on Mac, likely using Postgres or SQLite. 
+                // Let's stick to standard SQL if possible, or T-SQL for "IF.. DROP.. CREATE" pattern.
+                // Reverting to T-SQL friendly pattern for local dev compatibility if generic.
+
+                var tSqlStatsView = @"
+                    IF OBJECT_ID('dbo.vw_UserDashboardStats', 'V') IS NOT NULL DROP VIEW dbo.vw_UserDashboardStats;
+                    EXEC('
+                    CREATE VIEW dbo.vw_UserDashboardStats AS
+                    SELECT 
+                        u.Id as UserId,
+                        COUNT(t.Id) as TotalTasks,
+                        SUM(CASE WHEN t.Status = ''done'' THEN 1 ELSE 0 END) as DoneTasks,
+                        SUM(CASE WHEN t.Status = ''todo'' THEN 1 ELSE 0 END) as TodoTasks,
+                        SUM(CASE WHEN t.Status IN (''working'', ''in_progress'') THEN 1 ELSE 0 END) as InProgressTasks,
+                        SUM(CASE WHEN t.Status = ''stuck'' THEN 1 ELSE 0 END) as StuckTasks,
+                        SUM(CASE WHEN t.Status = ''review'' THEN 1 ELSE 0 END) as ReviewTasks,
+                        SUM(CASE WHEN t.DueDate < GETDATE() AND t.Status != ''done'' THEN 1 ELSE 0 END) as OverdueTasks,
+                        COALESCE(AVG(t.Progress), 0) as AverageProgress
+                    FROM Users u
+                    LEFT JOIN TaskAssignees ta ON u.Id = ta.UserId
+                    LEFT JOIN Tasks t ON ta.TaskId = t.Id AND t.IsDeleted = 0
+                    WHERE u.IsDeleted = 0
+                    GROUP BY u.Id
+                    ');";
+
+                context.Database.ExecuteSqlRaw(tSqlStatsView);
+                Console.WriteLine("DEBUG: vw_UserDashboardStats View Created Successfully.");
+
+                // Create View for Project Listing Optimization (TECHNICAL_CONSTITUTION 2.1)
+                var projectListView = @"
+                    IF OBJECT_ID('dbo.vw_ProjectList', 'V') IS NOT NULL DROP VIEW dbo.vw_ProjectList;";
+                context.Database.ExecuteSqlRaw(projectListView);
+
+                var createProjectListView = @"
+CREATE VIEW vw_ProjectList AS
+SELECT 
+    p.Id AS Id,
+    p.Id AS ProjectId,
+    p.Name,
+    p.Description,
+    p.Icon,
+    p.Color,
+    p.Status,
+    p.Priority,
+    p.IsPrivate,
+    p.Owner,
+    p.DepartmentId,
+    p.CreatedAt,
+    p.UpdatedAt,
+    d.Name AS DepartmentName,
+    d.Color AS DepartmentColor,
+    (SELECT COUNT(*) FROM Tasks t WHERE t.ProjectId = p.Id AND t.IsDeleted = 0) AS TaskCount,
+    (SELECT COUNT(*) FROM Tasks t WHERE t.ProjectId = p.Id AND t.IsDeleted = 0 AND t.Status = 'done') AS CompletedTaskCount,
+    (SELECT COUNT(*) FROM ProjectMembers pm WHERE pm.ProjectId = p.Id) AS MemberCount
+FROM Projects p
+INNER JOIN Departments d ON p.DepartmentId = d.Id AND d.IsDeleted = 0
+WHERE p.IsDeleted = 0;";
+                context.Database.ExecuteSqlRaw(createProjectListView);
+                Console.WriteLine("DEBUG: vw_ProjectList View Created Successfully.");
+
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"View Creation Warning: {ex.Message}");
+            }
+
+            // PERFORMANCE INDEXES - Critical for query speed
+            try
+            {
+                Console.WriteLine("DEBUG: Creating Performance Indexes...");
+
+                // 1. Tasks: Index for filtering by ProjectId and IsDeleted (most common query)
+                context.Database.ExecuteSqlRaw(@"
+                    IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_Tasks_ProjectId_IsDeleted' AND object_id = OBJECT_ID('Tasks'))
+                    CREATE NONCLUSTERED INDEX IX_Tasks_ProjectId_IsDeleted 
+                    ON Tasks (ProjectId, IsDeleted)
+                    INCLUDE (Title, Status, Priority, DueDate, Progress, CreatedAt, CreatedBy)");
+
+                // 2. Tasks: Index for Status filtering
+                context.Database.ExecuteSqlRaw(@"
+                    IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_Tasks_Status' AND object_id = OBJECT_ID('Tasks'))
+                    CREATE NONCLUSTERED INDEX IX_Tasks_Status ON Tasks (Status)");
+
+                // 3. Tasks: Index for CreatedAt ordering (pagination)
+                context.Database.ExecuteSqlRaw(@"
+                    IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_Tasks_CreatedAt' AND object_id = OBJECT_ID('Tasks'))
+                    CREATE NONCLUSTERED INDEX IX_Tasks_CreatedAt ON Tasks (CreatedAt DESC)");
+
+                // 4. TaskAssignees: Index for user assignments
+                context.Database.ExecuteSqlRaw(@"
+                    IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_TaskAssignees_UserId_TaskId' AND object_id = OBJECT_ID('TaskAssignees'))
+                    CREATE NONCLUSTERED INDEX IX_TaskAssignees_UserId_TaskId ON TaskAssignees (UserId, TaskId)");
+
+                // 5. TaskLabels: Index for label lookups
+                context.Database.ExecuteSqlRaw(@"
+                    IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_TaskLabels_TaskId' AND object_id = OBJECT_ID('TaskLabels'))
+                    CREATE NONCLUSTERED INDEX IX_TaskLabels_TaskId ON TaskLabels (TaskId)");
+
+                // 6. Users: Filtered index for non-deleted users
+                context.Database.ExecuteSqlRaw(@"
+                    IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_Users_IsDeleted' AND object_id = OBJECT_ID('Users'))
+                    CREATE NONCLUSTERED INDEX IX_Users_IsDeleted ON Users (IsDeleted) WHERE IsDeleted = 0");
+
+                // 7. Projects: Index for listing
+                context.Database.ExecuteSqlRaw(@"
+                    IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_Projects_IsDeleted_DepartmentId' AND object_id = OBJECT_ID('Projects'))
+                    CREATE NONCLUSTERED INDEX IX_Projects_IsDeleted_DepartmentId ON Projects (IsDeleted, DepartmentId)
+
+                -- 8. Subtasks: CRITICAL for List View Counts
+                IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_Subtasks_TaskId' AND object_id = OBJECT_ID('Subtasks'))
+                    CREATE NONCLUSTERED INDEX IX_Subtasks_TaskId ON Subtasks (TaskId)
+
+                -- 9. Comments: CRITICAL for List View Counts
+                IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_Comments_TaskId' AND object_id = OBJECT_ID('Comments'))
+                    CREATE NONCLUSTERED INDEX IX_Comments_TaskId ON Comments (TaskId)");
+
+                Console.WriteLine("DEBUG: Performance Indexes Created Successfully.");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Index Creation Warning: {ex.Message}");
+            }
+
+            // Ensure DB is seeded only if empty
+            // ONE-TIME CLEANUP: Clear residual default avatars that were forced by previous logic
+            try
+            {
+                var usersWithDefaults = context.Users
+                    .Where(u => u.Avatar != null && (u.Avatar.Contains("notionists") || u.Avatar.Contains("avataaars")))
+                    .ToList();
+
+                if (usersWithDefaults.Any())
+                {
+                    foreach (var u in usersWithDefaults) u.Avatar = null;
+                    context.SaveChanges();
+                    Console.WriteLine($"DEBUG: Cleaned up {usersWithDefaults.Count} legacy default avatars.");
+                }
+
+                // EMERGENCY CLEANUP: Remove accidental project duplicates
+                // Why: Previous seed logic checked for duplicates without IgnoreQueryFilters,
+                // so it re-created projects that were soft-deleted. This restores the clean state.
+                var duplicateGroups = context.Projects.IgnoreQueryFilters()
+                    .AsEnumerable() // Client-side group (safer for mixed providers)
+                    .GroupBy(p => p.Name)
+                    .Where(g => g.Count() > 1)
+                    .ToList();
+
+                if (duplicateGroups.Any())
+                {
+                    var toDelete = new List<Project>();
+                    foreach (var group in duplicateGroups)
+                    {
+                        // Identify seeds we care about
+                        var isSeedProject = group.Key.Contains("Stokbar") || group.Key.Contains("Enroute") ||
+                                          group.Key.Contains("Quest") || group.Key.Contains("Yönetim") ||
+                                          group.Key.Contains("Satış") || group.Key.Contains("İK") ||
+                                          group.Key.Contains("Pazarlama") || group.Key.Contains("Mobile") ||
+                                          group.Key.Contains("Bütçe") || group.Key.Contains("AI Team");
+
+                        if (isSeedProject)
+                        {
+                            // Keep the logic simple: Keep the OLDEST (lowest ID), delete the REST (new duplicates).
+                            // This ensures the soft-deleted original remains, and the active duplicate is gone.
+                            var dups = group.OrderBy(p => p.Id).Skip(1);
+                            toDelete.AddRange(dups);
+                        }
                     }
 
-                    if (userChanged) changed = true;
+                    if (toDelete.Any())
+                    {
+                        context.Projects.RemoveRange(toDelete);
+                        context.SaveChanges();
+                        Console.WriteLine($"DEBUG: Removed {toDelete.Count} accidental project duplicates.");
+                    }
                 }
-                
-                if (changed) context.SaveChanges();
-            } catch (Exception ex) {
-                Console.WriteLine($"Bulk User Update Warning: {ex.Message}");
+
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Cleanup Warning: {ex.Message}");
             }
 
-            // Check if DB is already seeded (Initial check)
-            if (context.Users.Any())
-            {
-                return;
-            }
+            // IDEMPOTENT SEEDING (Constitution Safe-Guard)
+            // Instead of returning early, we check and seed missing critical data.
+            // FIXED: Must use IgnoreQueryFilters to see Soft-Deleted records too!
 
             // Maps to track legacy String IDs to new Int IDs
-            var deptMap = new Dictionary<string, int>(); // "Stokbar" -> 1
-            var userMap = new Dictionary<string, int>(); // "user-melih" -> 1
-            var projectMap = new Dictionary<string, int>(); // "proj-stokbar-main" -> 1
-            var labelMap = new Dictionary<string, int>(); // "lbl-acileyet" -> 1
+            var deptMap = context.Departments.IgnoreQueryFilters().ToDictionary(d => d.Name, d => d.Id);
+            var userMap = context.Users.IgnoreQueryFilters().ToDictionary(u => u.Username, u => u.Id);
+            var projectMap = context.Projects.IgnoreQueryFilters().ToDictionary(p => p.Name, p => p.Id); // Using Name as key for seed check
+            var labelMap = context.Labels.IgnoreQueryFilters().ToDictionary(l => l.Name + "_" + l.ProjectId, l => l.Id); // Composite key emulation
 
             // Password Hash
             var passwordHash = BCrypt.Net.BCrypt.HashPassword("test123");
 
-            // --- 0. Departments ---
-            var depts = new List<Department>
-            {
-                new Department { Name = "Stokbar", HeadOfDepartment = "Melih", Description = "Stok Yönetimi", Color = "#4F46E5" },
-                new Department { Name = "Enroute", HeadOfDepartment = "Ahmet", Description = "Lojistik", Color = "#10B981" },
-                new Department { Name = "Quest", HeadOfDepartment = "Ayşe", Description = "Kalite", Color = "#F59E0B" },
-                new Department { Name = "Yönetim", HeadOfDepartment = "Fatma", Description = "Üst Yönetim", Color = "#EC4899" },
-                new Department { Name = "Satış", HeadOfDepartment = "Elif", Description = "Satış Departmanı", Color = "#8B5CF6" },
-                new Department { Name = "İK", HeadOfDepartment = "Can", Description = "İnsan Kaynakları", Color = "#14B8A6" },
-                new Department { Name = "Pazarlama", HeadOfDepartment = "Selin", Description = "Pazarlama Departmanı", Color = "#EC4899" },
-                new Department { Name = "ArGe", HeadOfDepartment = "Burak", Description = "Ar-Ge Departmanı", Color = "#6366F1" },
-                new Department { Name = "Finans", HeadOfDepartment = "Zeynep", Description = "Finans Departmanı", Color = "#10B981" },
-                new Department { Name = "Yazılım", HeadOfDepartment = "Melih", Description = "Yazılım Geliştirme", Color = "#3B82F6" }
-            };
+            /* 
+               [DISABLED BY USER ORDER] - Auto-seeding is disabled to prevent duplicate/demo data creation.
+               Use provided SQL scripts for data management.
+            
+            // ... (Seeding Logic Removed) ...
+            */
 
-            context.Departments.AddRange(depts);
-            context.SaveChanges();
+            // Clean exit
+            return;
 
-            // Build Dept Map
-            foreach (var d in depts) deptMap[d.Name] = d.Id;
 
-            // --- 1. Users ---
-            // Helper to get Dept IDs
-            List<int> GetDeptIds(params string[] names) => names.Select(n => deptMap.ContainsKey(n) ? deptMap[n] : 0).Where(id => id > 0).ToList();
 
-            var usersData = new List<(string OldId, User User, List<int> DeptIds)>
-            {
-                ("user-melih", new User { FullName = "Melih Bulut", Email = "melih.bulut@univera.com.tr", Username = "melih", Role = "admin", JobTitle = "Project Manager", Color = "#4F46E5", Avatar = "https://api.dicebear.com/7.x/avataaars/svg?seed=Melih" }, GetDeptIds("Stokbar", "Yönetim", "Satış", "İK", "Pazarlama", "ArGe", "Finans")),
-                ("user-ahmet", new User { FullName = "Ahmet Yılmaz", Email = "ahmet@unity.com", Username = "ahmet", Role = "member", JobTitle = "Logistics Specialist", Color = "#10B981", Avatar = "https://api.dicebear.com/7.x/avataaars/svg?seed=Ahmet" }, GetDeptIds("Enroute")),
-                ("user-ayse", new User { FullName = "Ayşe Demir", Email = "ayse@unity.com", Username = "ayse", Role = "member", JobTitle = "Quality Analyst", Color = "#F59E0B", Avatar = "https://api.dicebear.com/7.x/avataaars/svg?seed=Ayse" }, GetDeptIds("Quest")),
-                ("user-fatma", new User { FullName = "Fatma Kaya", Email = "fatma@unity.com", Username = "fatma", Role = "manager", JobTitle = "Director", Color = "#EC4899", Avatar = "https://api.dicebear.com/7.x/avataaars/svg?seed=Fatma" }, GetDeptIds("Yönetim")),
-                ("user-mehmet", new User { FullName = "Mehmet Çelik", Email = "mehmet@unity.com", Username = "mehmet", Role = "member", JobTitle = "Warehouse Op.", Color = "#6366F1", Avatar = "https://api.dicebear.com/7.x/avataaars/svg?seed=Mehmet" }, GetDeptIds("Stokbar")),
-                ("user-cem", new User { FullName = "Cem Tekin", Email = "cem@unity.com", Username = "cem", Role = "admin", JobTitle = "System Admin", Color = "#3B82F6", Avatar = "https://api.dicebear.com/7.x/avataaars/svg?seed=Cem" }, GetDeptIds()), 
-                ("user-selin", new User { FullName = "Selin Yurt", Email = "selin@unity.com", Username = "selin", Role = "member", JobTitle = "Marketing Lead", Color = "#EC4899", Avatar = "https://api.dicebear.com/7.x/avataaars/svg?seed=Selin" }, GetDeptIds("Pazarlama")),
-                ("user-burak", new User { FullName = "Burak Deniz", Email = "burak@unity.com", Username = "burak", Role = "member", JobTitle = "Senior Dev", Color = "#6366F1", Avatar = "https://api.dicebear.com/7.x/avataaars/svg?seed=Burak" }, GetDeptIds("ArGe")),
-                ("user-zeynep", new User { FullName = "Zeynep Akar", Email = "zeynep@unity.com", Username = "zeynep", Role = "manager", JobTitle = "Finance Manager", Color = "#10B981", Avatar = "https://api.dicebear.com/7.x/avataaars/svg?seed=Zeynep" }, GetDeptIds("Finans")),
-                ("user-elif", new User { FullName = "Elif", Email = "elif@unity.com", Username = "elif", Role = "member", JobTitle="Sales", Color="#8B5CF6", Avatar = "https://api.dicebear.com/7.x/avataaars/svg?seed=Elif" }, GetDeptIds("Satış")),
-                ("user-can", new User { FullName = "Can", Email = "can@unity.com", Username = "can", Role = "member", JobTitle="HR", Color="#14B8A6", Avatar = "https://api.dicebear.com/7.x/avataaars/svg?seed=Can" }, GetDeptIds("İK"))
-            };
-
-            foreach (var set in usersData)
-            {
-                set.User.PasswordHash = passwordHash;
-                set.User.Departments = set.DeptIds.Select(did => new UserDepartment { DepartmentId = did }).ToList();
-                context.Users.Add(set.User);
-            }
-            context.SaveChanges();
-
-            // Build User Map
-            for (int i = 0; i < usersData.Count; i++) userMap[usersData[i].OldId] = usersData[i].User.Id;
-
-            int GetUid(string old) => userMap.ContainsKey(old) ? userMap[old] : (userMap.ContainsKey("user-melih") ? userMap["user-melih"] : 0);
-            List<int> GetUids(params string[] olds) => olds.Select(o => GetUid(o)).ToList();
-
-            // --- 2. Projects ---
-            int GetDid(string name) => deptMap.ContainsKey(name) ? deptMap[name] : 0;
-
-            var projectsData = new List<(string OldId, Project Proj, List<int> MemberIds)>
-            {
-                ("proj-stokbar-main", new Project { Name = "Stokbar Ana Depo", Description = "Merkez depo stok yönetim ve sayım projesi.", DepartmentId = GetDid("Stokbar"), Owner = GetUid("user-melih"), CreatedBy = GetUid("user-melih"), Status = "in_progress", Priority = "high", Color = "#4F46E5" }, GetUids("user-melih", "user-mehmet")),
-                ("proj-enroute-logs", new Project { Name = "Enroute Lojistik", Description = "Sevkiyat takip ve rota optimizasyonu.", DepartmentId = GetDid("Enroute"), Owner = GetUid("user-ahmet"), CreatedBy = GetUid("user-ahmet"), Status = "planning", Priority = "medium", Color = "#10B981" }, GetUids("user-ahmet", "user-melih")),
-                ("proj-quest-qa", new Project { Name = "Quest Kalite", Description = "Kalite kontrol süreçleri.", DepartmentId = GetDid("Quest"), Owner = GetUid("user-ayse"), CreatedBy = GetUid("user-ayse"), Status = "working", Priority = "medium", Color = "#F59E0B" }, GetUids("user-ayse", "user-melih")),
-                ("proj-yonetim-board", new Project { Name = "Yönetim Kurulu", Description = "Şirket içi stratejik kararlar ve raporlar.", DepartmentId = GetDid("Yönetim"), Owner = GetUid("user-fatma"), CreatedBy = GetUid("user-fatma"), Status = "in_progress", Priority = "urgent", Color = "#EC4899" }, GetUids("user-fatma", "user-melih")),
-                ("proj-satis-raporlari", new Project { Name = "Satış Raporları", Description = "Aylık ve yıllık satış hedefleri.", DepartmentId = GetDid("Satış"), Owner = GetUid("user-elif"), CreatedBy = GetUid("user-elif"), Status = "done", Priority = "high", Color = "#8B5CF6" }, GetUids("user-elif", "user-melih")),
-                ("proj-ik-surecleri", new Project { Name = "İK Süreçleri", Description = "İşe alım ve personel yönetimi.", DepartmentId = GetDid("İK"), Owner = GetUid("user-can"), CreatedBy = GetUid("user-can"), Status = "todo", Priority = "low", Color = "#14B8A6" }, GetUids("user-can", "user-melih")),
-                ("proj-pazarlama-kampanya", new Project { Name = "Yaz Kampanyası", Description = "2026 Yaz sezonu reklam çalışmaları.", DepartmentId = GetDid("Pazarlama"), Owner = GetUid("user-selin"), CreatedBy = GetUid("user-selin"), Status = "working", Priority = "high", Color = "#EC4899" }, GetUids("user-selin", "user-melih")),
-                ("proj-arge-v2", new Project { Name = "Mobile App v2", Description = "Yeni nesil mobil uygulama geliştirme.", DepartmentId = GetDid("ArGe"), Owner = GetUid("user-burak"), CreatedBy = GetUid("user-burak"), Status = "in_progress", Priority = "urgent", Color = "#6366F1" }, GetUids("user-burak", "user-melih")),
-                ("proj-finans-butce", new Project { Name = "2026 Bütçe Planı", Description = "Yıllık bütçe dağılımı ve kontrolü.", DepartmentId = GetDid("Finans"), Owner = GetUid("user-zeynep"), CreatedBy = GetUid("user-zeynep"), Status = "review", Priority = "high", Color = "#10B981" }, GetUids("user-zeynep", "user-melih"))
-            };
-
-            foreach (var set in projectsData) 
-            {
-                set.Proj.Members = set.MemberIds.Select(uid => new ProjectMember { UserId = uid }).ToList();
-                context.Projects.Add(set.Proj);
-            }
-            context.SaveChanges();
-
-            for (int i = 0; i < projectsData.Count; i++) projectMap[projectsData[i].OldId] = projectsData[i].Proj.Id;
-            int GetPid(string old) => projectMap.ContainsKey(old) ? projectMap[old] : 0;
-
-            // --- 3. Labels ---
-            var labelsData = new List<(string OldId, Label Lbl)>
-            {
-                ("lbl-acileyet", new Label { Name = "Acileyet", Color = "#EF4444", ProjectId = GetPid("proj-stokbar-main") }),
-                ("lbl-backend", new Label { Name = "Backend", Color = "#3B82F6", ProjectId = GetPid("proj-stokbar-main") }),
-                ("lbl-review", new Label { Name = "Review", Color = "#F59E0B", ProjectId = GetPid("proj-yonetim-board") }),
-                ("lbl-bug", new Label { Name = "Bug", Color = "#DC2626", ProjectId = GetPid("proj-quest-qa") }),
-                ("lbl-feature", new Label { Name = "Feature", Color = "#10B981", ProjectId = GetPid("proj-enroute-logs") }),
-                ("lbl-design", new Label { Name = "Design", Color = "#EC4899", ProjectId = GetPid("proj-pazarlama-kampanya") }),
-                ("lbl-mobile", new Label { Name = "Mobile", Color = "#8B5CF6", ProjectId = GetPid("proj-arge-v2") }),
-                ("lbl-finance", new Label { Name = "Finance", Color = "#10B981", ProjectId = GetPid("proj-finans-butce") })
-            };
-
-            foreach (var set in labelsData) context.Labels.Add(set.Lbl);
-            context.SaveChanges();
-
-            for (int i = 0; i < labelsData.Count; i++) labelMap[labelsData[i].OldId] = labelsData[i].Lbl.Id;
-            List<int> GetLids(params string[] olds) => olds.Select(o => labelMap.ContainsKey(o) ? labelMap[o] : 0).Where(id => id > 0).ToList();
-
-            // --- 4. Tasks ---
-            var taskList = new List<TaskItem>
-            {
-                // Stokbar
-                new TaskItem { ProjectId=GetPid("proj-stokbar-main"), Title="Yıllık Stok Sayımı", Status="todo", Priority="urgent", AssignedBy=GetUid("user-melih"), Assignees=GetUids("user-mehmet").Select(u => new TaskAssignee { UserId = u }).ToList(), Labels=GetLids("lbl-acileyet").Select(l => new TaskLabel { LabelId = l }).ToList(), StartDate=DateTime.UtcNow.AddDays(-2), DueDate=DateTime.UtcNow.AddDays(5), Description="Tüm deponun sayılması gerekiyor." },
-                new TaskItem { ProjectId=GetPid("proj-stokbar-main"), Title="Raf Düzenlemesi", Status="in_progress", Priority="medium", AssignedBy=GetUid("user-melih"), Assignees=GetUids("user-mehmet","user-melih").Select(u => new TaskAssignee { UserId = u }).ToList(), StartDate=DateTime.UtcNow.AddDays(-5), DueDate=DateTime.UtcNow.AddDays(2), Progress=50 },
-                
-                // Enroute
-                new TaskItem { ProjectId=GetPid("proj-enroute-logs"), Title="Araç Bakımları", Status="todo", Priority="high", AssignedBy=GetUid("user-ahmet"), Assignees=GetUids("user-ahmet").Select(u => new TaskAssignee { UserId = u }).ToList(), StartDate=DateTime.UtcNow.AddDays(2), DueDate=DateTime.UtcNow.AddDays(10), Labels=GetLids("lbl-feature").Select(l => new TaskLabel { LabelId = l}).ToList() },
-
-                // Quest
-                new TaskItem { ProjectId=GetPid("proj-quest-qa"), Title="Bug Raporlama", Status="review", Priority="high", AssignedBy=GetUid("user-ayse"), Assignees=GetUids("user-ayse").Select(u => new TaskAssignee { UserId = u }).ToList(), Labels=GetLids("lbl-bug").Select(l => new TaskLabel { LabelId = l }).ToList(), StartDate=DateTime.UtcNow.AddDays(-1), DueDate=DateTime.UtcNow.AddDays(1) },
-
-                // Management
-                new TaskItem { ProjectId=GetPid("proj-yonetim-board"), Title="Bütçe Raporu", Status="review", Priority="high", AssignedBy=GetUid("user-fatma"), Assignees=GetUids("user-melih").Select(u => new TaskAssignee { UserId = u }).ToList(), Labels=GetLids("lbl-review").Select(l => new TaskLabel { LabelId = l }).ToList(), StartDate=DateTime.UtcNow.AddDays(-4) },
-
-                // Marketing
-                new TaskItem { ProjectId=GetPid("proj-pazarlama-kampanya"), Title="Sosyal Medya Planı", Status="in_progress", Priority="medium", AssignedBy=GetUid("user-selin"), Assignees=GetUids("user-selin").Select(u => new TaskAssignee { UserId = u }).ToList(), Labels=GetLids("lbl-design").Select(l => new TaskLabel { LabelId = l }).ToList() },
-
-                // Arge
-                new TaskItem { ProjectId=GetPid("proj-arge-v2"), Title="API Dokümantasyonu", Status="todo", Priority="medium", AssignedBy=GetUid("user-burak"), Assignees=GetUids("user-burak").Select(u => new TaskAssignee { UserId = u }).ToList(), Labels=GetLids("lbl-mobile").Select(l => new TaskLabel { LabelId = l }).ToList() },
-
-                // Finance
-                new TaskItem { ProjectId=GetPid("proj-finans-butce"), Title="Gider Analizi", Status="in_progress", Priority="high", AssignedBy=GetUid("user-zeynep"), Assignees=GetUids("user-zeynep").Select(u => new TaskAssignee { UserId = u }).ToList(), Labels=GetLids("lbl-finance").Select(l => new TaskLabel { LabelId = l }).ToList() }
-            };
-
-            context.Tasks.AddRange(taskList);
-            context.SaveChanges();
         }
     }
 }

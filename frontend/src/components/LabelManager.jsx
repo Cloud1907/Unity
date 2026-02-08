@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, Edit2, Trash2, Tag, X } from 'lucide-react';
 import { useData } from '../contexts/DataContext';
+import { useAuth } from '../contexts/AuthContext';
 import { toast } from './ui/sonner';
+import ConfirmModal from './ui/ConfirmModal';
 
 // Önceden tanımlı renkler (Monday.com tarzı)
 const PRESET_COLORS = [
@@ -28,9 +30,12 @@ const PRESET_COLORS = [
 ];
 
 const LabelManager = ({ projectId, onClose }) => {
+  const { user } = useAuth();
   const { labels: globalLabels, createLabel, updateLabel, deleteLabel } = useData();
   const [isAddMode, setIsAddMode] = useState(false);
   const [editingLabel, setEditingLabel] = useState(null);
+  const [showConfirm, setShowConfirm] = useState(false);
+  const [targetLabel, setTargetLabel] = useState(null);
   const [formData, setFormData] = useState({
     name: '',
     color: PRESET_COLORS[0].color
@@ -47,7 +52,7 @@ const LabelManager = ({ projectId, onClose }) => {
     e.preventDefault();
 
     if (editingLabel) {
-      const result = await updateLabel(editingLabel._id, formData);
+      const result = await updateLabel(editingLabel.id, formData);
       if (result.success) {
         resetForm();
       }
@@ -59,8 +64,16 @@ const LabelManager = ({ projectId, onClose }) => {
     }
   };
 
-  const handleDelete = async (labelId) => {
+  const handleDelete = (label) => {
+    setTargetLabel(label);
+    setShowConfirm(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!targetLabel) return;
+    const labelId = targetLabel.id;
     await deleteLabel(labelId);
+    setTargetLabel(null);
   };
 
   const startEdit = (label) => {
@@ -221,7 +234,7 @@ const LabelManager = ({ projectId, onClose }) => {
             ) : (
               labels.map(label => (
                 <div
-                  key={label._id || label.id}
+                  key={label.id}
                   className="flex items-center justify-between p-3 bg-white border border-gray-200 rounded-lg hover:shadow-md transition-shadow"
                 >
                   <div className="flex items-center gap-3">
@@ -235,20 +248,24 @@ const LabelManager = ({ projectId, onClose }) => {
                   </div>
 
                   <div className="flex items-center gap-1">
-                    <button
-                      onClick={() => startEdit(label)}
-                      className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                      title="Düzenle"
-                    >
-                      <Edit2 size={16} />
-                    </button>
-                    <button
-                      onClick={() => handleDelete(label._id || label.id)}
-                      className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                      title="Sil"
-                    >
-                      <Trash2 size={16} />
-                    </button>
+                    {(user?.role === 'admin' || label.createdBy === user?.id) && (
+                      <>
+                        <button
+                          onClick={() => startEdit(label)}
+                          className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                          title="Düzenle"
+                        >
+                          <Edit2 size={16} />
+                        </button>
+                        <button
+                          onClick={() => handleDelete(label)}
+                          className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                          title="Sil"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </>
+                    )}
                   </div>
                 </div>
               ))
@@ -263,6 +280,16 @@ const LabelManager = ({ projectId, onClose }) => {
           </p>
         </div>
       </div>
+
+      <ConfirmModal
+        isOpen={showConfirm}
+        onClose={() => setShowConfirm(false)}
+        onConfirm={confirmDelete}
+        title="Etiketi Sil"
+        message={`"${targetLabel?.name}" etiketini silmek istediğinizden emin misiniz? Bu etiket tüm görevlerden kaldırılacaktır.`}
+        confirmText="Evet, Sil"
+        cancelText="İptal"
+      />
     </div>
   );
 };

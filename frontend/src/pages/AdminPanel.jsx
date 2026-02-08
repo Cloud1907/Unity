@@ -7,10 +7,14 @@ import { Avatar, AvatarFallback, AvatarImage } from '../components/ui/avatar';
 import { getAvatarUrl } from '../utils/avatarHelper';
 
 const AdminPanel = () => {
-  const { users, projects, fetchUsers, departments, fetchDepartments, createDepartment, updateDepartment, deleteDepartment } = useData();
+  const { users, projects, departments, fetchDepartments, createDepartment, updateDepartment, deleteDepartment, fetchUsers } = useData();
   const [activeTab, setActiveTab] = useState('users'); // 'users', 'departments', 'labels'
   const [searchTerm, setSearchTerm] = useState('');
   const [roleFilter, setRoleFilter] = useState('all');
+
+  // Admin-specific state: users with department NAMES
+  const [adminUsers, setAdminUsers] = useState([]);
+  const [stats, setStats] = useState({ totalUsers: 0, adminCount: 0, memberCount: 0 });
 
   // Modals & Confirm Logs
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -20,23 +24,60 @@ const AdminPanel = () => {
 
   // Department state
   const [isDeptModalOpen, setIsDeptModalOpen] = useState(false);
+  const [isLabelModalOpen, setIsLabelModalOpen] = useState(false); // Added missing state
   const [selectedDept, setSelectedDept] = useState(null);
   const [deptDeleteConfirm, setDeptDeleteConfirm] = useState(null);
 
   // Labels state - Global labels removed as they are now project-specific
 
   useEffect(() => {
-    fetchUsers();
+    // Fetch admin users with server-side filtering
+    const fetchAdminUsers = async () => {
+      if (activeTab !== 'users') return;
+
+      try {
+        const token = localStorage.getItem('token');
+        // Construct query string
+        const params = new URLSearchParams();
+        if (searchTerm) params.append('search', searchTerm);
+        if (roleFilter !== 'all') params.append('role', roleFilter);
+
+        const response = await fetch(`http://localhost:8080/api/users/admin?${params.toString()}`, {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          // Backend now returns { users, totalUsers, adminCount, memberCount }
+          setAdminUsers(data.users);
+          setStats({
+            totalUsers: data.totalUsers,
+            adminCount: data.adminCount,
+            memberCount: data.memberCount
+          });
+        }
+      } catch (error) {
+        console.error('Failed to fetch admin users:', error);
+      }
+    };
+
+    // Debounce search for users
+    const timeoutId = setTimeout(() => {
+      fetchAdminUsers();
+    }, 300);
+
+    return () => clearTimeout(timeoutId);
+  }, [searchTerm, roleFilter, activeTab]);
+
+  useEffect(() => {
     fetchDepartments();
-  }, [fetchUsers, fetchDepartments]);
+  }, [fetchDepartments]);
 
 
-  const filteredUsers = users.filter(user => {
-    const matchesSearch = user.fullName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.email?.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesRole = roleFilter === 'all' || user.role === roleFilter;
-    return matchesSearch && matchesRole;
-  });
+  // Server-side filtered users are directly in adminUsers
+  const filteredUsers = adminUsers;
 
   const filteredDepts = departments.filter(dept =>
     dept.name?.toLowerCase().includes(searchTerm.toLowerCase())
@@ -47,7 +88,20 @@ const AdminPanel = () => {
     try {
       await usersAPI.delete(userId);
       toast.success('Kullanıcı silindi');
-      fetchUsers();
+      // Refresh admin users
+      const token = localStorage.getItem('token');
+      const response = await fetch('http://localhost:8080/api/users/admin', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setAdminUsers(data.users);
+        setStats({
+          totalUsers: data.totalUsers,
+          adminCount: data.adminCount,
+          memberCount: data.memberCount
+        });
+      }
       setDeleteConfirm(null);
     } catch (error) {
       toast.error('Kullanıcı silinemedi');
@@ -64,32 +118,33 @@ const AdminPanel = () => {
 
   const getRoleBadge = (role) => {
     const badges = {
-      admin: { bg: 'bg-red-100', text: 'text-red-700', label: 'Admin', icon: <Shield size={12} /> },
+      admin: { bg: 'bg-red-100', text: 'text-red-700', label: 'Yönetici', icon: <Shield size={12} /> },
       member: { bg: 'bg-blue-100', text: 'text-blue-700', label: 'Üye', icon: <UserIcon size={12} /> }
     };
     const badge = badges[role] || badges.member;
     return (
-      <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold ${badge.bg} ${badge.text}`}>
+      <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${badge.bg} ${badge.text}`}>
         {badge.icon}
         {badge.label}
       </span>
     );
   };
 
-  const getUserDepartments = (user) => {
-    if (user.departments && user.departments.length > 0) {
-      // Map IDs/Names to readable names
-      return user.departments.map(deptIdOrName => {
-        // Flexible match for string vs number
-        const dept = departments.find(d => (d._id || d.id) == deptIdOrName || d.name === deptIdOrName);
-        return dept ? dept.name : null;
-      })
-        .filter(name => name !== null) // Filter out orphans (deleted depts)
-        .join(', ');
-    }
-    const singleDept = departments.find(d => d._id === user.department || d.id === user.department);
-    return singleDept?.name || user.department || '-';
-  };
+  // This function is no longer needed as adminUsers will already contain department names
+  // const getUserDepartments = (user) => {
+  //   if (user.departments && user.departments.length > 0) {
+  //     // Map IDs/Names to readable names using allDepartments
+  //     return user.departments.map(deptIdOrName => {
+  //       // Flexible match for string vs number
+  //       const dept = allDepartments.find(d => d.id == deptIdOrName || d.name === deptIdOrName);
+  //       return dept ? dept.name : null;
+  //     })
+  //       .filter(name => name !== null) // Filter out orphans (deleted depts)
+  //       .join(', ');
+  //   }
+  //   const singleDept = allDepartments.find(d => d.id === user.department);
+  //   return singleDept?.name || user.department || '-';
+  // };
 
   return (
     <div className="h-full bg-gray-50 dark:bg-gray-950 p-6 overflow-auto relative text-gray-900 dark:text-gray-100">
@@ -97,8 +152,8 @@ const AdminPanel = () => {
         {/* Header */}
         <div className="mb-6 flex flex-col md:flex-row md:items-end justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-2">Admin Panel</h1>
-            <p className="text-gray-600 dark:text-gray-400">Sistem yapılandırmasını ve kaynakları yönetin</p>
+            <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-1">Admin Panel</h1>
+            <p className="text-xs text-gray-600 dark:text-gray-400">Sistem yapılandırmasını ve kaynakları yönetin</p>
           </div>
 
           {/* Tab Switcher */}
@@ -126,13 +181,13 @@ const AdminPanel = () => {
           <div className="flex flex-col sm:flex-row gap-4 items-center justify-between">
             {/* Search */}
             <div className="relative flex-1 w-full sm:w-auto">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
+              <Search className="absolute left-2.5 top-1/2 transform -translate-y-1/2 text-gray-400" size={14} />
               <input
                 type="text"
                 placeholder={`${activeTab === 'users' ? "Kullanıcı" : activeTab === 'departments' ? "Çalışma Alanı" : "Etiket"} ara...`}
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 dark:text-gray-100"
+                className="w-full pl-9 pr-4 py-1.5 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500 text-sm text-gray-900 dark:text-gray-100 placeholder:text-gray-400"
               />
             </div>
 
@@ -142,7 +197,7 @@ const AdminPanel = () => {
                 <select
                   value={roleFilter}
                   onChange={(e) => setRoleFilter(e.target.value)}
-                  className="px-4 py-2 bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 dark:text-gray-100"
+                  className="px-3 py-1.5 bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500 text-xs font-medium text-gray-700 dark:text-gray-300"
                 >
                   <option value="all">Tüm Roller</option>
                   <option value="admin">Yönetici (Admin)</option>
@@ -156,9 +211,9 @@ const AdminPanel = () => {
                   else if (activeTab === 'departments') setIsDeptModalOpen(true);
                   else setIsLabelModalOpen(true);
                 }}
-                className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium whitespace-nowrap"
+                className="flex items-center gap-2 px-3 py-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-xs font-bold whitespace-nowrap"
               >
-                <Plus size={18} />
+                <Plus size={14} />
                 {activeTab === 'users' ? 'Yeni Kullanıcı' : activeTab === 'departments' ? 'Yeni Çalışma Alanı' : 'Yeni Etiket'}
               </button>
             </div>
@@ -172,39 +227,39 @@ const AdminPanel = () => {
               <table className="w-full">
                 <thead className="bg-gray-50 dark:bg-gray-900/50 border-b border-gray-200 dark:border-gray-700">
                   <tr>
-                    <th className="text-left px-6 py-4 text-sm font-semibold text-gray-700 dark:text-gray-300">Kullanıcı</th>
-                    <th className="text-left px-6 py-4 text-sm font-semibold text-gray-700 dark:text-gray-300">Email</th>
-                    <th className="text-left px-6 py-4 text-sm font-semibold text-gray-700 dark:text-gray-300">Rol</th>
-                    <th className="text-left px-6 py-4 text-sm font-semibold text-gray-700 dark:text-gray-300">Çalışma Alanları</th>
-                    <th className="text-right px-6 py-4 text-sm font-semibold text-gray-700 dark:text-gray-300">İşlemler</th>
+                    <th className="text-left px-4 py-3 text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Kullanıcı</th>
+                    <th className="text-left px-4 py-3 text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Email</th>
+                    <th className="text-left px-4 py-3 text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Rol</th>
+                    <th className="text-left px-4 py-3 text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Çalışma Alanları</th>
+                    <th className="text-right px-4 py-3 text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">İşlemler</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
                   {filteredUsers.map(user => (
-                    <tr key={user._id || user.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-3">
-                          <Avatar className="w-10 h-10 border border-gray-100 dark:border-gray-700">
+                    <tr key={user.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+                      <td className="px-4 py-2.5">
+                        <div className="flex items-center gap-2.5">
+                          <Avatar className="w-8 h-8 border border-gray-100 dark:border-gray-700">
                             <AvatarImage
                               src={user.avatar ? getAvatarUrl(user.avatar) : ''}
                             />
                             <AvatarFallback
-                              className="font-bold text-white"
+                              className="font-bold text-white text-[10px]"
                               style={{ backgroundColor: user.color || '#6366f1' }}
                             >
-                              {user.fullName?.charAt(0).toUpperCase() || 'U'}
+                              {user.fullName?.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2) || 'U'}
                             </AvatarFallback>
                           </Avatar>
-                          <div>
-                            <p className="font-medium text-gray-900 dark:text-gray-100">{user.fullName}</p>
-                            <p className="text-xs text-gray-500 dark:text-gray-400">{user.id || user._id}</p>
+                          <div className="min-w-0">
+                            <p className="font-semibold text-sm text-gray-900 dark:text-gray-100 truncate">{user.fullName}</p>
+                            <p className="text-[10px] text-gray-500 dark:text-gray-500">ID: {user.id}</p>
                           </div>
                         </div>
                       </td>
-                      <td className="px-6 py-4 text-gray-700 dark:text-gray-300">{user.email}</td>
-                      <td className="px-6 py-4">{getRoleBadge(user.role)}</td>
-                      <td className="px-6 py-4 text-gray-700 dark:text-gray-300">{getUserDepartments(user)}</td>
-                      <td className="px-6 py-4">
+                      <td className="px-4 py-2.5 text-xs text-gray-700 dark:text-gray-300">{user.email}</td>
+                      <td className="px-4 py-2.5">{getRoleBadge(user.role)}</td>
+                      <td className="px-4 py-2.5 text-[11px] text-gray-600 dark:text-gray-400 font-medium leading-relaxed max-w-sm">{user.departmentNames?.join(', ') || '-'}</td>
+                      <td className="px-4 py-2.5">
                         <div className="flex items-center justify-end gap-2">
                           <button
                             onClick={() => {
@@ -241,15 +296,15 @@ const AdminPanel = () => {
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-6">
               <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4">
                 <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Toplam Kullanıcı</p>
-                <p className="text-2xl font-bold text-gray-900 dark:text-white">{users.length}</p>
+                <p className="text-2xl text-gray-900 dark:text-white">{stats.totalUsers}</p>
               </div>
               <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4">
-                <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Admin</p>
-                <p className="text-2xl font-bold text-red-600 dark:text-red-400">{users.filter(u => u.role === 'admin').length}</p>
+                <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Yönetici</p>
+                <p className="text-2xl text-red-600 dark:text-red-400">{stats.adminCount}</p>
               </div>
               <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4">
                 <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Üye</p>
-                <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">{users.filter(u => u.role === 'member').length}</p>
+                <p className="text-2xl text-blue-600 dark:text-blue-400">{stats.memberCount}</p>
               </div>
             </div>
           </>
@@ -260,55 +315,87 @@ const AdminPanel = () => {
               <table className="w-full">
                 <thead className="bg-gray-50 dark:bg-gray-900/50 border-b border-gray-200 dark:border-gray-700">
                   <tr>
-                    <th className="text-left px-6 py-4 text-sm font-semibold text-gray-700 dark:text-gray-300">Çalışma Alanı Adı</th>
-                    <th className="text-left px-6 py-4 text-sm font-semibold text-gray-700 dark:text-gray-300">Yönetici</th>
-                    <th className="text-left px-6 py-4 text-sm font-semibold text-gray-700 dark:text-gray-300">Açıklama</th>
-                    <th className="text-left px-6 py-4 text-sm font-semibold text-gray-700 dark:text-gray-300">Kullanıcı Sayısı</th>
-                    <th className="text-right px-6 py-4 text-sm font-semibold text-gray-700 dark:text-gray-300">İşlemler</th>
+                    <th className="text-left px-4 py-3 text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Çalışma Alanı Adı</th>
+                    <th className="text-left px-4 py-3 text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Yönetici</th>
+                    <th className="text-left px-4 py-3 text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Üyeler</th>
+                    <th className="text-right px-4 py-3 text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">İşlemler</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-                  {filteredDepts.map(dept => (
-                    <tr key={dept._id || dept.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-3">
-                          <div
-                            className="w-4 h-4 rounded-full"
-                            style={{ backgroundColor: dept.color || '#6366f1' }}
-                          />
-                          <span className="font-medium text-gray-900 dark:text-gray-100">{dept.name}</span>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 text-gray-700 dark:text-gray-300">{dept.headOfDepartment || '-'}</td>
-                      <td className="px-6 py-4 text-gray-600 dark:text-gray-400 text-sm truncate max-w-xs">{dept.description || '-'}</td>
-                      <td className="px-6 py-4">
-                        <span className="px-2 py-1 bg-gray-100 dark:bg-gray-700 rounded text-xs">
-                          {users.filter(u => u.departments?.includes(dept.name) || u.department === dept.name).length} Kişi
-                        </span>
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="flex items-center justify-end gap-2">
-                          <button
-                            onClick={() => {
-                              setSelectedDept(dept);
-                              setIsDeptModalOpen(true);
-                            }}
-                            className="p-2 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
-                            title="Düzenle"
-                          >
-                            <Edit2 size={16} />
-                          </button>
-                          <button
-                            onClick={() => setDeptDeleteConfirm(dept)}
-                            className="p-2 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
-                            title="Sil"
-                          >
-                            <Trash2 size={16} />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
+                  {filteredDepts.map(dept => {
+                    const deptMembers = users.filter(u =>
+                      u.departments?.includes(dept.id) ||
+                      u.departments?.includes(dept.name) ||
+                      u.department === dept.name
+                    );
+
+                    return (
+                      <tr key={dept.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+                        <td className="px-4 py-2.5">
+                          <div className="flex items-center gap-2">
+                            <div
+                              className="w-3 h-3 rounded-full"
+                              style={{ backgroundColor: dept.color || '#6366f1' }}
+                            />
+                            <span className="font-semibold text-sm text-gray-900 dark:text-gray-100">{dept.name}</span>
+                          </div>
+                        </td>
+                        <td className="px-4 py-2.5 text-xs text-gray-700 dark:text-gray-300">{dept.headOfDepartment || '-'}</td>
+                        <td className="px-4 py-2.5">
+                          <div className="flex items-center gap-1">
+                            {deptMembers.length > 0 ? (
+                              <>
+                                <div className="flex -space-x-2">
+                                  {deptMembers.slice(0, 5).map(member => (
+                                    <Avatar key={member.id} className="w-6 h-6 border-2 border-white dark:border-gray-800" title={member.fullName}>
+                                      <AvatarImage src={member.avatar ? getAvatarUrl(member.avatar) : ''} />
+                                      <AvatarFallback
+                                        className="text-[8px] text-white font-bold"
+                                        style={{ backgroundColor: member.color || '#6366f1' }}
+                                      >
+                                        {member.fullName?.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2) || 'U'}
+                                      </AvatarFallback>
+                                    </Avatar>
+                                  ))}
+                                </div>
+                                {deptMembers.length > 5 && (
+                                  <span className="text-[10px] text-gray-500 dark:text-gray-400 ml-2">
+                                    +{deptMembers.length - 5}
+                                  </span>
+                                )}
+                                <span className="text-[10px] text-gray-400 dark:text-gray-500 ml-2">
+                                  ({deptMembers.length} kişi)
+                                </span>
+                              </>
+                            ) : (
+                              <span className="text-xs text-gray-400 dark:text-gray-500 italic">Üye yok</span>
+                            )}
+                          </div>
+                        </td>
+                        <td className="px-4 py-2.5">
+                          <div className="flex items-center justify-end gap-2">
+                            <button
+                              onClick={() => {
+                                setSelectedDept(dept);
+                                setIsDeptModalOpen(true);
+                              }}
+                              className="p-2 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
+                              title="Düzenle"
+                            >
+                              <Edit2 size={16} />
+                            </button>
+                            <button
+                              onClick={() => setDeptDeleteConfirm(dept)}
+                              className="p-2 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+                              title="Sil"
+                            >
+                              <Trash2 size={16} />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
 
@@ -378,7 +465,7 @@ const AdminPanel = () => {
           <ConfirmModal
             isOpen={!!deleteConfirm}
             onClose={() => setDeleteConfirm(null)}
-            onConfirm={() => handleDelete(deleteConfirm._id || deleteConfirm.id)}
+            onConfirm={() => handleDelete(deleteConfirm.id)}
             title="Kullanıcıyı Sil"
             message={`${deleteConfirm.fullName} kullanıcısını silmek istediğinizden emin misiniz?`}
           />
@@ -390,7 +477,7 @@ const AdminPanel = () => {
           <ConfirmModal
             isOpen={!!deptDeleteConfirm}
             onClose={() => setDeptDeleteConfirm(null)}
-            onConfirm={() => handleDeleteDept(deptDeleteConfirm._id || deptDeleteConfirm.id)}
+            onConfirm={() => handleDeleteDept(deptDeleteConfirm.id)}
             title="Çalışma Alanını Sil"
             message={`${deptDeleteConfirm.name} çalışma alanını silmek istediğinizden emin misiniz?`}
           />
@@ -437,7 +524,7 @@ const DepartmentFormModal = ({ isOpen, onClose, onSuccess, dept = null }) => {
 
     try {
       if (dept) {
-        await updateDepartment(dept._id || dept.id, formData);
+        await updateDepartment(dept.id, formData);
       } else {
         await createDepartment(formData);
       }
@@ -454,37 +541,37 @@ const DepartmentFormModal = ({ isOpen, onClose, onSuccess, dept = null }) => {
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={onClose}>
-      <div className="bg-white dark:bg-gray-800 rounded-xl p-6 max-w-lg w-full" onClick={(e) => e.stopPropagation()}>
-        <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">
+      <div className="bg-white dark:bg-gray-800 rounded-xl p-4 max-w-lg w-full" onClick={(e) => e.stopPropagation()}>
+        <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-4">
           {dept ? 'Çalışma Alanını Düzenle' : 'Yeni Çalışma Alanı Ekle'}
         </h2>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Çalışma Alanı Adı</label>
+            <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">Çalışma Alanı Adı</label>
             <input
               type="text"
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              className="w-full px-4 py-2 bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 dark:text-gray-100"
+              className="w-full px-3 py-1.5 bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500 text-sm text-gray-900 dark:text-gray-100"
               placeholder="Örn: Mühendislik"
               required
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Çalışma Alanı Yöneticisi</label>
+            <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">Çalışma Alanı Yöneticisi</label>
             <input
               type="text"
               value={formData.headOfDepartment}
               onChange={(e) => setFormData({ ...formData, headOfDepartment: e.target.value })}
-              className="w-full px-4 py-2 bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 dark:text-gray-100"
+              className="w-full px-3 py-1.5 bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500 text-sm text-gray-900 dark:text-gray-100"
               placeholder="Örn: Melih Bulut"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Açıklama</label>
+            <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">Açıklama</label>
             <textarea
               value={formData.description}
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
@@ -492,19 +579,6 @@ const DepartmentFormModal = ({ isOpen, onClose, onSuccess, dept = null }) => {
               rows={3}
               placeholder="Çalışma alanı hakkında kısa bilgi..."
             />
-          </div>
-
-          <div className="flex items-center gap-2">
-            <input
-              type="checkbox"
-              id="isMaster"
-              checked={formData.isMaster}
-              onChange={(e) => setFormData({ ...formData, isMaster: e.target.checked })}
-              className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-            />
-            <label htmlFor="isMaster" className="text-sm font-medium text-gray-700 dark:text-gray-300">
-              Master Çalışma Alanı (Admin yetkisiyle açılan ana grup)
-            </label>
           </div>
 
           <div>
@@ -570,7 +644,7 @@ const UserFormModal = ({ isOpen, onClose, onSuccess, user = null, projects = [] 
     setLoading(true);
 
     try {
-      const userId = user?._id || user?.id;
+      const userId = user?.id;
 
       const { departments, ...restData } = formData;
 
@@ -688,64 +762,29 @@ const UserFormModal = ({ isOpen, onClose, onSuccess, user = null, projects = [] 
           {/* Departments Multi-Select */}
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Çalışma Alanları (Çoklu Seçim)</label>
-            <div className="max-h-60 overflow-y-auto border border-gray-300 dark:border-gray-700 rounded-lg p-3 space-y-4">
-
-              {/* Master Workspaces Group */}
-              <div>
-                <h4 className="text-xs font-bold text-gray-500 capitalize tracking-widest mb-2 flex items-center gap-1">
-                  <Shield size={10} /> Master Çalışma Alanları
-                </h4>
-                <div className="space-y-1">
-                  {departments.filter(d => d.isMaster).map(dept => {
-                    const deptId = dept._id || dept.id;
-                    const isChecked = formData.departments.includes(deptId) || formData.departments.includes(dept.name);
-                    return (
-                      <label key={deptId} className="flex items-center gap-2 cursor-pointer hover:bg-blue-50 dark:hover:bg-blue-900/20 p-2 rounded border border-blue-100 dark:border-blue-900/50">
-                        <input
-                          type="checkbox"
-                          checked={isChecked}
-                          onChange={() => toggleDepartment(deptId)}
-                          className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                        />
-                        <div className="w-2 h-2 rounded-full" style={{ backgroundColor: dept.color || '#6366f1' }} />
-                        <span className="text-sm font-medium text-gray-800 dark:text-gray-200">{dept.name}</span>
-                      </label>
-                    );
-                  })}
-                  {departments.filter(d => d.isMaster).length === 0 && <p className="text-xs text-gray-400 italic px-2">Master alan yok</p>}
-                </div>
-              </div>
-
-              <div className="border-t border-gray-100 dark:border-gray-700"></div>
-
-              {/* Dynamic Workspaces Group */}
-              <div>
-                <h4 className="text-xs font-bold text-gray-500 capitalize tracking-widest mb-2">Diğer Çalışma Alanları</h4>
-                <div className="space-y-1">
-                  {departments.filter(d => !d.isMaster).map(dept => {
-                    const deptId = dept._id || dept.id;
-                    const isChecked = formData.departments.includes(deptId) || formData.departments.includes(dept.name);
-                    return (
-                      <label key={deptId} className="flex items-center gap-2 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-900/50 p-2 rounded">
-                        <input
-                          type="checkbox"
-                          checked={isChecked}
-                          onChange={() => toggleDepartment(deptId)}
-                          className="rounded border-gray-300"
-                        />
-                        <div className="w-2 h-2 rounded-full opacity-70" style={{ backgroundColor: dept.color || '#6366f1' }} />
-                        <span className="text-sm text-gray-600 dark:text-gray-400">{dept.name}</span>
-                      </label>
-                    );
-                  })}
-                </div>
-              </div>
-
+            <div className="max-h-60 overflow-y-auto border border-gray-300 dark:border-gray-700 rounded-lg p-3 space-y-1">
+              {departments.map(dept => {
+                const deptId = dept.id;
+                const isChecked = formData.departments.includes(deptId) || formData.departments.includes(dept.name);
+                return (
+                  <label key={deptId} className="flex items-center gap-2 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-900/50 p-2 rounded">
+                    <input
+                      type="checkbox"
+                      checked={isChecked}
+                      onChange={() => toggleDepartment(deptId)}
+                      className="rounded border-gray-300"
+                    />
+                    <div className="w-2 h-2 rounded-full" style={{ backgroundColor: dept.color || '#6366f1' }} />
+                    <span className="text-sm text-gray-700 dark:text-gray-300">{dept.name}</span>
+                  </label>
+                );
+              })}
+              {departments.length === 0 && <p className="text-xs text-gray-400 italic px-2">Çalışma alanı yok</p>}
             </div>
             <p className="text-xs text-gray-500 mt-2">
               Seçilen: {
                 formData.departments.map(d => {
-                  const dp = departments.find(x => (x._id || x.id) === d || x.name === d);
+                  const dp = departments.find(x => x.id === d || x.name === d);
                   return dp ? dp.name : d;
                 }).join(', ') || 'Hiçbiri'
               }
@@ -795,7 +834,7 @@ const LabelFormModal = ({ isOpen, onClose, onSuccess, label = null }) => {
 
     try {
       if (label) {
-        await labelsAPI.update(label.id || label._id, formData);
+        await labelsAPI.update(label.id, formData);
       } else {
         await labelsAPI.create(formData);
       }

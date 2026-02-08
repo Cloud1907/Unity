@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using Unity.Core.Models;
 using Unity.Infrastructure.Data;
 using Unity.Infrastructure.Services;
+using Microsoft.AspNetCore.Authorization;
 using System.Security.Claims;
 
 namespace Unity.API.Controllers
@@ -36,23 +37,50 @@ namespace Unity.API.Controllers
         [HttpGet]
         public async Task<ActionResult<IEnumerable<Department>>> GetDepartments()
         {
-            return await _context.Departments.ToListAsync();
+            int userId = GetCurrentUserId();
+            if (userId == 0) return Unauthorized();
+
+            // Return only workspaces where the user is a member
+            return await _context.UserDepartments
+                .AsNoTracking() // PERFORMANCE FIX: Read-only
+                .Include(ud => ud.Department)
+                .Where(ud => ud.UserId == userId)
+                .Select(ud => ud.Department)
+                .Where(d => d != null && !d.IsDeleted)
+                .ToListAsync();
+        }
+
+        [HttpGet("all")]
+        [Authorize(Roles = "admin")]
+        public async Task<ActionResult<IEnumerable<Department>>> GetAllDepartments()
+        {
+            // Admin-only endpoint: Return ALL departments for Admin Panel user mapping
+            return await _context.Departments
+                .Where(d => !d.IsDeleted)
+                .OrderBy(d => d.Name)
+                .ToListAsync();
         }
 
         [HttpPost]
-        public async Task<ActionResult<Department>> CreateDepartment(Department department)
+        public async Task<ActionResult<Department>> CreateDepartment(Unity.Core.DTOs.DepartmentCreateDto dto)
         {
-            if (string.IsNullOrEmpty(department.Name))
+            if (string.IsNullOrEmpty(dto.Name))
                 return BadRequest("Çalışma alanı adı zorunludur.");
             
-            department.Id = 0;
+            // Create Department
+            var department = new Department
+            {
+                Id = 0,
+                Name = dto.Name,
+                Description = dto.Description ?? string.Empty
+            };
             
             // Set Creator
             int userId = GetCurrentUserId();
             department.CreatedBy = userId;
 
             // Set HeadOfDepartment as the creator if not specified
-            if (string.IsNullOrEmpty(department.HeadOfDepartment) && userId > 0)
+            if (userId > 0)
             {
                  var user = await _context.Users.FindAsync(userId);
                  if (user != null) department.HeadOfDepartment = user.FullName;
@@ -61,20 +89,59 @@ namespace Unity.API.Controllers
             _context.Departments.Add(department);
             await _context.SaveChangesAsync();
 
-            // Auto-add creator to this department
-            if (userId > 0)
+            // Add members to the department
+            var memberIds = dto.UserIds ?? new List<int>();
+            
+            // Ensure creator is in the list
+            if (userId > 0 && !memberIds.Contains(userId))
             {
-                 var user = await _context.Users.FindAsync(userId);
-                 if (user != null && !user.Departments.Any(d => d.DepartmentId == department.Id))
-                 {
-                     var list = user.Departments;
-                     list.Add(new UserDepartment { DepartmentId = department.Id });
-                     user.Departments = list;
-                     await _context.SaveChangesAsync();
-                 }
-                 
-                 await _auditService.LogAsync(userId.ToString(), "CREATE", "Department", department.Id.ToString(), null, department, $"'{department.Name}' çalışma alanı oluşturuldu.");
+                memberIds.Add(userId);
             }
+
+            // Add all members
+            foreach (var memberId in memberIds)
+            {
+                var alreadyMember = await _context.UserDepartments.AnyAsync(ud => ud.UserId == memberId && ud.DepartmentId == department.Id);
+                if (!alreadyMember)
+                {
+                    _context.UserDepartments.Add(new UserDepartment { UserId = memberId, DepartmentId = department.Id });
+                }
+            }
+            await _context.SaveChangesAsync();
+
+            // Create initial project if requested
+            if (dto.InitialProject != null && !string.IsNullOrEmpty(dto.InitialProject.Name))
+            {
+                var project = new Project
+                {
+                    Name = dto.InitialProject.Name,
+                    Icon = dto.InitialProject.Icon,
+                    Color = dto.InitialProject.Color,
+                    IsPrivate = dto.InitialProject.IsPrivate,
+                    DepartmentId = department.Id,
+                    Owner = userId,
+                    Status = "in_progress"
+                };
+
+                _context.Projects.Add(project);
+                await _context.SaveChangesAsync();
+
+                // Add project members (same as workspace members by default)
+                var projectMemberIds = dto.InitialProject.MemberIds ?? memberIds;
+                foreach (var memberId in projectMemberIds)
+                {
+                    _context.ProjectMembers.Add(new ProjectMember 
+                    { 
+                        ProjectId = project.Id, 
+                        UserId = memberId 
+                    });
+                }
+                await _context.SaveChangesAsync();
+
+                await _auditService.LogAsync(userId.ToString(), "CREATE", "Project", project.Id.ToString(), null, project, $"'{project.Name}' projesi '{department.Name}' çalışma alanında oluşturuldu.");
+            }
+                 
+            await _auditService.LogAsync(userId.ToString(), "CREATE", "Department", department.Id.ToString(), null, department, $"'{department.Name}' çalışma alanı oluşturuldu.");
 
             return CreatedAtAction(nameof(GetDepartments), new { id = department.Id }, department);
         }
@@ -84,29 +151,38 @@ namespace Unity.API.Controllers
         {
             if (id != department.Id) return BadRequest("ID uyuşmazlığı.");
 
-            var oldDept = await _context.Departments.AsNoTracking().FirstOrDefaultAsync(d => d.Id == id);
-            if (oldDept == null) return NotFound("Çalışma alanı bulunamadı.");
+            var existingDept = await _context.Departments.FindAsync(id);
+            if (existingDept == null) return NotFound("Çalışma alanı bulunamadı.");
 
             int currentUserId = GetCurrentUserId();
             var currentUser = await _context.Users.FindAsync(currentUserId);
 
             // Permission Check: Admin OR Creator
-            // Note: If CreatedBy is 0 (legacy), afford access to HeadOfDepartment name match or Admin? 
-            // Ideally strictly CreatedBy or Admin.
-            bool isCreator = oldDept.CreatedBy == currentUserId;
-            // Legacy fallback: if CreatedBy is 0, allow if HeadOfDepartment matches specific name? No, safer to rely on Admin fix if needed.
+            bool isCreator = existingDept.CreatedBy == currentUserId;
 
             if (currentUser?.Role != "admin" && !isCreator)
             {
                 return StatusCode(403, new { message = "Bu çalışma alanını güncelleme yetkiniz yok. Sadece çalışma alanını oluşturan kişi veya yönetici güncelleyebilir." });
             }
             
-            _context.Entry(department).State = EntityState.Modified;
+            // MANUAL MERGE: Only update user-editable fields to prevent overwriting metadata (CreatedBy, Owner, CreatedAt)
+            string oldName = existingDept.Name;
+            existingDept.Name = department.Name;
+            existingDept.Description = department.Description;
+            // Note: CreatedBy, Owner, CreatedAt are intentionally NOT updated
 
             try
             {
                 await _context.SaveChangesAsync();
-                await _auditService.LogAsync(currentUserId.ToString(), "UPDATE", "Department", id.ToString(), oldDept, department, $"'{department.Name}' çalışma alanı güncellendi.");
+                await _auditService.LogAsync(
+                    currentUserId.ToString(), 
+                    "UPDATE", 
+                    "Department", 
+                    id.ToString(), 
+                    new { Name = oldName }, 
+                    new { Name = existingDept.Name }, 
+                    $"'{existingDept.Name}' çalışma alanı güncellendi."
+                );
             }
             catch (DbUpdateConcurrencyException)
             {
@@ -185,18 +261,21 @@ namespace Unity.API.Controllers
             var targetUser = await _context.Users.FindAsync(targetUserId);
             if (targetUser == null) return NotFound(new { message = "Kullanıcı bulunamadı." });
 
-            if (!targetUser.Departments.Any(d => d.DepartmentId == id))
+            // Robust check: Query join table directly
+            var membership = await _context.UserDepartments
+                .FirstOrDefaultAsync(ud => ud.DepartmentId == id && ud.UserId == targetUserId);
+
+            if (membership == null)
                 return BadRequest(new { message = "Kullanıcı bu çalışma alanının üyesi değil." });
 
             int currentUserId = GetCurrentUserId();
             var currentUser = await _context.Users.FindAsync(currentUserId);
 
-            // Permission Check: Admin OR Creator OR Self-Leave?
+            // Permission Check: Admin OR Creator
             bool isAdmin = currentUser?.Role == "admin";
             bool isCreator = department.CreatedBy == currentUserId;
-            // bool isSelf = currentUserId == targetUserId; // Allow user to leave themselves? (Optional, usually yes)
 
-            if (!isAdmin && !isCreator) // && !isSelf
+            if (!isAdmin && !isCreator)
             {
                 return StatusCode(403, new { 
                     message = "Bu kullanıcıyı çalışma alanından çıkarma yetkiniz yok. Sadece çalışma alanını oluşturan kişi veya yönetici üye çıkarabilir.",
@@ -204,22 +283,16 @@ namespace Unity.API.Controllers
                 });
             }
 
-            // Prevent removing the creator?
+            // Prevent removing the creator
             if (targetUserId == department.CreatedBy)
             {
-                 // Allow only if Admin is doing it? Or block entirely?
-                 // Let's warn effectively
                  if (!isAdmin)
                  {
                      return BadRequest(new { message = "Çalışma alanını oluşturan kişi çıkarılamaz." });
                  }
             }
 
-            var depts = targetUser.Departments;
-            var toRemove = depts.FirstOrDefault(d => d.DepartmentId == id);
-            if (toRemove != null) depts.Remove(toRemove);
-            targetUser.Departments = depts;
-
+            _context.UserDepartments.Remove(membership);
             await _context.SaveChangesAsync();
 
             await _auditService.LogAsync(currentUserId.ToString(), "REMOVE_MEMBER", "Department", id.ToString(), targetUserId, null, $"{targetUser.FullName}, '{department.Name}' çalışma alanından çıkarıldı.");

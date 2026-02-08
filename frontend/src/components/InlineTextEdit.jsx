@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 
-const InlineTextEdit = ({ value, onSave, placeholder = 'Görev adı girin...', className = '', inputClassName = '', startEditing = false }) => {
+const InlineTextEdit = ({ value, onSave, placeholder = 'Görev adı girin...', className = '', inputClassName = '', startEditing = false, multiLine = false }) => {
     const [isEditing, setIsEditing] = useState(false);
     const [text, setText] = useState(value);
     const inputRef = useRef(null);
@@ -75,16 +75,27 @@ const InlineTextEdit = ({ value, onSave, placeholder = 'Görev adı girin...', c
         );
     }
 
+    // Multi-line mode uses line-clamp for 2 lines max, otherwise truncate
+    const displayClass = multiLine
+        ? 'w-full h-full cursor-text hover:bg-gray-100 dark:hover:bg-gray-700/50 rounded px-2 py-1 text-xs transition-colors flex items-center'
+        : 'w-full h-full cursor-text hover:bg-gray-100 dark:hover:bg-gray-700/50 rounded px-2 py-1 text-xs transition-colors flex items-center truncate';
+
+    const textClass = multiLine
+        ? 'line-clamp-2 leading-snug'
+        : 'truncate';
+
     return (
         <div
             onClick={(e) => {
                 e.stopPropagation();
                 setIsEditing(true);
             }}
-            className={`w-full h-full cursor-text hover:bg-gray-100 dark:hover:bg-gray-700/50 rounded px-2 py-1 text-xs transition-colors flex items-center whitespace-pre-wrap break-words ${className}`}
-            title="Düzenlemek için tıklayın"
+            className={`${displayClass} ${className}`}
+            title={value || placeholder} // Tooltip shows full text on hover
         >
-            {value || <span className="text-gray-400 italic">{placeholder}</span>}
+            <span className={textClass}>
+                {value || <span className="text-gray-400 italic">{placeholder}</span>}
+            </span>
         </div>
     );
 };

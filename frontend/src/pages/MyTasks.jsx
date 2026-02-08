@@ -20,7 +20,7 @@ const MyTasks = () => {
     const [selectedTask, setSelectedTask] = useState(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
 
-    const currentUserId = user?._id || user?.id || parseInt(localStorage.getItem('userId'));
+    const currentUserId = user?.id || parseInt(localStorage.getItem('userId'));
 
     // Status Definitions and Explanations
     const statusGroups = {
@@ -134,12 +134,12 @@ const MyTasks = () => {
     }, [myTasks, filter, searchQuery]);
 
     const getProjectName = (projectId) => {
-        const p = projects.find(prj => prj.id === projectId || prj._id === projectId);
+        const p = projects.find(prj => prj.id === projectId);
         return p ? p.name : 'Unknown Project';
     };
 
     const getProjectColor = (projectId) => {
-        const p = projects.find(prj => prj.id === projectId || prj._id === projectId);
+        const p = projects.find(prj => prj.id === projectId);
         return p ? p.color : '#cbd5e1';
     };
 

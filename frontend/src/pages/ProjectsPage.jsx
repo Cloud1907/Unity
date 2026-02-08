@@ -11,7 +11,7 @@ const ProjectsPage = () => {
   const filteredProjects = projects.filter(project => {
     if (filter === 'favorites') return project.favorite;
     if (filter === 'active') {
-      const projectTasks = tasks.filter(t => t.projectId === project._id);
+      const projectTasks = tasks.filter(t => t.projectId === project.id);
       return projectTasks.some(t => t.status !== 'done');
     }
     return true;
@@ -105,12 +105,12 @@ const ProjectsPage = () => {
 
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {deptProjects.map(project => {
-                  const stats = getProjectStats(project._id);
+                  const stats = getProjectStats(project.id);
 
                   return (
                     <div
-                      key={project._id}
-                      onClick={() => navigate(`/board/${project._id}`)}
+                      key={project.id}
+                      onClick={() => navigate(`/board/${project.id}`)}
                       className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm border border-gray-200 dark:border-gray-700 hover:shadow-xl dark:hover:shadow-gray-900 transition-all cursor-pointer group"
                     >
                       {/* Header */}

@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect, useLayoutEffect } from 'react';
 import ReactDOM from 'react-dom';
 import { ChevronDown } from 'lucide-react';
+import { useOptimisticUpdate } from '../hooks/useOptimisticUpdate';
 
 const InlineDropdown = ({ value, options, onChange, colorKey = 'color', labelKey = 'label', softBadge = false }) => {
     const [isOpen, setIsOpen] = useState(false);
@@ -8,15 +9,35 @@ const InlineDropdown = ({ value, options, onChange, colorKey = 'color', labelKey
     const buttonRef = useRef(null);
     const [position, setPosition] = useState({ top: 0, left: 0 });
 
+    // Optimistic Update Hook
+    const optimistic = useOptimisticUpdate(value, onChange);
+
+    // Shake animation class on error
+    const shakeClass = optimistic.isError ? "animate-shake ring-2 ring-red-500 ring-offset-1" : "";
+    const pendingClass = optimistic.isPending ? "opacity-70 cursor-wait" : "";
+
     useLayoutEffect(() => {
         if (isOpen && buttonRef.current) {
             const rect = buttonRef.current.getBoundingClientRect();
-            setPosition({
-                top: rect.bottom + window.scrollY + 4,
-                left: rect.left + window.scrollX
-            });
+            const viewportWidth = window.innerWidth;
+            const viewportHeight = window.innerHeight;
+
+            const popoverWidth = 160;
+            const popoverHeight = options.length * 40 + 20;
+
+            let top = rect.bottom + 4;
+            let left = rect.left;
+
+            if (top + popoverHeight > viewportHeight) {
+                top = Math.max(8, rect.top - popoverHeight - 8);
+            }
+            if (left + popoverWidth > viewportWidth) {
+                left = Math.max(8, viewportWidth - popoverWidth - 12);
+            }
+
+            setPosition({ top, left });
         }
-    }, [isOpen]);
+    }, [isOpen, options.length]);
 
     useEffect(() => {
         const handleClickOutside = (event) => {
@@ -35,25 +56,25 @@ const InlineDropdown = ({ value, options, onChange, colorKey = 'color', labelKey
         };
     }, [isOpen]);
 
-    const currentOption = options.find(opt => opt.id === value);
+    const currentOption = options.find(opt => opt.id === optimistic.value);
     const isPlaceholder = !currentOption;
 
     // Soft Badge Color Mapping (Design System)
     const getSoftBadgeColors = (option) => {
         const colorMap = {
             // Priority colors
-            low: { bg: 'bg-gray-50', text: 'text-gray-600', border: 'border-gray-200' },
-            medium: { bg: 'bg-blue-50', text: 'text-blue-700', border: 'border-blue-200' },
-            high: { bg: 'bg-orange-50', text: 'text-orange-700', border: 'border-orange-200' },
-            urgent: { bg: 'bg-red-50', text: 'text-red-700', border: 'border-red-200' },
+            low: { bg: 'bg-slate-50', text: 'text-slate-600', border: 'border-slate-200' },
+            medium: { bg: 'bg-indigo-50/50', text: 'text-indigo-700', border: 'border-indigo-200/50' },
+            high: { bg: 'bg-orange-50/50', text: 'text-orange-700', border: 'border-orange-200/50' },
+            urgent: { bg: 'bg-red-50/50', text: 'text-red-700', border: 'border-red-200/50' },
             // T-Shirt sizes (soft versions)
-            small: { bg: 'bg-green-50', text: 'text-green-700', border: 'border-green-200' },
-            medium_tshirt: { bg: 'bg-gray-50', text: 'text-gray-700', border: 'border-gray-200' },
-            large: { bg: 'bg-purple-50', text: 'text-purple-700', border: 'border-purple-200' },
-            xlarge: { bg: 'bg-orange-50', text: 'text-orange-700', border: 'border-orange-200' },
-            xxlarge: { bg: 'bg-pink-50', text: 'text-pink-700', border: 'border-pink-200' },
+            small: { bg: 'bg-green-50/50', text: 'text-green-700', border: 'border-green-200/50' },
+            medium_tshirt: { bg: 'bg-slate-50', text: 'text-slate-700', border: 'border-slate-200' },
+            large: { bg: 'bg-purple-50/50', text: 'text-purple-700', border: 'border-purple-200/50' },
+            xlarge: { bg: 'bg-orange-50/50', text: 'text-orange-700', border: 'border-orange-200/50' },
+            xxlarge: { bg: 'bg-rose-50/50', text: 'text-rose-700', border: 'border-rose-200/50' },
         };
-        return colorMap[option.id] || { bg: 'bg-gray-50', text: 'text-gray-600', border: 'border-gray-200' };
+        return colorMap[option.id] || { bg: 'bg-slate-50', text: 'text-slate-600', border: 'border-slate-200' };
     };
 
     const dropdownContent = (
@@ -70,10 +91,10 @@ const InlineDropdown = ({ value, options, onChange, colorKey = 'color', labelKey
                 <button
                     key={option.id}
                     onClick={() => {
-                        onChange(option.id);
+                        optimistic.update(option.id);
                         setIsOpen(false);
                     }}
-                    className="w-full flex items-center gap-2 px-3 py-2 text-xs font-semibold hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors"
+                    className="w-full flex items-center gap-2 px-3 py-2 text-xs font-medium hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors"
                 >
                     <div
                         className="w-3 h-3 rounded-full shrink-0"
@@ -81,7 +102,7 @@ const InlineDropdown = ({ value, options, onChange, colorKey = 'color', labelKey
                     />
                     {option.icon && <span className="shrink-0 opacity-70">{option.icon}</span>}
                     <span className="text-gray-900 dark:text-gray-200">{option[labelKey]}</span>
-                    {value === option.id && (
+                    {optimistic.value === option.id && (
                         <span className="ml-auto text-[#6366f1] dark:text-[#818cf8]">✓</span>
                     )}
                 </button>
@@ -100,11 +121,11 @@ const InlineDropdown = ({ value, options, onChange, colorKey = 'color', labelKey
                         e.stopPropagation();
                         setIsOpen(!isOpen);
                     }}
-                    className={`group inline-flex items-center gap-2 px-3 py-1.5 rounded-md text-xs font-medium transition-all ${colors.bg} ${colors.text} border ${colors.border} hover:shadow-sm`}
+                    className={`group inline-flex items-center gap-2 px-2 py-1 rounded-md text-[11px] font-normal transition-all ${colors.bg} ${colors.text} border ${colors.border} hover:shadow-sm ${shakeClass} ${pendingClass}`}
                 >
                     {currentOption.icon && <span className="shrink-0">{currentOption.icon}</span>}
                     <span className="truncate whitespace-nowrap flex-1 text-left">{currentOption[labelKey]}</span>
-                    <ChevronDown size={12} className="opacity-50 group-hover:opacity-100 transition-opacity" />
+                    <ChevronDown size={11} className="opacity-40 group-hover:opacity-80 transition-opacity" />
                 </button>
                 {isOpen && ReactDOM.createPortal(dropdownContent, document.body)}
             </>
@@ -120,17 +141,17 @@ const InlineDropdown = ({ value, options, onChange, colorKey = 'color', labelKey
                     e.stopPropagation();
                     setIsOpen(!isOpen);
                 }}
-                className={`group inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all hover:shadow-sm border ${isPlaceholder
+                className={`group inline-flex items-center gap-2 px-2 py-1 rounded text-[11px] font-medium transition-all hover:shadow-sm border ${isPlaceholder
                     ? 'border-dashed border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-800 text-gray-400 dark:text-gray-500 hover:border-gray-400 dark:hover:border-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700'
-                    : 'border-transparent hover:border-gray-200 dark:hover:border-gray-700'
-                    }`}
+                    : 'border-transparent'
+                    } ${shakeClass} ${pendingClass}`}
                 style={!isPlaceholder ? {
                     backgroundColor: currentOption[colorKey],
                     color: currentOption.textColor || 'white'
                 } : {}}
             >
                 <span className="truncate whitespace-nowrap flex-1 text-left">{isPlaceholder ? 'Seç...' : currentOption[labelKey]}</span>
-                <ChevronDown size={12} className="opacity-50 group-hover:opacity-100 transition-opacity" />
+                <ChevronDown size={11} className="opacity-60 group-hover:opacity-100 transition-opacity" />
             </button>
             {isOpen && ReactDOM.createPortal(dropdownContent, document.body)}
         </>

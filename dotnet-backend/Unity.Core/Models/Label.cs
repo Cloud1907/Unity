@@ -18,6 +18,7 @@ namespace Unity.Core.Models
         
 
         public int? ProjectId { get; set; } 
+        public int? CreatedBy { get; set; }
 
         public DateTime CreatedAt { get; set; } = TimeHelper.Now;
     }

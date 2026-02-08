@@ -17,12 +17,26 @@ namespace Unity.API.Controllers
     {
         private readonly AppDbContext _context;
         private readonly IEmailService _emailService;
+        private const string LogPath = "/tmp/auth_debug.log";
+
 
         public AuthController(AppDbContext context, IEmailService emailService)
         {
             _context = context;
             _emailService = emailService;
+            LogToFile("--- AuthController Initialized ---");
         }
+
+        private void LogToFile(string message)
+        {
+            try 
+            {
+                var logMessage = $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] {message}{Environment.NewLine}";
+                System.IO.File.AppendAllText(LogPath, logMessage);
+            }
+            catch { /* Best effort logging */ }
+        }
+
 
         private async Task<User> GetCurrentUserToUpdateAsync()
         {
@@ -44,6 +58,7 @@ namespace Unity.API.Controllers
         {
             // Accept email, username, or firstname.lastname for login
             var loginIdentifier = request.Email ?? request.Username ?? "";
+            LogToFile($"[AUTH_DEBUG] Login attempt for: '{loginIdentifier}'");
             
             // Try to find user by email, username, or fullname (with dot separator)
             // Example: "halil.seyhan" should match FullName "Halil Seyhan"
@@ -57,13 +72,34 @@ namespace Unity.API.Controllers
 
             if (user == null)
             {
+                LogToFile($"[AUTH_DEBUG] User NOT FOUND for: '{loginIdentifier}'");
                 return Unauthorized(new { detail = "Kullanıcı tanımlı değil. Lütfen yönetici ile iletişime geçiniz." });
             }
 
+            LogToFile($"[AUTH_DEBUG] User FOUND: '{user.Username}' (ID: {user.Id}). Verifying password...");
+
             if (!BCrypt.Net.BCrypt.Verify(request.Password, user.PasswordHash))
             {
+                LogToFile($"[AUTH_DEBUG] Password MISMATCH for: '{loginIdentifier}'");
                 return Unauthorized(new { detail = "Şifre hatalı." });
             }
+
+            LogToFile($"[AUTH_DEBUG] Login SUCCESS for: '{loginIdentifier}' (Name: {user.FullName})");
+
+            var preferences = await _context.UserColumnPreferences
+                .FirstOrDefaultAsync(p => p.UserId == user.Id);
+
+            var workspacePreferences = await _context.UserWorkspacePreferences
+                .Where(uwp => uwp.UserId == user.Id)
+                .OrderBy(uwp => uwp.SortOrder)
+                .Select(uwp => new WorkspacePreferenceDto
+                {
+                    DepartmentId = uwp.DepartmentId,
+                    SortOrder = uwp.SortOrder,
+                    IsVisible = uwp.IsVisible,
+                    IsCollapsed = uwp.IsCollapsed
+                })
+                .ToListAsync();
 
             return Ok(new LoginResponse
             {
@@ -81,6 +117,9 @@ namespace Unity.API.Controllers
                     Gender = user.Gender,
                     Department = user.Departments.Select(d => d.DepartmentId).FirstOrDefault(),
                     Departments = user.Departments.Select(d => d.DepartmentId).ToList(),
+                    ColumnPreferences = preferences?.Preferences,
+                    SidebarPreferences = preferences?.SidebarPreferences,
+                    WorkspacePreferences = workspacePreferences,
                     CreatedAt = user.CreatedAt
                 }
             });
@@ -98,7 +137,7 @@ namespace Unity.API.Controllers
                     new Claim(ClaimTypes.Name, user.Username ?? user.Email),
                     new Claim(ClaimTypes.Role, user.Role ?? "user")
                 }),
-                Expires = TimeHelper.Now.AddDays(7),
+                Expires = TimeHelper.Now.AddMinutes(30),
                 SigningCredentials = new Microsoft.IdentityModel.Tokens.SigningCredentials(new Microsoft.IdentityModel.Tokens.SymmetricSecurityKey(key), Microsoft.IdentityModel.Tokens.SecurityAlgorithms.HmacSha256Signature)
             };
             var token = tokenHandler.CreateToken(tokenDescriptor);
@@ -119,6 +158,9 @@ namespace Unity.API.Controllers
             user.UpdatedAt = TimeHelper.Now;
             await _context.SaveChangesAsync();
 
+            var preferences = await _context.UserColumnPreferences.AsNoTracking()
+                .FirstOrDefaultAsync(p => p.UserId == user.Id);
+
             return Ok(new UserDto
             {
                 Id = user.Id,
@@ -132,7 +174,102 @@ namespace Unity.API.Controllers
                 Gender = user.Gender,
                 Department = user.Departments.Select(d => d.DepartmentId).FirstOrDefault(),
                 Departments = user.Departments.Select(d => d.DepartmentId).ToList(),
+                ColumnPreferences = preferences?.Preferences,
+                SidebarPreferences = preferences?.SidebarPreferences,
                 CreatedAt = user.CreatedAt
+            });
+        }
+
+        [HttpPut("preferences")]
+        [Authorize]
+        public async Task<IActionResult> UpdatePreferences([FromBody] UpdatePreferencesRequest request)
+        {
+            var user = await GetCurrentUserToUpdateAsync();
+            var preferences = await _context.UserColumnPreferences
+                .FirstOrDefaultAsync(p => p.UserId == user.Id);
+
+            if (preferences == null)
+            {
+                preferences = new UserColumnPreference
+                {
+                    UserId = user.Id,
+                    Preferences = request.ColumnPreferences ?? "{}",
+                    CreatedAt = TimeHelper.Now,
+                    UpdatedAt = TimeHelper.Now
+                };
+                _context.UserColumnPreferences.Add(preferences);
+            }
+            else
+            {
+                if (!string.IsNullOrEmpty(request.ColumnPreferences))
+                {
+                    preferences.Preferences = request.ColumnPreferences;
+                }
+                preferences.UpdatedAt = TimeHelper.Now;
+            }
+
+            if (!string.IsNullOrEmpty(request.SidebarPreferences))
+            {
+                preferences.SidebarPreferences = request.SidebarPreferences;
+                preferences.UpdatedAt = TimeHelper.Now;
+            }
+
+            // Handle structured WorkspacePreferences
+            if (request.WorkspacePreferences != null && request.WorkspacePreferences.Any())
+            {
+                // Get existing preferences for this user
+                var existingPrefs = await _context.UserWorkspacePreferences
+                    .Where(uwp => uwp.UserId == user.Id)
+                    .ToListAsync();
+
+                foreach (var prefDto in request.WorkspacePreferences)
+                {
+                    var existing = existingPrefs.FirstOrDefault(e => e.DepartmentId == prefDto.DepartmentId);
+                    
+                    if (existing != null)
+                    {
+                        // Update existing
+                        existing.SortOrder = prefDto.SortOrder;
+                        existing.IsVisible = prefDto.IsVisible;
+                        existing.IsCollapsed = prefDto.IsCollapsed;
+                        existing.UpdatedAt = TimeHelper.Now;
+                    }
+                    else
+                    {
+                        // Create new
+                        _context.UserWorkspacePreferences.Add(new UserWorkspacePreference
+                        {
+                            UserId = user.Id,
+                            DepartmentId = prefDto.DepartmentId,
+                            SortOrder = prefDto.SortOrder,
+                            IsVisible = prefDto.IsVisible,
+                            IsCollapsed = prefDto.IsCollapsed,
+                            CreatedAt = TimeHelper.Now
+                        });
+                    }
+                }
+            }
+
+            await _context.SaveChangesAsync();
+            
+            // Return updated workspace preferences
+            var updatedWorkspacePrefs = await _context.UserWorkspacePreferences
+                .Where(uwp => uwp.UserId == user.Id)
+                .OrderBy(uwp => uwp.SortOrder)
+                .Select(uwp => new WorkspacePreferenceDto
+                {
+                    DepartmentId = uwp.DepartmentId,
+                    SortOrder = uwp.SortOrder,
+                    IsVisible = uwp.IsVisible,
+                    IsCollapsed = uwp.IsCollapsed
+                })
+                .ToListAsync();
+
+            return Ok(new { 
+                message = "Tercihler güncellendi", 
+                columnPreferences = preferences.Preferences,
+                sidebarPreferences = preferences.SidebarPreferences,
+                workspacePreferences = updatedWorkspacePrefs
             });
         }
         
@@ -149,6 +286,22 @@ namespace Unity.API.Controllers
                 .FirstOrDefaultAsync(u => u.Id == userId);
             if (user == null) return Unauthorized();
 
+            var preferences = await _context.UserColumnPreferences.AsNoTracking()
+                .FirstOrDefaultAsync(p => p.UserId == user.Id);
+
+            var workspacePreferences = await _context.UserWorkspacePreferences
+                .Where(uwp => uwp.UserId == user.Id)
+                .OrderBy(uwp => uwp.SortOrder)
+                .Select(uwp => new WorkspacePreferenceDto
+                {
+                    DepartmentId = uwp.DepartmentId,
+                    SortOrder = uwp.SortOrder,
+                    IsVisible = uwp.IsVisible,
+                    IsCollapsed = uwp.IsCollapsed
+                })
+                .AsNoTracking()
+                .ToListAsync();
+
             return Ok(new UserDto 
             { 
                 Id = user.Id,
@@ -162,6 +315,9 @@ namespace Unity.API.Controllers
                 Gender = user.Gender,
                 Department = user.Departments.Select(d => d.DepartmentId).FirstOrDefault(),
                 Departments = user.Departments.Select(d => d.DepartmentId).ToList(),
+                ColumnPreferences = preferences?.Preferences,
+                SidebarPreferences = preferences?.SidebarPreferences,
+                WorkspacePreferences = workspacePreferences,
                 CreatedAt = user.CreatedAt
             });
         }
@@ -188,16 +344,32 @@ namespace Unity.API.Controllers
         [HttpPost("forgot-password")]
         public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordRequest request)
         {
-            var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == request.Email);
+            var identifier = request.Email?.Trim() ?? "";
+            LogToFile($"[AUTH_DEBUG] Forgot password request for identifier: '{identifier}'");
+
+            if (string.IsNullOrEmpty(identifier))
+            {
+                return BadRequest(new { message = "Lütfen e-posta veya kullanıcı adı giriniz." });
+            }
+
+            // Enhanced lookup: Check email or username, case-insensitive
+            var user = await _context.Users.FirstOrDefaultAsync(u => 
+                u.Email.ToLower() == identifier.ToLower() || 
+                u.Username.ToLower() == identifier.ToLower());
+
             if (user == null)
             {
-                 return BadRequest(new { message = "Bu e-posta adresiyle kayıtlı üyelik bulunamadı." });
+                LogToFile($"[AUTH_DEBUG] Forgot password: User NOT FOUND for '{identifier}'");
+                return BadRequest(new { message = "Bu bilgilere sahip bir kullanıcı bulunamadı." });
             }
+
+            LogToFile($"[AUTH_DEBUG] Forgot password: User FOUND: {user.FullName} (ID: {user.Id}). Generating temporary password...");
 
             // Generate temporary password
             var tempPassword = GenerateRandomPassword();
             user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(tempPassword);
             await _context.SaveChangesAsync();
+            LogToFile($"[AUTH_DEBUG] Forgot password: Password updated in DB for user {user.Id}. Sending email...");
 
             // Send email
             var emailBody = $@"
@@ -212,9 +384,13 @@ namespace Unity.API.Controllers
             try 
             {
                 await _emailService.SendEmailAsync(user.Email, "Unity - Yeni Şifreniz", emailBody);
+                LogToFile($"[AUTH_DEBUG] Forgot password: Email SENT successfully to {user.Email}");
             }
             catch (Exception ex)
             {
+                LogToFile($"[AUTH_DEBUG] Forgot password: Email SEND FAILED for {user.Email}. Error: {ex.Message}");
+                if (ex.InnerException != null) LogToFile($"[AUTH_DEBUG] Forgot password: Inner Error: {ex.InnerException.Message}");
+                
                 Console.WriteLine($"Email send failed: {ex.Message}");
                 return StatusCode(500, new { message = "E-posta gönderilemedi. Lütfen daha sonra tekrar deneyin." });
             }
@@ -229,7 +405,15 @@ namespace Unity.API.Controllers
             return new string(Enumerable.Repeat(chars, 8)
                 .Select(s => s[random.Next(s.Length)]).ToArray());
         }
+
+        [HttpGet("debug-users")]
+        public async Task<IActionResult> DebugUsers()
+        {
+            var users = await _context.Users.Select(u => new { u.Id, u.FullName, u.Username, u.Email, u.Role, u.Avatar }).ToListAsync();
+            return Ok(users);
+        }
     }
+
 
     public class ChangePasswordRequest
     {

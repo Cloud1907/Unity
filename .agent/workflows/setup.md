@@ -1,65 +1,42 @@
 ---
-description: Unity application için IIS uyumlu kurulum paketi (v20) oluşturur.
+description: Unity Application Production Build & Setup
 ---
 
-# Setup Paketi Oluşturma
+# Production Build Workflow
 
-Unity uygulaması için Windows IIS uyumlu, self-contained kurulum paketi oluşturur.
+Bu workflow, uygulamanın IIS uyumlu, VS Publish mantığında **"Flat"** (iç içe klasör olmayan) kurulum paketini oluşturur. Uygulama, üretim ortamında (Production) sunucu IP ve portundan bağımsız çalışacak şekilde (dinamik API URL) konfigüre edilmiştir.
 
-## Ön Koşullar
-- Frontend build güncel olmalı
-- Backend derleme hatasız olmalı
+## Otomatik Kurulum (Önerilen)
 
-## Adımlar
+Projeyi derlemek ve paketlemek için aşağıdaki komutu çalıştırın. Bu script temizlik, derleme, entegrasyon ve flat-zip işlemlerini otomatik yapar.
 
 // turbo
-1. Frontend'i production için derle:
 ```bash
-cd frontend && npm run build
+./build_production.sh
 ```
 
-// turbo
-2. Backend'i self-contained olarak publish et:
-```bash
-cd dotnet-backend/Unity.API && dotnet publish -c Release -r win-x64 --self-contained true -o ~/Desktop/unity_publish
-```
+**Kritik Kural:**
+- Çıktı Dosyası: Masaüstünde **`UnityApp_Setup.zip`** ismiyle oluşmalıdır.
+- Dosya Yapısı: ZIP dosyası açıldığında dosyalar doğrudan kök dizinde olmalıdır (klasör içinde olmamalıdır).
 
-// turbo
-3. Frontend build dosyalarını wwwroot'a kopyala:
-```bash
-cp -r frontend/build/* ~/Desktop/unity_publish/wwwroot/
-```
+## Manuel Adımlar (Referans)
 
-4. web.config dosyasını oluştur (InProcess hosting):
-```xml
-<?xml version="1.0" encoding="utf-8"?>
-<configuration>
-  <location path="." inheritInChildApplications="false">
-    <system.webServer>
-      <handlers>
-        <add name="aspNetCore" path="*" verb="*" modules="AspNetCoreModuleV2" resourceType="Unspecified" />
-      </handlers>
-      <aspNetCore processPath=".\Unity.API.exe" stdoutLogEnabled="true" stdoutLogFile=".\logs\stdout" hostingModel="inprocess" />
-      <modules>
-        <remove name="WebDAVModule" />
-      </modules>
-    </system.webServer>
-  </location>
-</configuration>
-```
+Eğer script çalıştırılamazsa, manuel adımlar şunlardır:
 
-// turbo
-5. ZIP paketi oluştur:
-```bash
-cd ~/Desktop/unity_publish && zip -r "../Unity Setup.zip" .
-```
+1.  **Frontend Build:**
+    ```bash
+    cd frontend
+    npm run build
+    ```
 
-## Çıktı
-- `~/Desktop/Unity Setup.zip` (~64-114 MB)
-- Self-contained, .NET runtime gerektirmez
-- IIS'e doğrudan deploy edilebilir
+2.  **Backend Publish:**
+    ```bash
+    cd dotnet-backend/Unity.API
+    dotnet publish -c Release -r win-x64 --self-contained -o ~/Desktop/UnityApp_Setup_Manual
+    ```
 
-## Önemli Kontroller
-- [ ] `localhost:8080` referansı olmadığını doğrula: `grep -r "localhost:8080" frontend/build/static/js/*.js | wc -l` (0 olmalı)
-- [ ] web.config mevcut
-- [ ] wwwroot/index.html mevcut
+3.  **Entegrasyon:**
+    Frontend `build` klasörünün içindekileri, Backend publish klasöründeki `wwwroot` içine kopyalayın.
+
+4.  **Paketleme:**
+    Publish klasörünün **içindekileri** klasör olmadan doğrudan `UnityApp_Setup.zip` olarak sıkıştırın.

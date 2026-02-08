@@ -1,0 +1,19 @@
+{
+    "extends": [
+        "react-app",
+        "react-app/jest"
+    ],
+    "rules": {
+        "no-restricted-syntax": [
+            "error",
+            {
+                "selector": "Identifier[name='_id']",
+                "message": "Legacy MongoDB '_id' is strictly prohibited. Use integer 'id' instead."
+            },
+            {
+                "selector": "MemberExpression[property.name='_id']",
+                "message": "Legacy MongoDB '_id' property access is prohibited. Use 'id' (integer) only."
+            }
+        ]
+    }
+}
