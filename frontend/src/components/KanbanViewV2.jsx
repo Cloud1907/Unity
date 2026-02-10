@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { createPortal } from 'react-dom';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Plus, MoreHorizontal, User, Calendar, GitMerge, MessageSquare, Trash2, TrendingUp } from 'lucide-react';
+import { Plus, MoreHorizontal, User, Calendar, GitMerge, MessageSquare, Trash2, TrendingUp, Link } from 'lucide-react';
 import { tasksAPI } from '../services/api';
 import { toast } from 'sonner';
 import { useDataState, useDataActions } from '../contexts/DataContext';
@@ -659,6 +660,20 @@ const CompactTaskCard = React.memo(({
             <span className="text-[9px] font-bold">{task.commentCount || task.commentsCount || task.comments?.length || 0}</span>
           </div>
         )}
+
+        {/* Link Indicator */}
+        {task.taskUrl && (
+           <div
+            className="flex items-center gap-1 px-1.5 py-0.5 bg-gray-50 dark:bg-slate-700/50 rounded border border-gray-100 dark:border-slate-700 text-gray-500 dark:text-gray-400 hover:border-sky-500 transition-colors cursor-pointer"
+            title="Bağlantı"
+            onClick={(e) => {
+              e.stopPropagation();
+              onTaskClick(task, 'link');
+            }}
+          >
+            <Link size={10} className="text-sky-500" />
+          </div>
+        )}
       </div>
 
       {/* Labels Row */}
@@ -714,6 +729,24 @@ const KanbanViewV2 = ({ boardId, searchQuery, filters }) => {
     const project = projects.find(p => p.id === Number(boardId));
     return project?.departmentId || null;
   }, [boardId, projects]);
+  
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  // Deep Link Support: Open task modal if 'task' param is present
+  useEffect(() => {
+    const taskId = searchParams.get('task');
+    if (taskId && tasks.length > 0) {
+      // Search in all tasks
+      const task = tasks.find(t => t.id === Number(taskId));
+      if (task && (!selectedTask || selectedTask.id !== task.id)) {
+        console.log(`[Kanban DeepLink] Auto-opening task ${taskId}`);
+        setSelectedTask(task);
+        if (task.subtasks?.length > 0) setModalInitialSection('subtasks');
+        else setModalInitialSection('activity'); // Default to activity if no subtasks? Or just 'subtasks' is fine
+        setIsDetailOpen(true);
+      }
+    }
+  }, [searchParams, tasks, selectedTask]);
 
   const [draggedTask, setDraggedTask] = useState(null);
   const [dragOverColumn, setDragOverColumn] = useState(null);
@@ -776,7 +809,7 @@ const KanbanViewV2 = ({ boardId, searchQuery, filters }) => {
       const lowerQuery = searchQuery.toLowerCase();
       filtered = filtered.filter(task =>
         task.title?.toLowerCase().includes(lowerQuery) ||
-        projectUsers.find(u => task.assignees?.includes(u.id))?.fullName?.toLowerCase().includes(lowerQuery)
+        projectUsers.find(u => task.assigneeIds?.includes(u.id))?.fullName?.toLowerCase().includes(lowerQuery)
       );
     }
 
@@ -790,12 +823,12 @@ const KanbanViewV2 = ({ boardId, searchQuery, filters }) => {
       }
       if (filters.assignee?.length > 0) {
         filtered = filtered.filter(task =>
-          task.assignees?.some(assigneeId => filters.assignee.includes(assigneeId))
+          task.assigneeIds?.some(id => filters.assignee.includes(Number(id)))
         );
       }
       if (filters.labels?.length > 0) {
         filtered = filtered.filter(task =>
-          task.labels?.some(labelId => filters.labels.includes(labelId))
+          task.labelIds?.some(id => filters.labels.includes(Number(id)))
         );
       }
     }
@@ -900,6 +933,13 @@ const KanbanViewV2 = ({ boardId, searchQuery, filters }) => {
   const handleCloseDetail = () => {
     setIsDetailOpen(false);
     setSelectedTask(null);
+    
+    // Clear URL param
+    const newParams = new URLSearchParams(searchParams);
+    if (newParams.has('task')) {
+        newParams.delete('task');
+        setSearchParams(newParams);
+    }
   };
 
   const handleAddTask = async (columnId) => {

@@ -12,6 +12,8 @@ namespace Unity.Core.DTOs
         public int ProjectId { get; set; }
 
         public string? Description { get; set; }
+        
+        public string? TaskUrl { get; set; }
 
         public string? Status { get; set; } = "todo";
 

@@ -45,13 +45,28 @@ export const useSignalR = (isAuthenticated, setTasks, setProjects, setDepartment
 
         connection.on('TaskUpdated', (updatedTask) => {
             const normalized = normalizeEntity(updatedTask);
+            console.log('[SignalR] TaskUpdated received:', normalized.title, normalized.id);
+
             const taskId = normalized.id;
             const lastLocal = lastInteractionByTaskIdRef?.current?.[taskId];
             const incomingTime = normalized.updatedAt ? new Date(normalized.updatedAt).getTime() : 0;
-            if (lastLocal && incomingTime < lastLocal) {
-                return; // Ignore stale SignalR update; user's optimistic edit is newer
-            }
-            setTasks(prev => updateTaskInTree(prev, taskId, normalized));
+
+            // DEBUG: Log timing
+            // console.log(`[SignalR] Time check - Local: ${lastLocal}, Incoming: ${incomingTime}, Diff: ${incomingTime - lastLocal}`);
+
+            // STALE CHECK DISABLED FOR DEBUGGING
+            // if (lastLocal && incomingTime < lastLocal) {
+            //    console.warn('[SignalR] Ignoring stale update');
+            //    return; 
+            // }
+
+            setTasks(prev => {
+                const updated = updateTaskInTree(prev, taskId, normalized);
+                return updated;
+            });
+
+            // Optional: Toast for confirmation (Can be removed later)
+            // toast.info(`Görev güncellendi: ${normalized.title}`);
         });
 
         connection.on('TaskDeleted', (taskId) => {

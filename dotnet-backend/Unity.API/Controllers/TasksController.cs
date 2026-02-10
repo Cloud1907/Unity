@@ -24,13 +24,17 @@ namespace Unity.API.Controllers
         private readonly IAuditService _auditService;
         private readonly IActivityLogger _activityLogger;
         private readonly IHubContext<AppHub> _hubContext;
+        private readonly Unity.Infrastructure.Services.IEmailService _emailService;
+        private readonly IServiceScopeFactory _scopeFactory;
 
-        public TasksController(AppDbContext context, IAuditService auditService, IActivityLogger activityLogger, IHubContext<AppHub> hubContext)
+        public TasksController(AppDbContext context, IAuditService auditService, IActivityLogger activityLogger, IHubContext<AppHub> hubContext, Unity.Infrastructure.Services.IEmailService emailService, IServiceScopeFactory scopeFactory)
         {
             _context = context;
             _auditService = auditService;
             _activityLogger = activityLogger;
             _hubContext = hubContext;
+            _emailService = emailService;
+            _scopeFactory = scopeFactory;
         }
 
         private int GetCurrentUserId()
@@ -170,6 +174,7 @@ namespace Unity.API.Controllers
                 {
                     Id = t.Id,
                     Title = t.Title,
+                    TaskUrl = t.TaskUrl,
                     Status = t.Status,
                     Priority = t.Priority,
                     DueDate = t.DueDate,
@@ -182,6 +187,16 @@ namespace Unity.API.Controllers
                     LabelIds = new List<int>(),
                     // REAL COUNTS: Constitution Rule #2 - "No Zero-Count Rule"
                     SubtaskCount = t.Subtasks.Count(),
+                    Subtasks = t.Subtasks.Select(s => new SubtaskDto
+                    {
+                        Id = s.Id,
+                        Title = s.Title,
+                        IsCompleted = s.IsCompleted,
+                        StartDate = s.StartDate,
+                        DueDate = s.DueDate,
+                        CreatedAt = s.CreatedAt,
+                        AssigneeIds = s.Assignees.Select(a => a.UserId).ToList()
+                    }).ToList(),
                     CommentCount = t.Comments.Count(),
                     AttachmentCount = t.Attachments.Count(),
                     CreatedBy = t.CreatedBy
@@ -231,7 +246,7 @@ namespace Unity.API.Controllers
             var task = await _context.Tasks.AsNoTracking()
                 .Include(t => t.Assignees).ThenInclude(a => a.User)
                 .Include(t => t.Labels)
-                .Include(t => t.Subtasks).ThenInclude(s => s.Assignees)
+                .Include(t => t.Subtasks.OrderBy(s => s.Position)).ThenInclude(s => s.Assignees)
                 .Include(t => t.Comments).ThenInclude(c => c.User)
                 .Include(t => t.Attachments)
                 .AsSplitQuery() // PERFORMANCE FIX: Optimizes deep tree loading
@@ -267,6 +282,11 @@ namespace Unity.API.Controllers
                 task.Description = descProp.GetString();
             else if (body.TryGetProperty("Description", out var descProp2) && descProp2.ValueKind == JsonValueKind.String)
                 task.Description = descProp2.GetString();
+
+            if (body.TryGetProperty("taskUrl", out var urlProp) && urlProp.ValueKind == JsonValueKind.String)
+                task.TaskUrl = urlProp.GetString();
+            else if (body.TryGetProperty("TaskUrl", out var urlProp2) && urlProp2.ValueKind == JsonValueKind.String)
+                task.TaskUrl = urlProp2.GetString();
 
             if (body.TryGetProperty("status", out var statusProp) && statusProp.ValueKind == JsonValueKind.String)
                 task.Status = statusProp.GetString();
@@ -309,6 +329,10 @@ namespace Unity.API.Controllers
             // Handle Assignees
             if (body.TryGetProperty("assignees", out var assigneesProp) && assigneesProp.ValueKind == JsonValueKind.Array)
             {
+                // Get existing assignee IDs to identify NEW ones (for email notification)
+                // For a new task, this list will be empty initially.
+                var existingAssigneeIds = new List<int>(); // No existing assignees for a new task
+
                 foreach (var item in assigneesProp.EnumerateArray())
                 {
                     int? uid = null;
@@ -319,15 +343,25 @@ namespace Unity.API.Controllers
                             uid = idProp.GetInt32();
                     }
 
-                    if (uid.HasValue) task.Assignees.Add(new TaskAssignee { UserId = uid.Value });
+                    if (uid.HasValue)
+                    {
+                        task.Assignees.Add(new TaskAssignee { UserId = uid.Value });
+
+                        // Check if this is a NEW assignment (and not the current user assigning themselves)
+                        // For PostTask, all assignees from the body are "new"
+                        if (!existingAssigneeIds.Contains(uid.Value) && uid.Value != currentUser.Id)
+                        {
+                            // Email notification is now handled after SaveChangesAsync to ensure TaskId is available.
+                            // See lines below _context.SaveChangesAsync()
+                        }
+                    }
                 }
+                // _activityLogger.LogChangeAsync is typically for updates, not initial creation.
+                // If needed for creation, it would be logged after task.Id is available.
             }
 
-            // Auto-assign creator if no assignees?
-            if (task.Assignees.Count == 0)
-            {
-                task.Assignees.Add(new TaskAssignee { UserId = currentUser.Id });
-            }
+            // Auto-assign creator logic REMOVED per user request
+            // if (task.Assignees.Count == 0) ...
 
             _context.Tasks.Add(task);
             await _context.SaveChangesAsync();
@@ -360,6 +394,13 @@ namespace Unity.API.Controllers
             );
 
             await _hubContext.Clients.All.SendAsync("TaskCreated", freshTask ?? task);
+
+            // Send Email Notifications Async
+            if (task.Assignees != null && task.Assignees.Any())
+            {
+                var assignedUserIds = task.Assignees.Select(a => a.UserId).Distinct().ToList();
+                SendAssignmentEmailsInBackground(task.Id, assignedUserIds, currentUser.Id);
+            }
 
             return CreatedAtAction(nameof(GetTask), new { id = task.Id }, freshTask ?? task);
         }
@@ -430,6 +471,7 @@ namespace Unity.API.Controllers
             // Manual Field Updates
             existingTask.Title = task.Title;
             existingTask.Description = task.Description;
+            existingTask.TaskUrl = task.TaskUrl;
             existingTask.Status = task.Status;
             existingTask.Priority = task.Priority;
             existingTask.DueDate = task.DueDate;
@@ -441,10 +483,20 @@ namespace Unity.API.Controllers
             // Update Assignees
             if (task.Assignees != null)
             {
+                // Detect newly added assignees for email notification
+                var oldAssigneeIds = existingTask.Assignees.Select(a => a.UserId).ToHashSet();
+                var newAssigneeIds = task.Assignees.Select(a => a.UserId).ToHashSet();
+                var addedAssigneeIds = newAssigneeIds.Where(uid => !oldAssigneeIds.Contains(uid)).ToList();
+
                 existingTask.Assignees.Clear();
                 foreach (var assignee in task.Assignees)
                 {
                     existingTask.Assignees.Add(new TaskAssignee { UserId = assignee.UserId, TaskId = id });
+                }
+
+                if (addedAssigneeIds.Any())
+                {
+                    SendAssignmentEmailsInBackground(id, addedAssigneeIds, currentUser.Id);
                 }
             }
 
@@ -564,6 +616,20 @@ namespace Unity.API.Controllers
                             await _activityLogger.LogChangeAsync(currentUser.Id, "UPDATE", "Task", task.Id.ToString(), "Description", oldDesc, null);
                         }
                         break;
+                    case "taskurl":
+                        if (property.Value.ValueKind == JsonValueKind.String)
+                        {
+                            var oldUrl = task.TaskUrl;
+                            task.TaskUrl = property.Value.GetString();
+                            await _activityLogger.LogChangeAsync(currentUser.Id, "UPDATE", "Task", task.Id.ToString(), "TaskUrl", oldUrl, task.TaskUrl);
+                        }
+                        else if (property.Value.ValueKind == JsonValueKind.Null)
+                        {
+                            var oldUrl = task.TaskUrl;
+                            task.TaskUrl = null;
+                            await _activityLogger.LogChangeAsync(currentUser.Id, "UPDATE", "Task", task.Id.ToString(), "TaskUrl", oldUrl, null);
+                        }
+                        break;
                     case "status":
                         if (property.Value.ValueKind == JsonValueKind.String)
                         {
@@ -636,6 +702,7 @@ namespace Unity.API.Controllers
                                 await _activityLogger.LogChangeAsync(currentUser.Id, "UNASSIGN", "Task", task.Id.ToString(), "Assignee", r.UserId, null);
                             }
 
+                            var newAssigneeIdsForEmail = new List<int>();
                             var existingIds = task.Assignees.Select(a => a.UserId).ToHashSet();
                             foreach (var newId in newAssigneeIds)
                             {
@@ -643,7 +710,13 @@ namespace Unity.API.Controllers
                                 {
                                     task.Assignees.Add(new TaskAssignee { UserId = newId, TaskId = id });
                                     await _activityLogger.LogChangeAsync(currentUser.Id, "ASSIGN", "Task", task.Id.ToString(), "Assignee", null, newId);
+                                    if (newId != currentUser.Id) newAssigneeIdsForEmail.Add(newId);
                                 }
+                            }
+
+                            if (newAssigneeIdsForEmail.Any())
+                            {
+                                SendAssignmentEmailsInBackground(id, newAssigneeIdsForEmail, currentUser.Id);
                             }
                         }
                         break;
@@ -867,6 +940,7 @@ namespace Unity.API.Controllers
         {
             var task = await _context.Tasks
                 .Include(t => t.Assignees)
+                .Include(t => t.Subtasks)
                 .FirstOrDefaultAsync(t => t.Id == id);
             if (task == null) return NotFound();
 
@@ -885,7 +959,8 @@ namespace Unity.API.Controllers
                 CreatedBy = currentUser.Id,
                 CreatedAt = TimeHelper.Now,
                 StartDate = request.StartDate,
-                DueDate = request.DueDate
+                DueDate = request.DueDate,
+                Position = request.Position ?? (task.Subtasks.Any() ? task.Subtasks.Max(s => s.Position) + 1 : 0)
             };
 
             if (request.AssigneeId.HasValue)
@@ -911,6 +986,12 @@ namespace Unity.API.Controllers
             if (parentTask != null)
             {
                 await _hubContext.Clients.All.SendAsync("TaskUpdated", parentTask);
+            }
+
+            // Send Email Notifications Async
+            if (request.AssigneeId.HasValue && request.AssigneeId.Value != currentUser.Id)
+            {
+                SendAssignmentEmailsInBackground(task.Id, new List<int> { request.AssigneeId.Value }, currentUser.Id, $"{task.Title} / {subtask.Title}");
             }
 
             return Ok(subtask);
@@ -965,14 +1046,32 @@ namespace Unity.API.Controllers
                 });
             }
 
-            _context.Tasks.Remove(task);
-            await _context.SaveChangesAsync();
+            // Soft Delete Implementation
+            try 
+            {
+                Console.WriteLine($"[DEBUG] DeleteTask Requested for ID: {id}");
+                task.IsDeleted = true;
+                task.DeletedAt = DateTime.UtcNow;
+                
+                _context.Entry(task).State = EntityState.Modified;
+                
+                Console.WriteLine($"[DEBUG] Saving Soft Delete for Task {id}...");
+                await _context.SaveChangesAsync();
+                Console.WriteLine($"[DEBUG] Task {id} Soft Deleted Successfully.");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[DELETE ERROR] {ex.Message}");
+                Console.WriteLine($"[DELETE STACK] {ex.StackTrace}");
+                return StatusCode(500, "Görevi silerken bir hata oluştu.");
+            }
 
             // Broadcast
             await _hubContext.Clients.All.SendAsync("TaskDeleted", id);
 
             return NoContent();
         }
+
         [HttpDelete("subtasks/{subtaskId}")]
         public async Task<IActionResult> DeleteSubtask(int subtaskId)
         {
@@ -1084,6 +1183,75 @@ namespace Unity.API.Controllers
             return NoContent();
         }
 
+        [HttpPut("reorder-subtasks")]
+        public async Task<IActionResult> BulkUpdateSubtaskPositions([FromBody] JsonElement body)
+        {
+            if (body.ValueKind != JsonValueKind.Object || !body.TryGetProperty("items", out var itemsElement) || itemsElement.ValueKind != JsonValueKind.Array)
+            {
+                return BadRequest("Geçersiz istek formatı.");
+            }
+
+            var items = new List<SubtaskReorderItem>();
+            foreach (var item in itemsElement.EnumerateArray())
+            {
+                if (item.TryGetProperty("id", out var idProp) && item.TryGetProperty("position", out var posProp))
+                {
+                    items.Add(new SubtaskReorderItem { Id = idProp.GetInt32(), Position = posProp.GetInt32() });
+                }
+            }
+
+            if (!items.Any()) return BadRequest("Sıralanacak öğe bulunamadı.");
+
+            var currentUser = await GetCurrentUserWithDeptsAsync();
+            var subtaskIds = items.Select(i => i.Id).ToList();
+            
+            var subtasks = await _context.Subtasks
+                .Include(s => s.Task)
+                .Where(s => subtaskIds.Contains(s.Id))
+                .ToListAsync();
+
+            if (subtasks.Count == 0) return NotFound("Alt görevler bulunamadı.");
+
+            if (!await HasWriteAccessAsync(subtasks.First().Task, currentUser))
+            {
+                return StatusCode(403, new { message = "Sıralama değiştirme yetkiniz yok." });
+            }
+
+            foreach (var subtask in subtasks)
+            {
+                var update = items.First(i => i.Id == subtask.Id);
+                subtask.Position = update.Position;
+            }
+
+            try
+            {
+                await _context.SaveChangesAsync();
+                Console.WriteLine($"[DEBUG] Bulk Subtask Reorder Successful for Task {subtasks.First().TaskId}");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[ERROR] Bulk Subtask Reorder Failed: {ex.Message}");
+                return StatusCode(500, new { message = "Sunucu hatası: Sıralama kaydedilemedi" });
+            }
+
+            // Broadcast Parent Task Update
+            var firstSubtask = subtasks.First();
+            var parentTask = await _context.Tasks.AsNoTracking()
+                 .Include(t => t.Assignees)
+                 .Include(t => t.Labels)
+                 .Include(t => t.Subtasks.OrderBy(s => s.Position)).ThenInclude(s => s.Assignees)
+                 .Include(t => t.Comments).ThenInclude(c => c.User)
+                 .Include(t => t.Attachments)
+                 .FirstOrDefaultAsync(t => t.Id == firstSubtask.TaskId);
+
+            if (parentTask != null)
+            {
+                try { await _hubContext.Clients.All.SendAsync("TaskUpdated", parentTask); } catch (Exception ex) { Console.WriteLine($"[WARNING] SignalR Failed: {ex.Message}"); }
+            }
+
+            return Ok(new { message = "Sıralama güncellendi" });
+        }
+
         [HttpPut("subtasks/{subtaskId}")]
         public async Task<ActionResult<Subtask>> UpdateSubtask(int subtaskId, [FromBody] JsonElement body)
         {
@@ -1103,6 +1271,9 @@ namespace Unity.API.Controllers
             {
                 return StatusCode(403, new { message = "Yetkisiz işlem." });
             }
+
+            // Capture new assignees for email
+            var newAssigneeIdsForEmail = new HashSet<int>();
 
             // Capture old values for logging
             var oldSubStartDate = subtask.StartDate;
@@ -1132,12 +1303,14 @@ namespace Unity.API.Controllers
                         subtask.Assignees.Clear();
                         subtask.Assignees.Add(new TaskAssignee { UserId = newUid, SubtaskId = subtaskId });
                         await _activityLogger.LogChangeAsync(currentUser.Id, "ASSIGN", "Subtask", subtask.Id.ToString(), "Assignee", null, newUid);
+                        if (newUid != currentUser.Id) newAssigneeIdsForEmail.Add(newUid);
                     }
                     else if (property.Value.ValueKind == JsonValueKind.String && int.TryParse(property.Value.GetString(), out var uid))
                     {
                         subtask.Assignees.Clear();
                         subtask.Assignees.Add(new TaskAssignee { UserId = uid, SubtaskId = subtaskId });
                         await _activityLogger.LogChangeAsync(currentUser.Id, "ASSIGN", "Subtask", subtask.Id.ToString(), "Assignee", null, uid);
+                        if (uid != currentUser.Id) newAssigneeIdsForEmail.Add(uid);
                     }
                     else if (property.Value.ValueKind == JsonValueKind.Null)
                     {
@@ -1179,6 +1352,7 @@ namespace Unity.API.Controllers
                                 Console.WriteLine($"[DEBUG] Adding assignee {newId} to subtask {subtaskId}");
                                 subtask.Assignees.Add(new TaskAssignee { UserId = newId, SubtaskId = subtaskId });
                                 await _activityLogger.LogChangeAsync(currentUser.Id, "ASSIGN", "Subtask", subtask.Id.ToString(), "Assignee", null, newId);
+                                if (newId != currentUser.Id) newAssigneeIdsForEmail.Add(newId);
                             }
                         }
                     }
@@ -1203,6 +1377,13 @@ namespace Unity.API.Controllers
                     else if (property.Value.ValueKind == JsonValueKind.Null)
                     {
                         subtask.DueDate = null;
+                    }
+                }
+                else if (property.NameEquals("position"))
+                {
+                    if (property.Value.ValueKind == JsonValueKind.Number)
+                    {
+                        subtask.Position = property.Value.GetInt32();
                     }
                 }
             }
@@ -1244,7 +1425,98 @@ namespace Unity.API.Controllers
                 try { await _hubContext.Clients.All.SendAsync("TaskUpdated", parentTask); } catch (Exception ex) { Console.WriteLine($"[WARNING] SignalR Failed: {ex.Message}"); }
             }
 
+            // Send Email Notifications for New Assignees
+            if (newAssigneeIdsForEmail.Count > 0)
+            {
+                SendAssignmentEmailsInBackground(task.Id, newAssigneeIdsForEmail.ToList(), currentUser.Id, $"{task.Title} / {subtask.Title}");
+            }
+
+
             return Ok(subtask);
+        }
+        private void SendAssignmentEmailsInBackground(int taskId, List<int> assigneeIds, int currentUserId, string taskTitleOverride = null)
+        {
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    using (var scope = _scopeFactory.CreateScope())
+                    {
+                        var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+                        var emailService = scope.ServiceProvider.GetRequiredService<Unity.Infrastructure.Services.IEmailService>();
+
+                        // Fetch Task with Subtasks and their Assignees
+                        var task = await context.Tasks
+                            .Include(t => t.Assignees).ThenInclude(a => a.User)
+                            .Include(t => t.Subtasks).ThenInclude(s => s.Assignees).ThenInclude(sa => sa.User)
+                            .FirstOrDefaultAsync(t => t.Id == taskId);
+
+                        if (task == null) return;
+
+                        var project = await context.Projects.FindAsync(task.ProjectId);
+                        var projectTitle = project?.Name ?? "Bilinmeyen Proje";
+
+                        var department = await context.Departments.FindAsync(project?.DepartmentId);
+                        var workGroupName = department?.Name ?? "Genel Çalışma Grubu";
+
+                        var currentUser = await context.Users.FindAsync(currentUserId);
+                        var assignerName = currentUser?.FullName ?? "Bir Kullanıcı";
+
+                        // Prepare Subtasks DTO
+                        var subtasksDto = task.Subtasks.Select(s => new EmailSubtaskDto
+                        {
+                            Id = s.Id,
+                            Title = s.Title,
+                            IsCompleted = s.IsCompleted,
+                            StartDate = s.StartDate,
+                            Assignees = s.Assignees.Select(a => new EmailAssigneeDto
+                            {
+                                UserId = a.UserId,
+                                FullName = a.User.FullName,
+                                Initials = (a.User.FullName != null) 
+                                    ? new string(a.User.FullName.Split(' ', StringSplitOptions.RemoveEmptyEntries).Select(s => s[0]).ToArray()).ToUpper().Substring(0, Math.Min(2, a.User.FullName.Split(' ', StringSplitOptions.RemoveEmptyEntries).Length))
+                                    : "??",
+                                ColorClass = a.User.Avatar // Using Avatar field for color if available, or fallback in service
+                            }).ToList()
+                        }).ToList();
+
+                        foreach (var userId in assigneeIds)
+                        {
+                            if (userId == currentUserId) continue;
+
+                            var assignedUser = await context.Users.FindAsync(userId);
+                            if (assignedUser != null && !string.IsNullOrEmpty(assignedUser.Email))
+                            {
+                                await emailService.SendTaskAssignmentEmailAsync(
+                                    assignedUser.Email,
+                                    assignedUser.FullName,
+                                    task.Description,
+                                    assignerName,
+                                    workGroupName,
+                                    projectTitle,
+                                    task.Title,
+                                    null, // We are sending main task email with subtasks list
+                                    task.Priority ?? "Normal",
+                                    task.DueDate,
+                                    task.ProjectId,
+                                    task.Id,
+                                    subtasksDto
+                                );
+                            }
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    try
+                    {
+                        var errorPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "email_error.txt");
+                        System.IO.File.WriteAllText(errorPath, $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] ERROR: {ex.Message}\n{ex.StackTrace}");
+                    }
+                    catch { }
+                    Console.WriteLine($"Error sending assignment email: {ex.Message}");
+                }
+            });
         }
     }
 }

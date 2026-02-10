@@ -11,6 +11,7 @@ import { TableSkeleton } from './skeletons/TableSkeleton';
 // Lazy load pages for "Lazy Architecture" constitution rule
 const BoardView = lazy(() => import('../pages/BoardView'));
 const Login = lazy(() => import('../pages/Login'));
+const MagicLogin = lazy(() => import('../pages/MagicLogin'));
 const Settings = lazy(() => import('../pages/Settings'));
 const AdminPanel = lazy(() => import('../pages/AdminPanel'));
 const DashboardPage = lazy(() => import('../pages/Dashboard'));
@@ -28,7 +29,7 @@ const PageLoader = () => (
 
 const AnimatedRoutes = () => {
     const location = useLocation();
-    const isLoginPage = location.pathname === '/login';
+    const isLoginPage = location.pathname === '/login' || location.pathname === '/magic-login';
 
     return (
         <ErrorBoundary>
@@ -42,6 +43,7 @@ const AnimatedRoutes = () => {
                             <Suspense fallback={<PageLoader />}>
                                 <Routes location={location} key={location.pathname}>
                                     <Route path="/login" element={<PageTransition><Login /></PageTransition>} />
+                                    <Route path="/magic-login" element={<PageTransition><MagicLogin /></PageTransition>} />
 
                                     <Route
                                         path="/"

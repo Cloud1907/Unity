@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useEffect, useCallback } from 'react';
 import { useAuth } from './AuthContext';
+import api, { BASE_URL } from '../services/api'; // Import central API
 
 import { useProjects } from '../hooks/useProjects';
 import { useTasks } from '../hooks/useTasks';
@@ -15,11 +16,8 @@ import { toast } from 'sonner';
 const DataStateContext = createContext();
 const DataActionsContext = createContext();
 
-// Helper to determine Backend URL
 const getBackendUrl = () => {
-  if (process.env.REACT_APP_BACKEND_URL) return process.env.REACT_APP_BACKEND_URL;
-  if (process.env.NODE_ENV === 'production') return window.location.origin;
-  return 'http://localhost:8080';
+  return BASE_URL || '';
 };
 
 export const DataProvider = ({ children }) => {
@@ -39,7 +37,7 @@ export const DataProvider = ({ children }) => {
     projectsHook.setProjects,
     departmentsHook.setDepartments,
     labelsHook.setLabels,
-    getBackendUrl,
+    getBackendUrl, // Pass the function reference
     tasksHook.lastInteractionByTaskIdRef
   );
 

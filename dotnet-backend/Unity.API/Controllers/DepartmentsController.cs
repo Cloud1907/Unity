@@ -34,6 +34,16 @@ namespace Unity.API.Controllers
             return 0;
         }
 
+        private async Task<User> GetCurrentUserWithDeptsAsync()
+        {
+            var userId = GetCurrentUserId();
+            if (userId == 0) return null;
+
+            return await _context.Users
+                .Include(u => u.Departments)
+                .FirstOrDefaultAsync(u => u.Id == userId);
+        }
+
         [HttpGet]
         public async Task<ActionResult<IEnumerable<Department>>> GetDepartments()
         {
@@ -154,13 +164,13 @@ namespace Unity.API.Controllers
             var existingDept = await _context.Departments.FindAsync(id);
             if (existingDept == null) return NotFound("Çalışma alanı bulunamadı.");
 
-            int currentUserId = GetCurrentUserId();
-            var currentUser = await _context.Users.FindAsync(currentUserId);
+            var currentUser = await GetCurrentUserWithDeptsAsync();
+            if (currentUser == null) return Unauthorized();
 
             // Permission Check: Admin OR Creator
-            bool isCreator = existingDept.CreatedBy == currentUserId;
+            bool isCreator = existingDept.CreatedBy == currentUser.Id;
 
-            if (currentUser?.Role != "admin" && !isCreator)
+            if (currentUser.Role != "admin" && !isCreator)
             {
                 return StatusCode(403, new { message = "Bu çalışma alanını güncelleme yetkiniz yok. Sadece çalışma alanını oluşturan kişi veya yönetici güncelleyebilir." });
             }
@@ -175,7 +185,7 @@ namespace Unity.API.Controllers
             {
                 await _context.SaveChangesAsync();
                 await _auditService.LogAsync(
-                    currentUserId.ToString(), 
+                    currentUser.Id.ToString(), 
                     "UPDATE", 
                     "Department", 
                     id.ToString(), 
@@ -199,11 +209,11 @@ namespace Unity.API.Controllers
             var department = await _context.Departments.FindAsync(id);
             if (department == null) return NotFound("Çalışma alanı bulunamadı.");
 
-            int currentUserId = GetCurrentUserId();
-            var currentUser = await _context.Users.FindAsync(currentUserId);
+            var currentUser = await GetCurrentUserWithDeptsAsync();
+            if (currentUser == null) return Unauthorized();
 
             // Permission Check
-            if (currentUser?.Role != "admin" && department.CreatedBy != currentUserId)
+            if (currentUser.Role != "admin" && department.CreatedBy != currentUser.Id)
             {
                 return StatusCode(403, new { message = "Bu çalışma alanını silme yetkiniz yok. Sadece oluşturan kişi veya yönetici silebilir." });
             }
@@ -211,7 +221,7 @@ namespace Unity.API.Controllers
             _context.Departments.Remove(department);
             await _context.SaveChangesAsync();
 
-            await _auditService.LogAsync(currentUserId.ToString(), "DELETE", "Department", id.ToString(), department, null, $"'{department.Name}' çalışma alanı silindi.");
+            await _auditService.LogAsync(currentUser.Id.ToString(), "DELETE", "Department", id.ToString(), department, null, $"'{department.Name}' çalışma alanı silindi.");
 
             return NoContent();
         }
@@ -226,27 +236,26 @@ namespace Unity.API.Controllers
             var targetUser = await _context.Users.FindAsync(targetUserId);
             if (targetUser == null) return NotFound("Kullanıcı bulunamadı.");
 
-            int currentUserId = GetCurrentUserId();
-            var currentUser = await _context.Users.FindAsync(currentUserId);
+            var currentUser = await GetCurrentUserWithDeptsAsync();
+            if (currentUser == null) return Unauthorized();
 
-            // Simplification: Any member can invite others? Or restrict to Admin/Creator?
-            // User requested strict removal permissions. Usually invite is more open, but let's restrict to Members of that workspace at least.
-            bool isMember = currentUser.Departments.Any(d => d.DepartmentId == id);
+            // ROBUST CHECK: Query join table directly to avoid navigation tracking issues
+            bool isMember = await _context.UserDepartments.AnyAsync(ud => ud.UserId == currentUser.Id && ud.DepartmentId == id);
+            
             if (currentUser.Role != "admin" && !isMember)
             {
                  return StatusCode(403, new { message = "Bu çalışma alanına üye eklemek için önce bu alanın üyesi olmalısınız." });
             }
 
-            if (targetUser.Departments.Any(d => d.DepartmentId == id))
+            bool targetAlreadyMember = await _context.UserDepartments.AnyAsync(ud => ud.UserId == targetUserId && ud.DepartmentId == id);
+            if (targetAlreadyMember)
                 return BadRequest("Kullanıcı zaten bu çalışma alanının üyesi.");
 
-            var depts = targetUser.Departments;
-            depts.Add(new UserDepartment { DepartmentId = id });
-            targetUser.Departments = depts;
+            _context.UserDepartments.Add(new UserDepartment { DepartmentId = id, UserId = targetUserId });
             
             await _context.SaveChangesAsync();
 
-            await _auditService.LogAsync(currentUserId.ToString(), "ADD_MEMBER", "Department", id.ToString(), null, targetUserId, $"{targetUser.FullName}, '{department.Name}' çalışma alanına eklendi.");
+            await _auditService.LogAsync(currentUser.Id.ToString(), "ADD_MEMBER", "Department", id.ToString(), null, targetUserId, $"{targetUser.FullName}, '{department.Name}' çalışma alanına eklendi.");
 
             return Ok(new { message = "Kullanıcı başarıyla eklendi." });
         }

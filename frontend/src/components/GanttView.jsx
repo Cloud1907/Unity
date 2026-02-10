@@ -1,4 +1,6 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
+import html2canvas from 'html2canvas';
+import jsPDF from 'jspdf';
 import { useData } from '../contexts/DataContext';
 import ModernTaskModal from './ModernTaskModal';
 import { User, Calendar, Layers, ChevronDown, ChevronRight, Download, MessageSquare, Paperclip, ChevronLeft, Loader2 } from 'lucide-react';
@@ -155,7 +157,7 @@ const GanttView = ({ boardId, filters, searchQuery, groupBy: headerGroupBy }) =>
       const lowerQuery = searchQuery.toLowerCase();
       filtered = filtered.filter(task =>
         task.title?.toLowerCase().includes(lowerQuery) ||
-        projectUsers.find(u => task.assignees?.includes(u.id))?.fullName?.toLowerCase().includes(lowerQuery)
+        projectUsers.find(u => task.assigneeIds?.includes(u.id))?.fullName?.toLowerCase().includes(lowerQuery)
       );
     }
 
@@ -168,32 +170,35 @@ const GanttView = ({ boardId, filters, searchQuery, groupBy: headerGroupBy }) =>
         filtered = filtered.filter(task => filters.priority.includes(task.priority));
       }
       if (filters.assignee?.length > 0) {
-        const selectedIds = filters.assignee.map(id => String(id));
-        filtered = filtered.filter(task => {
-          const taskAssigneeIds = getIds(task.assignees, 'userId');
-          return taskAssigneeIds.some(aid => selectedIds.includes(String(aid)));
-        });
+        filtered = filtered.filter(task =>
+          task.assigneeIds?.some(id => filters.assignee.includes(Number(id)))
+        );
       }
       if (filters.labels?.length > 0) {
         filtered = filtered.filter(task =>
-          task.labels?.some(labelId => filters.labels.includes(labelId))
+          task.labelIds?.some(id => filters.labels.includes(Number(id)))
         );
       }
     }
     return filtered;
   }, [tasks, boardId, searchQuery, filters, projectUsers]);
 
+  // Auto-expand tasks with subtasks on load or data change
   React.useEffect(() => {
     if (boardTasks.length > 0) {
-      const newExpanded = {};
-      boardTasks.forEach(task => {
-        if (task.subtasks && task.subtasks.length > 0) {
-          newExpanded[task.id] = true;
-        }
+      setExpandedTasks(prev => {
+        const next = { ...prev };
+        let hasChanges = false;
+        boardTasks.forEach(task => {
+          if (task.subtasks && task.subtasks.length > 0 && next[task.id] === undefined) {
+            next[task.id] = true;
+            hasChanges = true;
+          }
+        });
+        return hasChanges ? next : prev;
       });
-      setExpandedTasks(prev => ({ ...prev, ...newExpanded }));
     }
-  }, [boardTasks.length]);
+  }, [boardTasks]);
 
   const timeline = useMemo(() => {
     const dates = [];
@@ -257,30 +262,109 @@ const GanttView = ({ boardId, filters, searchQuery, groupBy: headerGroupBy }) =>
     toast.loading('PDF hazırlanıyor...');
 
     try {
-      const response = await reportsAPI.getProjectPdf(boardId);
+      const originalElement = ganttRef.current;
+      if (!originalElement) throw new Error('Gantt container not found');
 
-      // Create Blob from response data
-      const url = window.URL.createObjectURL(new Blob([response.data]));
-      const link = document.createElement('a');
-      link.href = url;
+      // 1. Calculate Total Dimensions
+      // We need the full scroll width of the timeline + sidebar + any padding
+      const scrollContainer = originalElement.querySelector('.overflow-auto');
+      const totalWidth = scrollContainer ? scrollContainer.scrollWidth : originalElement.scrollWidth;
+      const totalHeight = scrollContainer ? scrollContainer.scrollHeight + 150 : originalElement.scrollHeight + 150; // +150 for header/legend
+
+      // 2. Clone the node
+      const clone = originalElement.cloneNode(true);
+
+      // 3. Create a wrapper for capture
+      const wrapper = document.createElement('div');
+      wrapper.style.position = 'absolute';
+      wrapper.style.top = '-9999px';
+      wrapper.style.left = '-9999px';
+      wrapper.style.width = `${totalWidth}px`;
+      wrapper.style.height = `${totalHeight}px`;
+      wrapper.style.backgroundColor = '#ffffff'; // Ensure white background
+      wrapper.style.zIndex = '-1';
+      document.body.appendChild(wrapper);
+
+      // 4. Add Professional Header
+      const header = document.createElement('div');
+      header.style.padding = '20px 40px';
+      header.style.borderBottom = '1px solid #e2e8f0';
+      header.style.marginBottom = '20px';
+      header.style.display = 'flex';
+      header.style.justifyContent = 'space-between';
+      header.style.alignItems = 'center';
+      header.innerHTML = `
+        <div>
+          <h1 style="font-size: 24px; font-weight: bold; color: #1e293b; margin: 0;">${projects.find(p => p.id === Number(boardId))?.name || 'Proje'} - Zaman Çizelgesi</h1>
+          <p style="font-size: 14px; color: #64748b; margin: 5px 0 0;">Oluşturulma Tarihi: ${new Date().toLocaleDateString('tr-TR')} ${new Date().toLocaleTimeString('tr-TR')}</p>
+        </div>
+        <div style="text-align: right;">
+          <span style="font-size: 12px; color: #94a3b8; font-weight: 500;">UNITY PROJECT MANAGEMENT</span>
+        </div>
+      `;
+      wrapper.appendChild(header);
+
+      // 5. Append Clone and Force Full Size
+      wrapper.appendChild(clone);
+
+      // Apply styles to ensure clone expands fully
+      clone.style.width = '100%';
+      clone.style.height = 'auto'; // Let content define height
+      clone.style.overflow = 'visible';
+      clone.style.maxHeight = 'none';
+
+      // Find internal scroll containers and expand them
+      const cloneScrollContainer = clone.querySelector('.overflow-auto');
+      if (cloneScrollContainer) {
+        cloneScrollContainer.style.overflow = 'visible';
+        cloneScrollContainer.style.width = '100%';
+        cloneScrollContainer.style.height = 'auto';
+        cloneScrollContainer.className = cloneScrollContainer.className.replace('overflow-auto', '');
+      }
+
+      // Hide interactive elements in clone (optional)
+      const controls = clone.querySelector('.h-14'); // Top nav bar selector
+      if (controls) controls.style.display = 'none'; // Hide top controls
+
+      // 6. Capture
+      const canvas = await html2canvas(wrapper, {
+        scale: 2, // High resolution
+        useCORS: true,
+        logging: false,
+        backgroundColor: '#ffffff',
+        width: totalWidth,
+        height: totalHeight,
+        windowWidth: totalWidth,
+        windowHeight: totalHeight
+      });
+
+      // 7. Generate PDF (Single Page)
+      const imgData = canvas.toDataURL('image/png');
+      const imgWidth = canvas.width / 2; // Adjust for scale: 2 (canvas pixels -> PDF points)
+      const imgHeight = canvas.height / 2;
+
+      const pdf = new jsPDF({
+        orientation: imgWidth > imgHeight ? 'landscape' : 'portrait',
+        unit: 'px',
+        format: [imgWidth, imgHeight], // Exact dimensions
+        hotfixes: ['px_scaling']
+      });
+
+      pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight);
 
       const projectName = projects.find(p => p.id === Number(boardId))?.name || 'Proje';
       const dateStr = format(new Date(), 'yyyyMMdd_HHmm');
+      pdf.save(`${projectName}_Zaman_Cizelgesi_${dateStr}.pdf`);
 
-      link.setAttribute('download', `${projectName}_Zaman_Cizelgesi_${dateStr}.pdf`);
-      document.body.appendChild(link);
-      link.click();
-
-      // Cleanup
-      link.parentNode.removeChild(link);
-      window.URL.revokeObjectURL(url);
-
+      // 8. Cleanup
+      document.body.removeChild(wrapper);
       toast.dismiss();
       toast.success('PDF başarıyla indirildi.');
+
     } catch (error) {
       console.error('PDF export error:', error);
       toast.dismiss();
-      toast.error('PDF oluşturulurken bir hata oluştu.');
+      toast.error('PDF oluşturulurken hata: ' + (error.message || 'Bilinmeyen hata'));
     } finally {
       setIsExporting(false);
     }
@@ -599,6 +683,29 @@ const GanttView = ({ boardId, filters, searchQuery, groupBy: headerGroupBy }) =>
                                     <span className={cn("text-[9px] font-normal truncate tracking-tighter", styles.text)}>
                                       {subtask.isCompleted ? 'Tamamlandı' : 'Devam Ediyor'}
                                     </span>
+
+                                    {/* Floating Avatars for Subtasks */}
+                                    {subtask.assignees && subtask.assignees.length > 0 && (
+                                      <div
+                                        className="absolute top-1/2 -translate-y-1/2 flex -space-x-2 z-20 transition-all hover:scale-110 hover:z-30"
+                                        style={{ left: `calc(100% + 8px)` }}
+                                      >
+                                        {subtask.assignees.slice(0, 3).map((assigneeId, idx) => (
+                                          <UserAvatar
+                                            key={idx}
+                                            userId={assigneeId}
+                                            usersList={users}
+                                            size="xs"
+                                            className="w-5 h-5 border-white ring-1 ring-white/50 shadow-sm"
+                                          />
+                                        ))}
+                                        {subtask.assignees.length > 3 && (
+                                          <div className="w-5 h-5 rounded-full bg-slate-100 border border-white flex items-center justify-center text-[8px] font-bold text-slate-600 shadow-sm">
+                                            +{subtask.assignees.length - 3}
+                                          </div>
+                                        )}
+                                      </div>
+                                    )}
                                   </div>
                                 )}
                               </div>

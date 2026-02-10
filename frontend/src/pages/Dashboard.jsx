@@ -10,6 +10,7 @@ import {
 import { DashboardSkeleton } from '../components/skeletons/DashboardSkeleton';
 import ModernTaskModal from '../components/ModernTaskModal';
 import NewTaskModal from '../components/NewTaskModal';
+import UserAvatar from '../components/ui/shared/UserAvatar';
 import { getAvatarUrl } from '../utils/avatarHelper';
 import { tasksAPI } from '../services/api';
 
@@ -213,15 +214,7 @@ const Dashboard = () => {
             </p>
           </div>
 
-          <button
-            onClick={() => setShowNewTaskModal(true)}
-            className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-xs font-bold shadow-sm shadow-indigo-200 transition-colors flex items-center gap-2"
-          >
-            <div className="bg-white/20 p-0.5 rounded">
-              <Activity size={14} />
-            </div>
-            Hızlı Görev
-          </button>
+
         </div>
 
         {/* Weekly Progress Bar - Compact */}
@@ -464,37 +457,14 @@ const Dashboard = () => {
                                         <div className="col-span-1 flex justify-center">
                                           {task.assignees && task.assignees.length > 0 ? (
                                             <div className="flex -space-x-1.5">
-                                              {task.assignees.slice(0, 3).map((assignee, idx) => {
-                                                // Assignee is now an object: { id, fullName, avatar }
-                                                const avatarSrc = getAvatarUrl(assignee.avatar);
-
-                                                // Initials fallback logic
-                                                const initials = assignee.fullName
-                                                  ? assignee.fullName.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase()
-                                                  : '??';
-
-                                                return (
-                                                  <div
-                                                    key={idx}
-                                                    className="w-6 h-6 rounded-full border-2 border-white dark:border-slate-800 bg-slate-200 flex items-center justify-center text-[8px] font-bold text-slate-600 shadow-sm overflow-hidden"
-                                                    title={assignee.fullName}
-                                                  >
-                                                    {assignee.avatar ? (
-                                                      <>
-                                                        <img
-                                                          src={avatarSrc}
-                                                          alt={assignee.fullName || 'User'}
-                                                          className="w-full h-full rounded-full object-cover"
-                                                          onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'flex'; }}
-                                                        />
-                                                        <span className="hidden w-full h-full items-center justify-center bg-indigo-50 text-indigo-600">{initials}</span>
-                                                      </>
-                                                    ) : (
-                                                      <span className="w-full h-full flex items-center justify-center bg-indigo-50 text-indigo-600">{initials}</span>
-                                                    )}
-                                                  </div>
-                                                );
-                                              })}
+                                              {task.assignees.slice(0, 3).map((assignee, idx) => (
+                                                <UserAvatar
+                                                  key={idx}
+                                                  user={assignee}
+                                                  size="xs"
+                                                  className="w-6 h-6 border-2 border-white dark:border-slate-800 shadow-sm"
+                                                />
+                                              ))}
                                             </div>
                                           ) : (
                                             <span className="text-slate-300">-</span>

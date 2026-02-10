@@ -30,36 +30,31 @@ const AdminPanel = () => {
 
   // Labels state - Global labels removed as they are now project-specific
 
+  /* 
+   * FIX: Removed hardcoded localhost:8080.
+   * Now uses usersAPI from services which handles BaseURL dynamically.
+   */
   useEffect(() => {
     // Fetch admin users with server-side filtering
     const fetchAdminUsers = async () => {
       if (activeTab !== 'users') return;
 
       try {
-        const token = localStorage.getItem('token');
-        // Construct query string
-        const params = new URLSearchParams();
-        if (searchTerm) params.append('search', searchTerm);
-        if (roleFilter !== 'all') params.append('role', roleFilter);
+        // Use the centralized API service
+        const response = await usersAPI.getAdminUsers(searchTerm, roleFilter);
 
-        const response = await fetch(`http://localhost:8080/api/users/admin?${params.toString()}`, {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
+        // API service returns the data directly (response.data)
+        const data = response.data;
+
+        setAdminUsers(data.users);
+        setStats({
+          totalUsers: data.totalUsers,
+          adminCount: data.adminCount,
+          memberCount: data.memberCount
         });
-
-        if (response.ok) {
-          const data = await response.json();
-          // Backend now returns { users, totalUsers, adminCount, memberCount }
-          setAdminUsers(data.users);
-          setStats({
-            totalUsers: data.totalUsers,
-            adminCount: data.adminCount,
-            memberCount: data.memberCount
-          });
-        }
       } catch (error) {
         console.error('Failed to fetch admin users:', error);
+        toast.error('Kullanıcı listesi güncellenemedi.');
       }
     };
 
@@ -88,22 +83,20 @@ const AdminPanel = () => {
     try {
       await usersAPI.delete(userId);
       toast.success('Kullanıcı silindi');
-      // Refresh admin users
-      const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:8080/api/users/admin', {
-        headers: { 'Authorization': `Bearer ${token}` }
+
+      // Refresh admin users using the same API service
+      const response = await usersAPI.getAdminUsers(searchTerm, roleFilter);
+      const data = response.data;
+
+      setAdminUsers(data.users);
+      setStats({
+        totalUsers: data.totalUsers,
+        adminCount: data.adminCount,
+        memberCount: data.memberCount
       });
-      if (response.ok) {
-        const data = await response.json();
-        setAdminUsers(data.users);
-        setStats({
-          totalUsers: data.totalUsers,
-          adminCount: data.adminCount,
-          memberCount: data.memberCount
-        });
-      }
       setDeleteConfirm(null);
     } catch (error) {
+      console.error('Delete failed:', error);
       toast.error('Kullanıcı silinemedi');
     }
   };

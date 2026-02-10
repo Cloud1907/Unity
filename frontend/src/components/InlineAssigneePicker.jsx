@@ -4,7 +4,7 @@ import { Plus, Search } from 'lucide-react';
 
 import UserAvatar from './ui/shared/UserAvatar';
 
-const InlineAssigneePicker = ({ assigneeIds, assignees, allUsers, onChange }) => {
+const InlineAssigneePicker = ({ assigneeIds, assignees, allUsers, onChange, showNames = false }) => {
     const [isOpen, setIsOpen] = useState(false);
     const pickerRef = useRef(null);
     const buttonRef = useRef(null);
@@ -157,23 +157,34 @@ const InlineAssigneePicker = ({ assigneeIds, assignees, allUsers, onChange }) =>
             <button
                 ref={buttonRef}
                 onClick={(e) => { e.stopPropagation(); setIsOpen(!isOpen); }}
-                className="flex items-center -space-x-1.5 hover:scale-105 transition-transform"
+                className={`flex items-center transition-transform ${showNames ? 'flex-wrap gap-2' : '-space-x-1.5 hover:scale-105'}`}
             >
-                {resolvedAssignees.slice(0, 3).map(assignee => (
-                    <UserAvatar
-                        key={assignee.id}
-                        user={assignee}
-                        size="sm"
-                        className="w-5 h-5 border-white ring-1 ring-gray-200"
-                    />
+                {resolvedAssignees.slice(0, showNames ? undefined : 3).map(assignee => (
+                    showNames ? (
+                        <div key={assignee.id} className="flex items-center gap-2 pl-1 pr-2.5 py-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-full shadow-sm">
+                            <UserAvatar
+                                user={assignee}
+                                size="xs"
+                                className="w-5 h-5"
+                            />
+                            <span className="text-xs font-medium text-slate-700 dark:text-slate-200">{assignee.fullName}</span>
+                        </div>
+                    ) : (
+                        <UserAvatar
+                            key={assignee.id}
+                            user={assignee}
+                            size="sm"
+                            className="w-5 h-5 border-white ring-1 ring-gray-200"
+                        />
+                    )
                 ))}
-                {resolvedAssignees.length > 3 && (
+                {!showNames && resolvedAssignees.length > 3 && (
                     <div className="w-5 h-5 rounded-full bg-gray-200 border border-white flex items-center justify-center">
                         <span className="text-[8px] font-semibold text-gray-600">+{resolvedAssignees.length - 3}</span>
                     </div>
                 )}
-                <div className="w-5 h-5 rounded-full bg-white border border-dashed border-gray-300 flex items-center justify-center hover:border-indigo-500 hover:bg-indigo-50 transition-all shadow-sm">
-                    <Plus size={10} className="text-gray-400" />
+                <div className={`rounded-full bg-white border border-dashed border-gray-300 flex items-center justify-center hover:border-indigo-500 hover:bg-indigo-50 transition-all shadow-sm ${showNames ? 'w-7 h-7' : 'w-5 h-5'}`}>
+                    <Plus size={showNames ? 14 : 10} className="text-gray-400" />
                 </div>
             </button>
             {isOpen && ReactDOM.createPortal(pickerContent, document.body)}

@@ -79,4 +79,16 @@ namespace Unity.Core.DTOs
         /// </summary>
         public List<WorkspacePreferenceDto>? WorkspacePreferences { get; set; }
     }
+
+    public class MagicLoginRequest
+    {
+        public string Token { get; set; } = string.Empty;
+    }
+
+    public class MagicLoginResponse
+    {
+        public string AccessToken { get; set; } = string.Empty;
+        public string TargetUrl { get; set; } = string.Empty;
+        public UserDto User { get; set; } = new UserDto();
+    }
 }

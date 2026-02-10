@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
 import StarryBackground from '../components/ui/StarryBackground';
@@ -114,6 +114,7 @@ const Login = () => {
   const [loading, setLoading] = useState(false);
   const { login, forgotPassword } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
 
   // Premium feature slides
   const slides = [
@@ -140,7 +141,12 @@ const Login = () => {
 
     if (result.success) {
       toast.success("Welcome back to Unity! 🚀");
-      setTimeout(() => navigate('/'), 500);
+      
+      // Check for redirect destination (include query params)
+      const from = location.state?.from ? 
+        (location.state.from.pathname + location.state.from.search) : 
+        '/';
+      setTimeout(() => navigate(from, { replace: true }), 500);
     } else {
       toast.error(result.error || "Authentication failed");
     }

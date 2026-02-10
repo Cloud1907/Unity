@@ -15,10 +15,13 @@ namespace Unity.Core.DTOs
         public string? ProjectName { get; set; }
         public string? ProjectColor { get; set; }
         
+        public string? TaskUrl { get; set; }
+
         public List<int> AssigneeIds { get; set; } = new();
         public List<int> LabelIds { get; set; } = new();
-        
+
         public int SubtaskCount { get; set; }
+        public List<SubtaskDto> Subtasks { get; set; } = new();
         public int CommentCount { get; set; }
         public int AttachmentCount { get; set; }
         public int CreatedBy { get; set; }

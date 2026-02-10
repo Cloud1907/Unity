@@ -54,6 +54,18 @@ namespace Unity.Infrastructure.Data
                 Console.WriteLine($"Migration Warning (CreatedAt): {ex.Message}");
             }
 
+            // Schema Migration Patch: Ensure Position column exists on Subtasks for reordering
+            try
+            {
+                var addPositionCmd = "IF COL_LENGTH('Subtasks', 'Position') IS NULL BEGIN ALTER TABLE Subtasks ADD Position INT NOT NULL DEFAULT 0 END";
+                context.Database.ExecuteSqlRaw(addPositionCmd);
+                Console.WriteLine("DEBUG: Subtasks.Position column verified/added.");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Migration Warning (Subtasks Position): {ex.Message}");
+            }
+
             // Schema Migration Patch: Create UserColumnPreferences table if not exists (New Requirement)
             try
             {
@@ -174,6 +186,18 @@ namespace Unity.Infrastructure.Data
             catch (Exception ex)
             {
                 Console.WriteLine($"CRITICAL ERROR: UserWorkspacePreferences Creation FAILED: {ex.Message}");
+            }
+
+            // Schema Migration Patch: Ensure UsedAt column exists on MagicLinks for grace period logic
+            try
+            {
+                var addUsedAtCmd = "IF COL_LENGTH('MagicLinks', 'UsedAt') IS NULL BEGIN ALTER TABLE MagicLinks ADD UsedAt DATETIME2 NULL END";
+                context.Database.ExecuteSqlRaw(addUsedAtCmd);
+                Console.WriteLine("DEBUG: MagicLinks.UsedAt column verified/added.");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Migration Warning (MagicLinks UsedAt): {ex.Message}");
             }
 
             // Create SQL View for Dashboard Performance Optimization
@@ -420,10 +444,10 @@ WHERE p.IsDeleted = 0;";
             // FIXED: Must use IgnoreQueryFilters to see Soft-Deleted records too!
 
             // Maps to track legacy String IDs to new Int IDs
-            var deptMap = context.Departments.IgnoreQueryFilters().ToDictionary(d => d.Name, d => d.Id);
-            var userMap = context.Users.IgnoreQueryFilters().ToDictionary(u => u.Username, u => u.Id);
-            var projectMap = context.Projects.IgnoreQueryFilters().ToDictionary(p => p.Name, p => p.Id); // Using Name as key for seed check
-            var labelMap = context.Labels.IgnoreQueryFilters().ToDictionary(l => l.Name + "_" + l.ProjectId, l => l.Id); // Composite key emulation
+            var deptMap = context.Departments.IgnoreQueryFilters().AsEnumerable().GroupBy(d => d.Name).ToDictionary(g => g.Key, g => g.First().Id);
+            var userMap = context.Users.IgnoreQueryFilters().AsEnumerable().GroupBy(u => u.Username).ToDictionary(g => g.Key, g => g.First().Id);
+            var projectMap = context.Projects.IgnoreQueryFilters().AsEnumerable().GroupBy(p => p.Name).ToDictionary(g => g.Key, g => g.First().Id);
+            var labelMap = context.Labels.IgnoreQueryFilters().AsEnumerable().GroupBy(l => l.Name + "_" + l.ProjectId).ToDictionary(g => g.Key, g => g.First().Id);
 
             // Password Hash
             var passwordHash = BCrypt.Net.BCrypt.HashPassword("test123");

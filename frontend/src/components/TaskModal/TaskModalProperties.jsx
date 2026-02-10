@@ -152,6 +152,7 @@ export const TaskModalProperties = ({
                 <label className="text-xs font-bold text-slate-400">Atananlar</label>
                 <div className="flex flex-wrap gap-2">
                     <InlineAssigneePicker
+                        showNames={true}
                         assigneeIds={extractIds(taskData.assignees, 'userId')}
                         assignees={taskData.assignees || []}
                         allUsers={filteredUsers}

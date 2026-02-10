@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("Unity.Infrastructure")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+eff9a5d4289847e46df85b9cef1fad6ba36bc2c7")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+bf71e36cfb4ba709068fc21d0f39554c9037a9c2")]
 [assembly: System.Reflection.AssemblyProductAttribute("Unity.Infrastructure")]
 [assembly: System.Reflection.AssemblyTitleAttribute("Unity.Infrastructure")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

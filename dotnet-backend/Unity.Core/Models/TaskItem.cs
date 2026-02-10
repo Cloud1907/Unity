@@ -29,6 +29,8 @@ namespace Unity.Core.Models
 
         public string? Description { get; set; }
 
+        public string? TaskUrl { get; set; }
+
         public List<TaskAssignee> Assignees { get; set; } = new List<TaskAssignee>();
 
         public int AssignedBy { get; set; }

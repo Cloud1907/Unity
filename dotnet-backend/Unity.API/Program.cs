@@ -33,6 +33,7 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 // Services
+builder.Services.AddScoped<Unity.Infrastructure.Services.IEmailService, Unity.Infrastructure.Services.SmtpEmailService>();
 builder.Services.AddScoped<Unity.API.Services.IEmailService, Unity.API.Services.EmailService>();
 builder.Services.AddScoped<Unity.Infrastructure.Services.IAuditService, Unity.Infrastructure.Services.AuditService>();
 builder.Services.AddScoped<Unity.Infrastructure.Services.IActivityLogger, Unity.Infrastructure.Services.ActivityLogger>(); // New Enhanced Logger
@@ -42,7 +43,7 @@ builder.Services.AddScoped<Unity.API.Services.IPdfService, Unity.API.Services.Pd
 builder.Services.AddCors(options =>
 {
     var allowedOrigins = Environment.GetEnvironmentVariable("UNITY_ALLOWED_ORIGINS")?.Split(',', StringSplitOptions.RemoveEmptyEntries);
-    
+
     options.AddPolicy("AllowAll",
         builder =>
         {
@@ -55,17 +56,17 @@ builder.Services.AddCors(options =>
             }
             else
             {
-               builder.WithOrigins("http://localhost:3000", "http://localhost:3001", "capacitor://localhost", "http://localhost")
-                   .AllowAnyMethod()
-                   .AllowAnyHeader()
-                   .AllowCredentials();
+                builder.WithOrigins("http://localhost:3000", "http://localhost:3001", "capacitor://localhost", "http://localhost")
+                    .AllowAnyMethod()
+                    .AllowAnyHeader()
+                    .AllowCredentials();
             }
         });
 });
 
 // Database Context (SQL Server)
 // Priority: Environment Variable > appsettings.json
-var connectionString = Environment.GetEnvironmentVariable("UNITY_CONNECTION_STRING") 
+var connectionString = Environment.GetEnvironmentVariable("UNITY_CONNECTION_STRING")
     ?? builder.Configuration.GetConnectionString("DefaultConnection");
 
 if (string.IsNullOrEmpty(connectionString))
@@ -80,29 +81,29 @@ if (string.IsNullOrEmpty(connectionString))
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlServer(connectionString));
 
-    /* 
-       Dynamic Key for Strict Security.
-       This key is generated on startup. Restarting the server invalidates all tokens.
-    */ 
-    // AppConfig.JwtKey initialized in AppConfig.cs
+/* 
+   Dynamic Key for Strict Security.
+   This key is generated on startup. Restarting the server invalidates all tokens.
+*/
+// AppConfig.JwtKey initialized in AppConfig.cs
 
-    builder.Services.AddAuthentication(options =>
+builder.Services.AddAuthentication(options =>
+{
+    options.DefaultAuthenticateScheme = Microsoft.AspNetCore.Authentication.JwtBearer.JwtBearerDefaults.AuthenticationScheme;
+    options.DefaultChallengeScheme = Microsoft.AspNetCore.Authentication.JwtBearer.JwtBearerDefaults.AuthenticationScheme;
+})
+.AddJwtBearer(options =>
+{
+    options.RequireHttpsMetadata = false;
+    options.SaveToken = true;
+    options.TokenValidationParameters = new Microsoft.IdentityModel.Tokens.TokenValidationParameters
     {
-        options.DefaultAuthenticateScheme = Microsoft.AspNetCore.Authentication.JwtBearer.JwtBearerDefaults.AuthenticationScheme;
-        options.DefaultChallengeScheme = Microsoft.AspNetCore.Authentication.JwtBearer.JwtBearerDefaults.AuthenticationScheme;
-    })
-    .AddJwtBearer(options =>
-    {
-        options.RequireHttpsMetadata = false;
-        options.SaveToken = true;
-        options.TokenValidationParameters = new Microsoft.IdentityModel.Tokens.TokenValidationParameters
-        {
-            ValidateIssuerSigningKey = true,
-            IssuerSigningKey = new Microsoft.IdentityModel.Tokens.SymmetricSecurityKey(AppConfig.JwtKey),
-            ValidateIssuer = false,
-            ValidateAudience = false
-        };
-    });
+        ValidateIssuerSigningKey = true,
+        IssuerSigningKey = new Microsoft.IdentityModel.Tokens.SymmetricSecurityKey(AppConfig.JwtKey),
+        ValidateIssuer = false,
+        ValidateAudience = false
+    };
+});
 
 // SignalR
 builder.Services.AddSignalR()

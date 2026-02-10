@@ -1,7 +1,10 @@
+using System;
+using System.Collections.Generic;
 using System.Net;
 using System.Net.Mail;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Configuration;
+using Unity.Core.DTOs;
 
 namespace Unity.API.Services
 {
@@ -40,6 +43,13 @@ namespace Unity.API.Services
 
                 await client.SendMailAsync(mailMessage);
             }
+        }
+
+        public async Task SendTaskAssignmentEmailAsync(string to, string userName, string? description, string assignerName, string workGroupName, string projectName, string taskTitle, string? subtaskTitle, string priority, DateTime? dueDate, int taskId, List<EmailSubtaskDto> subtasks)
+        {
+            var subject = subtaskTitle != null ? $"Yeni Görev: {taskTitle} / {subtaskTitle}" : $"Yeni Görev: {taskTitle}";
+            var body = $"Merhaba {userName}, size {assignerName} tarafından '{taskTitle}' görevi atandı.";
+            await SendEmailAsync(to, subject, body);
         }
     }
 }

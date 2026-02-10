@@ -1,11 +1,11 @@
-import React from 'react';
-import { ListTodo, MessageSquare, Paperclip, History } from 'lucide-react';
+import { ListTodo, MessageSquare, Paperclip, Link, History } from 'lucide-react';
 
-export const TaskModalTabs = ({ activeSection, setActiveSection, subtaskCount, commentCount, fileCount }) => {
+export const TaskModalTabs = ({ activeSection, setActiveSection, subtaskCount, commentCount, fileCount, linkCount }) => {
     const tabs = [
         { id: 'subtasks', icon: ListTodo, label: 'Alt Görevler', count: subtaskCount },
         { id: 'comments', icon: MessageSquare, label: 'Yorumlar', count: commentCount },
         { id: 'files', icon: Paperclip, label: 'Dosyalar', count: fileCount },
+        { id: 'link', icon: Link, label: 'Bağlantı', count: linkCount },
         { id: 'activity', icon: History, label: 'Geçmiş' }
     ];
 

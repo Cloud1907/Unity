@@ -1,27 +1,39 @@
-/* eslint-disable */
+import api, { BASE_URL } from '../services/api';
 
 /**
  * Helper function to get avatar URL with correct base URL
  */
 export function getAvatarUrl(avatarPath) {
     if (!avatarPath) return '';
+    if (typeof avatarPath !== 'string') return '';
 
-    // Support Base64 Data URLs
+    // Support Base64 Data URLs (DB Storage)
     if (avatarPath.startsWith('data:')) {
         return avatarPath;
     }
 
-    if (!avatarPath.includes('dicebear') && (avatarPath.startsWith('http') || avatarPath.startsWith('/uploads'))) {
-        if (avatarPath.startsWith('/uploads')) {
-            const backendUrl = getBackendUrl();
-            return `${backendUrl}${avatarPath}`;
-        }
+    // Support absolute URLs (Dicebear, External)
+    if (avatarPath.startsWith('http') || avatarPath.startsWith('//')) {
         return avatarPath;
     }
 
-    // Fallback for relative paths or dicebear
-    if (avatarPath.includes('dicebear') || avatarPath.startsWith('http')) {
-        return avatarPath;
+    // Support relative paths (from our new upload system)
+    if (avatarPath.startsWith('/uploads')) {
+        let baseUrl = BASE_URL || '';
+
+        // specific fix for localhost:8080/api -> localhost:8080 behavior
+        if (baseUrl.endsWith('/api')) {
+            baseUrl = baseUrl.slice(0, -4);
+        } else if (baseUrl.endsWith('/api/')) {
+            baseUrl = baseUrl.slice(0, -5);
+        }
+
+        // Remove trailing slash if exists to avoid double slash
+        if (baseUrl.endsWith('/')) {
+            baseUrl = baseUrl.slice(0, -1);
+        }
+
+        return `${baseUrl}${avatarPath}`;
     }
 
     return '';
@@ -29,13 +41,10 @@ export function getAvatarUrl(avatarPath) {
 
 /**
  * Get backend base URL
+ * @deprecated Use api.defaults.baseURL instead
  */
 export function getBackendUrl() {
-    if (process.env.NODE_ENV === 'production') {
-        return '';
-    }
-    // Correctly fallback to localhost:8080 or environment variable
-    return process.env.REACT_APP_BACKEND_URL || 'http://localhost:8080';
+    return api.defaults.baseURL || '';
 }
 
 /**

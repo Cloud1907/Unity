@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { useData } from '../contexts/DataContext';
 import { useAuth } from '../contexts/AuthContext';
 import { toast } from 'sonner';
-import api, { auditAPI, commentsAPI } from '../services/api';
+import api, { auditAPI, commentsAPI, subtasksAPI } from '../services/api';
 import { normalizeEntity } from '../utils/entityHelpers';
 import { filterProjectUsers } from '../utils/userHelper';
 
@@ -197,6 +197,17 @@ export const useTaskDetails = (initialTask, isOpen, onClose, initialSection = 's
         }
     };
 
+    const handleReorderSubtasks = async (items) => {
+        try {
+            await subtasksAPI.reorder({ items });
+            // refreshTask will happen via SignalR or we can trigger it manually
+            // Logic in TasksController already broadcasts TaskUpdated
+        } catch (error) {
+            console.error(error);
+            toast.error('Sıralama güncellenemedi');
+        }
+    };
+
     // No-op setters to maintain compatibility
     const noOp = () => { console.warn("Setter called on derived state - ignored."); };
 
@@ -223,6 +234,7 @@ export const useTaskDetails = (initialTask, isOpen, onClose, initialSection = 's
         handleDeleteAttachment,
         handleDeleteComment,
         handleDeleteSubtask,
+        handleReorderSubtasks,
         deleteTask,
         currentUser,
         users,

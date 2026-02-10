@@ -1,5 +1,5 @@
 import React, { useCallback } from 'react';
-import { ChevronRight, Maximize2, Layers, MessageSquare, Paperclip, Plus, Trash2, CornerDownRight } from 'lucide-react';
+import { ChevronRight, Maximize2, Layers, MessageSquare, Paperclip, Plus, Trash2, CornerDownRight, Link } from 'lucide-react';
 
 import { EXPANDER_COLUMN_WIDTH, TASK_COLUMN_WIDTH } from '../constants/taskConstants';
 import { extractIds } from '../utils/entityUtils';
@@ -189,6 +189,11 @@ function TaskRow({
                             <div className="flex items-center gap-1 text-rose-400 hover:text-rose-500 cursor-pointer" onClick={(e) => { e.stopPropagation(); openTaskModal(task, 'files'); }}>
                                 <Paperclip size={12} className="shrink-0" />
                                 <span className="text-[11px] font-medium">{task.attachmentsCount || task.attachments?.length}</span>
+                            </div>
+                        )}
+                        {task.taskUrl && (
+                            <div className="flex items-center gap-1 text-sky-500 hover:text-sky-600 cursor-pointer" onClick={(e) => { e.stopPropagation(); openTaskModal(task, 'link'); }} title="Bağlantı Var">
+                                <Link size={12} className="shrink-0" />
                             </div>
                         )}
 

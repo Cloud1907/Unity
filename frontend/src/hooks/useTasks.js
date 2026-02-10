@@ -1,7 +1,7 @@
 import { useState, useCallback, useMemo } from 'react';
 import { tasksAPI, subtasksAPI } from '../services/api';
 import { normalizeEntity, getId } from '../utils/entityHelpers';
-import { updateTaskInTree } from '../utils/taskHelpers';
+import { updateTaskInTree, findTaskInTree } from '../utils/taskHelpers';
 import { toast } from 'sonner';
 
 /** Ref: taskId -> timestamp of last optimistic update. Used by SignalR to ignore stale pushes. */
@@ -163,6 +163,7 @@ export const useTasks = () => {
 
         // 2. Optimistic Delete from UI
         setTasks(prev => {
+            console.log(`[DEBUG] Optimistic Delete: Removing Task ID ${targetId} from local state`);
             previousTasks = prev;
             const filterTree = (list) => {
                 return list.filter(t => t.id !== targetId).map(t => ({
@@ -192,15 +193,21 @@ export const useTasks = () => {
         ), { duration: 5000 });
 
         // 4. Delayed API Call (5 seconds window)
+        // 4. Delayed API Call (5 seconds window)
         setTimeout(async () => {
             if (undoTimedOut) {
+                console.log(`[DEBUG] Executing API Delete for Task ID: ${targetId}`);
                 try {
                     await tasksAPI.delete(targetId);
+                    console.log(`[DEBUG] API Delete Success for Task ID: ${targetId}`);
                 } catch (error) {
-                    console.error('Final task deletion error:', error);
+                    console.error('[DEBUG] Final task deletion error:', error);
+                    console.log('[DEBUG] Rolling back optimistic delete...');
                     setTasks(previousTasks);
                     toast.error('Görev sunucudan silinemedi, geri yüklendi');
                 }
+            } else {
+                console.log(`[DEBUG] Delete Undo triggered for Task ID: ${targetId}`);
             }
         }, 5000);
 
@@ -266,7 +273,13 @@ export const useTasks = () => {
         try {
             const response = await tasksAPI.getById(targetId);
             const normalized = normalizeEntity(response.data);
-            setTasks(prev => updateTaskInTree(prev, targetId, normalized));
+            setTasks(prev => {
+                const existing = findTaskInTree(prev, targetId);
+                if (existing) {
+                    return updateTaskInTree(prev, targetId, normalized);
+                }
+                return [normalized, ...prev]; // Prepend for visibility, or append? Prepend matches "latest" usually.
+            });
             return { success: true, data: normalized };
         } catch (error) {
             console.error('Error fetching task:', error);

@@ -1,13 +1,14 @@
 import React from 'react';
 import { Calendar, GitMerge, MessageSquare, Clock } from 'lucide-react';
-import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
+import UserAvatar from './ui/shared/UserAvatar';
 import { Badge } from './ui/badge';
-import { getAvatarUrl } from '../utils/avatarHelper';
 
 const MobileTaskCard = ({ task, onClick, getStatusColor, getPriorityData, getAssignees }) => {
     const statusColor = getStatusColor(task.status);
     const priorityData = getPriorityData(task.priority);
-    const assignees = getAssignees(task.assignees);
+    // Resolve assignees from IDs to Objects if helper matches
+    const assignees = getAssignees ? getAssignees(task.assignees) : (task.assignees || []);
+
     const completedSubtasks = task.subtasks?.filter(st => st.completed).length || 0;
     const totalSubtasks = task.subtasks?.length || 0;
 
@@ -38,10 +39,7 @@ const MobileTaskCard = ({ task, onClick, getStatusColor, getPriorityData, getAss
                         {task.title}
                     </h3>
                     {priorityData && (
-                        <div
-                            className="flex items-center justify-center w-6 h-6 rounded-md shadow-sm flex-shrink-0"
-                            style={{ backgroundColor: priorityData.color }}
-                        >
+                        <div className="flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium" style={{ backgroundColor: priorityData.bgColor + '20', color: priorityData.textColor }}>
                             <span className="text-xs" style={{ color: priorityData.textColor }}>{priorityData.icon}</span>
                         </div>
                     )}
@@ -57,8 +55,16 @@ const MobileTaskCard = ({ task, onClick, getStatusColor, getPriorityData, getAss
                     )}
                     {/* If there are labels, show the first one as a pill */}
                     {task.labels && task.labels.length > 0 && (
-                        <div className="w-2 h-2 rounded-full bg-blue-400" />
-                        // Ideally we would map label IDs to colors here, but for now a simple dot indicates labels exist
+                        <div className="flex items-center gap-1">
+                            {task.labels.slice(0, 1).map((label, idx) => (
+                                <Badge key={idx} variant="outline" className="h-5 px-1.5 text-[10px] font-normal border-slate-200 text-slate-500">
+                                    {label.name || label}
+                                </Badge>
+                            ))}
+                            {task.labels.length > 1 && (
+                                <span className="text-[10px] text-slate-400">+{task.labels.length - 1}</span>
+                            )}
+                        </div>
                     )}
                 </div>
 
@@ -67,15 +73,16 @@ const MobileTaskCard = ({ task, onClick, getStatusColor, getPriorityData, getAss
 
                     {/* Assignees */}
                     <div className="flex -space-x-2">
-                        {assignees.slice(0, 3).map((user, i) => (
-                            <Avatar key={user.id || i} className="w-6 h-6 border-2 border-white dark:border-gray-800">
-                                <AvatarImage src={user.avatar ? getAvatarUrl(user.avatar) : ''} />
-                                <AvatarFallback className="text-[9px] bg-gray-100 text-gray-600">
-                                    {user.fullName?.charAt(0)}
-                                </AvatarFallback>
-                            </Avatar>
-                        ))}
-                        {assignees.length === 0 && (
+                        {assignees && assignees.length > 0 ? (
+                            assignees.slice(0, 3).map((user, i) => (
+                                <UserAvatar
+                                    key={user.id || i}
+                                    user={user}
+                                    size="sm"
+                                    className="border-2 border-white dark:border-gray-800"
+                                />
+                            ))
+                        ) : (
                             <div className="w-6 h-6 rounded-full border border-dashed border-gray-300 flex items-center justify-center">
                                 <span className="text-[10px] text-gray-400">?</span>
                             </div>
@@ -84,19 +91,16 @@ const MobileTaskCard = ({ task, onClick, getStatusColor, getPriorityData, getAss
 
                     {/* Counts */}
                     <div className="flex items-center gap-3">
-                        {/* Subtasks */}
                         {totalSubtasks > 0 && (
-                            <div className="flex items-center gap-1 text-gray-500">
-                                <GitMerge size={14} className="rotate-90" />
-                                <span className="text-xs font-medium">{completedSubtasks}/{totalSubtasks}</span>
+                            <div className="flex items-center gap-1 text-xs text-gray-400">
+                                <GitMerge size={12} />
+                                <span>{completedSubtasks}/{totalSubtasks}</span>
                             </div>
                         )}
-
-                        {/* Comments */}
-                        {task.comments?.length > 0 && (
-                            <div className="flex items-center gap-1 text-gray-500">
-                                <MessageSquare size={14} />
-                                <span className="text-xs font-medium">{task.comments.length}</span>
+                        {task.comments && task.comments.length > 0 && (
+                            <div className="flex items-center gap-1 text-xs text-gray-400">
+                                <MessageSquare size={12} />
+                                <span>{task.comments.length}</span>
                             </div>
                         )}
                     </div>

@@ -71,7 +71,7 @@ namespace Unity.Infrastructure.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("ActivityLogs", (string)null);
+                    b.ToTable("ActivityLogs");
                 });
 
             modelBuilder.Entity("Unity.Core.Models.Attachment", b =>
@@ -110,7 +110,7 @@ namespace Unity.Infrastructure.Migrations
 
                     b.HasIndex("TaskId");
 
-                    b.ToTable("Attachments", (string)null);
+                    b.ToTable("Attachments");
                 });
 
             modelBuilder.Entity("Unity.Core.Models.AuditLog", b =>
@@ -156,7 +156,7 @@ namespace Unity.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("AuditLogs", (string)null);
+                    b.ToTable("AuditLogs");
                 });
 
             modelBuilder.Entity("Unity.Core.Models.Comment", b =>
@@ -186,7 +186,7 @@ namespace Unity.Infrastructure.Migrations
 
                     b.HasIndex("TaskId");
 
-                    b.ToTable("Comments", (string)null);
+                    b.ToTable("Comments");
                 });
 
             modelBuilder.Entity("Unity.Core.Models.Department", b =>
@@ -199,6 +199,9 @@ namespace Unity.Infrastructure.Migrations
 
                     b.Property<string>("Color")
                         .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
 
                     b.Property<int>("CreatedBy")
                         .HasColumnType("int");
@@ -224,7 +227,7 @@ namespace Unity.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Departments", (string)null);
+                    b.ToTable("Departments");
                 });
 
             modelBuilder.Entity("Unity.Core.Models.Label", b =>
@@ -254,7 +257,48 @@ namespace Unity.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Labels", (string)null);
+                    b.ToTable("Labels");
+                });
+
+            modelBuilder.Entity("Unity.Core.Models.MagicLink", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("ExpiresAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsUsed")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("TargetUrl")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Token")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<DateTime?>("UsedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Token")
+                        .IsUnique();
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("MagicLinks");
                 });
 
             modelBuilder.Entity("Unity.Core.Models.Project", b =>
@@ -323,7 +367,7 @@ namespace Unity.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Projects", (string)null);
+                    b.ToTable("Projects");
                 });
 
             modelBuilder.Entity("Unity.Core.Models.ProjectMember", b =>
@@ -338,7 +382,7 @@ namespace Unity.Infrastructure.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("ProjectMembers", (string)null);
+                    b.ToTable("ProjectMembers");
                 });
 
             modelBuilder.Entity("Unity.Core.Models.Subtask", b =>
@@ -361,6 +405,9 @@ namespace Unity.Infrastructure.Migrations
                     b.Property<bool>("IsCompleted")
                         .HasColumnType("bit");
 
+                    b.Property<int>("Position")
+                        .HasColumnType("int");
+
                     b.Property<DateTime?>("StartDate")
                         .HasColumnType("datetime2");
 
@@ -375,7 +422,7 @@ namespace Unity.Infrastructure.Migrations
 
                     b.HasIndex("TaskId");
 
-                    b.ToTable("Subtasks", (string)null);
+                    b.ToTable("Subtasks");
                 });
 
             modelBuilder.Entity("Unity.Core.Models.TaskAssignee", b =>
@@ -401,9 +448,9 @@ namespace Unity.Infrastructure.Migrations
 
                     b.HasIndex("TaskId");
 
-                    b.HasIndex("UserId");
+                    b.HasIndex("UserId", "TaskId");
 
-                    b.ToTable("TaskAssignees", null, t =>
+                    b.ToTable("TaskAssignees", t =>
                         {
                             t.HasCheckConstraint("CK_TaskAssignee_Target", "(\"TaskId\" IS NOT NULL OR \"SubtaskId\" IS NOT NULL)");
                         });
@@ -456,9 +503,12 @@ namespace Unity.Infrastructure.Migrations
 
                     b.Property<string>("Status")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("nvarchar(450)");
 
                     b.Property<string>("TShirtSize")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("TaskUrl")
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("Title")
@@ -470,7 +520,11 @@ namespace Unity.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Tasks", (string)null);
+                    b.HasIndex("Status");
+
+                    b.HasIndex("ProjectId", "IsDeleted");
+
+                    b.ToTable("Tasks");
                 });
 
             modelBuilder.Entity("Unity.Core.Models.TaskLabel", b =>
@@ -485,7 +539,7 @@ namespace Unity.Infrastructure.Migrations
 
                     b.HasIndex("LabelId");
 
-                    b.ToTable("TaskLabels", (string)null);
+                    b.ToTable("TaskLabels");
                 });
 
             modelBuilder.Entity("Unity.Core.Models.User", b =>
@@ -505,6 +559,9 @@ namespace Unity.Infrastructure.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime2");
+
                     b.Property<string>("Email")
                         .IsRequired()
                         .HasColumnType("nvarchar(450)");
@@ -517,6 +574,9 @@ namespace Unity.Infrastructure.Migrations
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsDeleted")
                         .HasColumnType("bit");
 
                     b.Property<string>("JobTitle")
@@ -542,7 +602,7 @@ namespace Unity.Infrastructure.Migrations
                     b.HasIndex("Email")
                         .IsUnique();
 
-                    b.ToTable("Users", (string)null);
+                    b.ToTable("Users");
                 });
 
             modelBuilder.Entity("Unity.Core.Models.UserColumnPreference", b =>
@@ -560,6 +620,10 @@ namespace Unity.Infrastructure.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<string>("SidebarPreferences")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("datetime2");
 
@@ -568,7 +632,7 @@ namespace Unity.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("UserColumnPreferences", (string)null);
+                    b.ToTable("UserColumnPreferences");
                 });
 
             modelBuilder.Entity("Unity.Core.Models.UserDepartment", b =>
@@ -583,7 +647,7 @@ namespace Unity.Infrastructure.Migrations
 
                     b.HasIndex("DepartmentId");
 
-                    b.ToTable("UserDepartments", (string)null);
+                    b.ToTable("UserDepartments");
                 });
 
             modelBuilder.Entity("Unity.Core.Models.UserProjectPreference", b =>
@@ -601,7 +665,201 @@ namespace Unity.Infrastructure.Migrations
 
                     b.HasIndex("ProjectId");
 
-                    b.ToTable("UserProjectPreferences", (string)null);
+                    b.ToTable("UserProjectPreferences");
+                });
+
+            modelBuilder.Entity("Unity.Core.Models.UserWorkspacePreference", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("DepartmentId")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("IsCollapsed")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsVisible")
+                        .HasColumnType("bit");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DepartmentId");
+
+                    b.HasIndex("UserId");
+
+                    b.HasIndex("UserId", "DepartmentId")
+                        .IsUnique();
+
+                    b.ToTable("UserWorkspacePreferences");
+                });
+
+            modelBuilder.Entity("Unity.Core.Models.ViewModels.DashboardTaskView", b =>
+                {
+                    b.Property<int?>("AssigneeId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("DepartmentColor")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("DepartmentId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("DepartmentName")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("DueDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Priority")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("Progress")
+                        .HasColumnType("int");
+
+                    b.Property<string>("ProjectColor")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("ProjectId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("ProjectName")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("StartDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("TaskId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.ToTable((string)null);
+
+                    b.ToView("vw_DashboardTasks", (string)null);
+                });
+
+            modelBuilder.Entity("Unity.Core.Models.ViewModels.ProjectViewItem", b =>
+                {
+                    b.Property<string>("Color")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("CompletedTaskCount")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("DepartmentColor")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("DepartmentId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("DepartmentName")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Description")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Icon")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("Id")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("IsPrivate")
+                        .HasColumnType("bit");
+
+                    b.Property<int>("MemberCount")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Name")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("Owner")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Priority")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("ProjectId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Status")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("TaskCount")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.ToTable((string)null);
+
+                    b.ToView("vw_ProjectList", (string)null);
+                });
+
+            modelBuilder.Entity("Unity.Core.Models.ViewModels.UserDashboardStatsView", b =>
+                {
+                    b.Property<double>("AverageProgress")
+                        .HasColumnType("float");
+
+                    b.Property<int>("DoneTasks")
+                        .HasColumnType("int");
+
+                    b.Property<int>("InProgressTasks")
+                        .HasColumnType("int");
+
+                    b.Property<int>("OverdueTasks")
+                        .HasColumnType("int");
+
+                    b.Property<int>("ReviewTasks")
+                        .HasColumnType("int");
+
+                    b.Property<int>("StuckTasks")
+                        .HasColumnType("int");
+
+                    b.Property<int>("TodoTasks")
+                        .HasColumnType("int");
+
+                    b.Property<int>("TotalTasks")
+                        .HasColumnType("int");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("int");
+
+                    b.ToTable((string)null);
+
+                    b.ToView("vw_UserDashboardStats", (string)null);
                 });
 
             modelBuilder.Entity("Unity.Core.Models.ActivityLog", b =>
@@ -641,6 +899,17 @@ namespace Unity.Infrastructure.Migrations
                         .IsRequired();
 
                     b.Navigation("Task");
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("Unity.Core.Models.MagicLink", b =>
+                {
+                    b.HasOne("Unity.Core.Models.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
 
                     b.Navigation("User");
                 });
@@ -700,6 +969,17 @@ namespace Unity.Infrastructure.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("Unity.Core.Models.TaskItem", b =>
+                {
+                    b.HasOne("Unity.Core.Models.Project", "Project")
+                        .WithMany()
+                        .HasForeignKey("ProjectId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Project");
+                });
+
             modelBuilder.Entity("Unity.Core.Models.TaskLabel", b =>
                 {
                     b.HasOne("Unity.Core.Models.Label", "Label")
@@ -753,6 +1033,25 @@ namespace Unity.Infrastructure.Migrations
                         .IsRequired();
 
                     b.Navigation("Project");
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("Unity.Core.Models.UserWorkspacePreference", b =>
+                {
+                    b.HasOne("Unity.Core.Models.Department", "Department")
+                        .WithMany()
+                        .HasForeignKey("DepartmentId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Unity.Core.Models.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Department");
 
                     b.Navigation("User");
                 });

@@ -78,45 +78,53 @@ const Settings = () => {
   const handleAvatarUpload = async (e) => {
     const file = e.target.files[0];
     if (file) {
-      // User requested 5MB limit
-      if (file.size > 5 * 1024 * 1024) {
-        toast.error('Dosya boyutu çok büyük (Maksimum 5MB)');
-        return;
-      }
+      // User requested 10MB limit (10 * 1024 * 1024 bytes)
+      const MAX_SIZE_BYTES = 10 * 1024 * 1024; // 10MB
 
       try {
         const reader = new FileReader();
         reader.onload = (event) => {
           const img = new Image();
           img.onload = () => {
-            // "Resolution Fix": Resize to high-quality but manageable dimensions (max 512px)
-            const canvas = document.createElement('canvas');
-            const MAX_SIZE = 512;
+            // Calculate new dimensions if needed to keep file size under control
+            // We aim for high quality, but if it's too huge, we resize.
             let width = img.width;
             let height = img.height;
 
-            if (width > height) {
-              if (width > MAX_SIZE) {
-                height *= MAX_SIZE / width;
-                width = MAX_SIZE;
-              }
-            } else {
-              if (height > MAX_SIZE) {
-                width *= MAX_SIZE / height;
-                height = MAX_SIZE;
+            // Max dimension for 10MB limit is quite large, but let's keep it reasonable for DB storage
+            // 2048x2048 is usually plenty for an avatar and stays well under 10MB as JPEG
+            const MAX_DIMENSION = 2048;
+
+            if (width > MAX_DIMENSION || height > MAX_DIMENSION) {
+              if (width > height) {
+                height *= MAX_DIMENSION / width;
+                width = MAX_DIMENSION;
+              } else {
+                width *= MAX_DIMENSION / height;
+                height = MAX_DIMENSION;
               }
             }
 
+            const canvas = document.createElement('canvas');
             canvas.width = width;
             canvas.height = height;
             const ctx = canvas.getContext('2d');
             ctx.drawImage(img, 0, 0, width, height);
 
-            // Use JPEG with 0.8 quality for excellent balance between looks and size
-            const base64String = canvas.toDataURL('image/jpeg', 0.85);
+            // Compress lightly to ensure it fits easily within 10MB
+            // 0.9 quality is very high visual fidelity
+            let quality = 0.9;
+            let base64String = canvas.toDataURL('image/jpeg', quality);
+
+            // Automatic degradation if still too large (extremely unlikely for 2048px @ 0.9)
+            while (base64String.length > MAX_SIZE_BYTES * 1.37 && quality > 0.1) { // 1.37 is approx Base64 overhead
+              quality -= 0.1;
+              base64String = canvas.toDataURL('image/jpeg', quality);
+            }
+
             setAvatarPreview(base64String);
             setFormData(prev => ({ ...prev, avatar: base64String }));
-            toast.success('Avatar optimize edildi! Kaydetmeyi unutmayın.');
+            toast.success('Avatar hazır! Kaydet butonuna basmayı unutmayın.');
           };
           img.src = event.target.result;
         };
@@ -483,15 +491,7 @@ const Settings = () => {
                       </div>
                     </div>
 
-                    <div className="border-t dark:border-gray-800 pt-6">
-                      <h3 className="font-semibold text-gray-900 dark:text-white mb-4">İki Faktörlü Kimlik Doğrulama</h3>
-                      <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-                        Hesabınıza ekstra bir güvenlik katmanı ekleyin.
-                      </p>
-                      <Button variant="outline">
-                        2FA'yı Etkinleştir
-                      </Button>
-                    </div>
+
                   </div>
                 </div>
               )}

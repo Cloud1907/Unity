@@ -18,6 +18,7 @@ namespace Unity.Core.Models
 
         public DateTime? StartDate { get; set; }
         public DateTime? DueDate { get; set; }
+        public int Position { get; set; } = 0;
 
         public int TaskId { get; set; }
         [ForeignKey("TaskId")]

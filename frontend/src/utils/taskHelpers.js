@@ -16,6 +16,9 @@ export const updateTaskInTree = (taskList, targetId, newData) => {
         if (task.id === targetId) {
             // STALE UPDATE PROTECTION:
             // If newData has an updatedAt timestamp, only apply if it's newer than (or same as) current task
+            // STALE UPDATE PROTECTION:
+            // Disabled for now due to TimeZone mismatches causing fresh API data to be rejected.
+            /*
             if (newData.updatedAt && task.updatedAt) {
                 const newTime = new Date(newData.updatedAt).getTime();
                 const taskTime = new Date(task.updatedAt).getTime();
@@ -24,6 +27,9 @@ export const updateTaskInTree = (taskList, targetId, newData) => {
                     return task;
                 }
             }
+            */
+
+            // Debug logs removed after verification
 
             // MERGE FIX: Preserve existing subtasks if they are not in the update data
             // This prevents SignalR updates from wiping out nested children
@@ -50,4 +56,23 @@ export const updateTaskInTree = (taskList, targetId, newData) => {
 
         return task;
     });
+};
+
+/**
+ * Recursively finds a task in the tree.
+ * @param {Array} taskList
+ * @param {number} targetId
+ * @returns {Object|null}
+ */
+export const findTaskInTree = (taskList, targetId) => {
+    if (!taskList || !Array.isArray(taskList)) return null;
+
+    for (const task of taskList) {
+        if (task.id === targetId) return task;
+        if (task.subtasks && task.subtasks.length > 0) {
+            const found = findTaskInTree(task.subtasks, targetId);
+            if (found) return found;
+        }
+    }
+    return null;
 };

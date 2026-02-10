@@ -19,7 +19,7 @@ const getBaseUrl = () => {
   return 'http://localhost:8080';
 };
 
-const BASE_URL = getBaseUrl();
+export const BASE_URL = getBaseUrl();
 const API_URL = `${BASE_URL}/api`;
 
 
@@ -93,8 +93,8 @@ api.interceptors.response.use(
     const originalRequest = error.config;
 
     if (error.response?.status === 401 && !originalRequest._retry) {
-      // Do NOT refresh or redirect if the 401 comes from the login endpoint itself
-      if (originalRequest.url.includes('/auth/login')) {
+      // Do NOT refresh or redirect if the 401 comes from the login or magic-login endpoint
+      if (originalRequest.url.includes('/auth/login') || originalRequest.url.includes('/auth/magic-login')) {
         return Promise.reject(error);
       }
 
@@ -148,6 +148,13 @@ api.interceptors.response.use(
   }
 );
 
+// File Upload API
+export const fileAPI = {
+  uploadAvatar: (formData) => api.post('/upload/avatar', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' }
+  }),
+};
+
 // Auth API
 export const authAPI = {
   register: (data) => api.post('/auth/register', data),
@@ -163,6 +170,7 @@ export const authAPI = {
 // Users API
 export const usersAPI = {
   getAll: (departmentId, workspaceId, search, page, pageSize) => api.get('/users', { params: { departmentId, workspace_id: workspaceId, search, page, pageSize } }),
+  getAdminUsers: (search, role) => api.get('/users/admin', { params: { search, role } }), // ADDED THIS
   getById: (id) => api.get(`/users/${id}`),
   create: (data) => api.post('/users', data),
   update: (id, data) => api.put(`/users/${id}`, data),
@@ -215,6 +223,7 @@ export const subtasksAPI = {
     const res = await api.put(`/tasks/subtasks/${id}`, data);
     return res;
   },
+  reorder: (data) => api.put('/tasks/reorder-subtasks', data),
   delete: (id) => api.delete(`/tasks/subtasks/${id}`),
 };
 

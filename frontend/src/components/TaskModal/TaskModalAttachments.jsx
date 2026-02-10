@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { BASE_URL } from '../../services/api';
 import { Paperclip, Upload, FileText, Image as ImageIcon, Download, X } from 'lucide-react';
 
 export const TaskModalAttachments = ({ attachments, onUpload, onRequestDelete, isUploading }) => {
@@ -83,7 +84,7 @@ export const TaskModalAttachments = ({ attachments, onUpload, onRequestDelete, i
                         </div>
 
                         <div className="flex-1 min-w-0">
-                            <a href={file.url?.startsWith('http') ? file.url : `${process.env.REACT_APP_BACKEND_URL || ''}${file.url}`} target="_blank" rel="noopener noreferrer" className="block text-sm font-medium text-slate-900 dark:text-white truncate hover:text-indigo-600 transition-colors">
+                            <a href={file.url?.startsWith('http') ? file.url : `${BASE_URL}${file.url}`} target="_blank" rel="noopener noreferrer" className="block text-sm font-medium text-slate-900 dark:text-white truncate hover:text-indigo-600 transition-colors">
                                 {file.name}
                             </a>
                             <div className="flex items-center gap-2 mt-0.5">
@@ -98,7 +99,7 @@ export const TaskModalAttachments = ({ attachments, onUpload, onRequestDelete, i
 
                         <div className="flex flex-col gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                             <a
-                                href={file.url?.startsWith('http') ? file.url : `${process.env.REACT_APP_BACKEND_URL || ''}${file.url}`}
+                                href={file.url?.startsWith('http') ? file.url : `${BASE_URL}${file.url}`}
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 rounded-lg transition-colors"

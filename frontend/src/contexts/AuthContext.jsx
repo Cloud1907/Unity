@@ -43,12 +43,17 @@ export const AuthProvider = ({ children }) => {
     if (token) {
       try {
         const response = await authAPI.getMe();
-        // Backend check: if backend returns Test User (which we deleted, but just in case)
-        if (response.data.fullName === 'Test User') {
-          throw new Error('Invalid Test User returned from backend');
-        }
-        setUser(response.data);
-        localStorage.setItem('user', JSON.stringify(response.data));
+        const normalizedUser = {
+          ...response.data,
+          id: response.data.id || response.data.Id,
+          fullName: response.data.fullName || response.data.FullName,
+          email: response.data.email || response.data.Email,
+          avatar: response.data.avatar || response.data.Avatar,
+          color: response.data.color || response.data.Color,
+          role: response.data.role || response.data.Role
+        };
+        setUser(normalizedUser);
+        localStorage.setItem('user', JSON.stringify(normalizedUser));
       } catch (error) {
         console.error('Auth check failed:', error);
         localStorage.removeItem('token');
@@ -66,9 +71,18 @@ export const AuthProvider = ({ children }) => {
   const refreshUser = async () => {
     try {
       const response = await authAPI.getMe();
-      setUser(response.data);
-      localStorage.setItem('user', JSON.stringify(response.data));
-      return { success: true, data: response.data };
+      const normalizedUser = {
+        ...response.data,
+        id: response.data.id || response.data.Id,
+        fullName: response.data.fullName || response.data.FullName,
+        email: response.data.email || response.data.Email,
+        avatar: response.data.avatar || response.data.Avatar,
+        color: response.data.color || response.data.Color,
+        role: response.data.role || response.data.Role
+      };
+      setUser(normalizedUser);
+      localStorage.setItem('user', JSON.stringify(normalizedUser));
+      return { success: true, data: normalizedUser };
     } catch (error) {
       console.error('Failed to refresh user:', error);
       return { success: false, error };
@@ -88,8 +102,18 @@ export const AuthProvider = ({ children }) => {
         localStorage.setItem('refreshToken', refresh_token);
       }
 
-      localStorage.setItem('user', JSON.stringify(userData));
-      setUser(userData);
+      const normalizedUser = {
+        ...userData,
+        id: userData.id || userData.Id,
+        fullName: userData.fullName || userData.FullName,
+        email: userData.email || userData.Email,
+        avatar: userData.avatar || userData.Avatar,
+        color: userData.color || userData.Color,
+        role: userData.role || userData.Role
+      };
+
+      localStorage.setItem('user', JSON.stringify(normalizedUser));
+      setUser(normalizedUser);
 
       return { success: true };
     } catch (error) {
@@ -122,8 +146,18 @@ export const AuthProvider = ({ children }) => {
       if (refresh_token) {
         localStorage.setItem('refreshToken', refresh_token);
       }
-      localStorage.setItem('user', JSON.stringify(userData));
-      setUser(userData);
+      const normalizedUser = {
+        ...userData,
+        id: userData.id || userData.Id,
+        fullName: userData.fullName || userData.FullName,
+        email: userData.email || userData.Email,
+        avatar: userData.avatar || userData.Avatar,
+        color: userData.color || userData.Color,
+        role: userData.role || userData.Role
+      };
+
+      localStorage.setItem('user', JSON.stringify(normalizedUser));
+      setUser(normalizedUser);
 
       return { success: true };
     } catch (error) {
@@ -157,8 +191,17 @@ export const AuthProvider = ({ children }) => {
   };
 
   const updateUser = (userData) => {
-    setUser(userData);
-    localStorage.setItem('user', JSON.stringify(userData));
+    const normalizedUser = {
+      ...userData,
+      id: userData.id || userData.Id,
+      fullName: userData.fullName || userData.FullName,
+      email: userData.email || userData.Email,
+      avatar: userData.avatar || userData.Avatar,
+      color: userData.color || userData.Color,
+      role: userData.role || userData.Role
+    };
+    setUser(normalizedUser);
+    localStorage.setItem('user', JSON.stringify(normalizedUser));
   };
 
   // Update user preferences (column visibility, etc.) to backend

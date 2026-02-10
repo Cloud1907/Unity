@@ -1,11 +1,8 @@
 {
   "version": 2,
-  "dgSpecHash": "V7jI2kB+VEg=",
+  "dgSpecHash": "PkGld35xcVY=",
   "success": true,
   "projectFilePath": "/Users/cloudsmac/Documents/AntiGravity/UnityApp/dotnet-backend/Unity.Core/Unity.Core.csproj",
-  "expectedPackageFiles": [
-    "/Users/cloudsmac/.nuget/packages/microsoft.netcore.app.runtime.win-x64/10.0.1/microsoft.netcore.app.runtime.win-x64.10.0.1.nupkg.sha512",
-    "/Users/cloudsmac/.nuget/packages/microsoft.aspnetcore.app.runtime.win-x64/10.0.1/microsoft.aspnetcore.app.runtime.win-x64.10.0.1.nupkg.sha512"
-  ],
+  "expectedPackageFiles": [],
   "logs": []
 }

@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Plus, ChevronDown } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useDataState, useDataActions } from '../contexts/DataContext';
@@ -30,6 +31,7 @@ const MainTable = ({ boardId, searchQuery, filters, groupBy }) => {
   // NOTE: filteredTasks was removed - logic merged into boardTasks useMemo for performance
 
   const { fetchTasks, loadMoreTasks, fetchLabels, updateTaskStatus, updateTask, createTask, deleteTask, updateSubtask } = useDataActions();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [selectedTask, setSelectedTask] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalInitialSection, setModalInitialSection] = useState('activity');
@@ -38,6 +40,7 @@ const MainTable = ({ boardId, searchQuery, filters, groupBy }) => {
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [taskToDelete, setTaskToDelete] = useState(null);
   const [activeMenuTaskId, setActiveMenuTaskId] = useState(null);
+
 
   // Inline Creation State
   const [isCreating, setIsCreating] = useState(false);
@@ -115,18 +118,32 @@ const MainTable = ({ boardId, searchQuery, filters, groupBy }) => {
       }
       if (filters.assignee?.length > 0) {
         filtered = filtered.filter(task =>
-          task.assignees?.some(assigneeId => filters.assignee.includes(assigneeId))
+          task.assigneeIds?.some(id => filters.assignee.includes(Number(id)))
         );
       }
       if (filters.labels?.length > 0) {
         filtered = filtered.filter(task =>
-          task.labels?.some(labelId => filters.labels.includes(labelId))
+          task.labelIds?.some(id => filters.labels.includes(Number(id)))
         );
       }
     }
 
     return filtered;
   }, [tasks, boardId, searchQuery, filters, projectUsers]);
+
+  // Deep Link Support: Open task modal if 'task' param is present
+  useEffect(() => {
+    const taskId = searchParams.get('task');
+    if (taskId && tasks.length > 0) {
+      // Search in all tasks (including subtasks) which are in the flat 'tasks' array
+      const task = tasks.find(t => t.id === Number(taskId));
+      if (task && (!selectedTask || selectedTask.id !== task.id)) {
+        console.log(`[DeepLink] Auto-opening task ${taskId}: ${task.title}`);
+        setSelectedTask(task);
+        setIsModalOpen(true);
+      }
+    }
+  }, [searchParams, tasks, selectedTask]);
 
   // Grouped Tasks
   const groupedTasks = useMemo(() => {
@@ -583,7 +600,16 @@ const MainTable = ({ boardId, searchQuery, filters, groupBy }) => {
           <ModernTaskModal
             task={selectedTask}
             isOpen={isModalOpen}
-            onClose={() => setIsModalOpen(false)}
+            onClose={() => {
+              setIsModalOpen(false);
+              setSelectedTask(null);
+              // Clear URL param
+              const newParams = new URLSearchParams(searchParams);
+              newParams.delete('task');
+              // Use navigate to replace URL without reload, or setSearchParams
+              // setSearchParams is available from hook
+              setSearchParams(newParams);
+            }}
             initialSection={modalInitialSection}
           />
         )

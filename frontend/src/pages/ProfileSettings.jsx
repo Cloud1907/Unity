@@ -31,7 +31,9 @@ const ProfileSettings = () => {
     setLoading(true);
 
     try {
+      console.log('[ProfileSettings] Updating profile with payload:', profileForm);
       const response = await authAPI.updateProfile(profileForm);
+      console.log('[ProfileSettings] Update response:', response.data);
       updateUser(response.data);
       toast.success('Profil güncellendi!');
     } catch (error) {
@@ -74,17 +76,34 @@ const ProfileSettings = () => {
     }
   };
 
-  const handleAvatarUpload = (e) => {
+  const handleAvatarUpload = async (e) => {
     const file = e.target.files[0];
     if (file) {
-      // Gerçek uygulamada dosyayı sunucuya yükleyip URL alacaksınız
-      // Şimdilik placeholder avatar URL kullanıyoruz
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setProfileForm({ ...profileForm, avatar: reader.result });
-        toast.info('Avatar değiştirildi. Kaydet butonuna tıklayın.');
-      };
-      reader.readAsDataURL(file);
+      // 5MB limit
+      if (file.size > 5 * 1024 * 1024) {
+        toast.error('Dosya boyutu 5MB\'dan büyük olamaz.');
+        return;
+      }
+
+      setLoading(true);
+      const formData = new FormData();
+      formData.append('file', file);
+
+      try {
+        const { fileAPI } = await import('../services/api');
+        const response = await fileAPI.uploadAvatar(formData);
+
+        // Backend returns relative path: /uploads/avatars/xyz.jpg
+        const avatarUrl = response.data.url;
+
+        setProfileForm({ ...profileForm, avatar: avatarUrl });
+        toast.success('Avatar yüklendi. Değişikliği uygulamak için "Kaydet" butonuna basın.');
+      } catch (error) {
+        console.error('Upload error:', error);
+        toast.error('Avatar yüklenirken hata oluştu.');
+      } finally {
+        setLoading(false);
+      }
     }
   };
 
@@ -201,7 +220,7 @@ const ProfileSettings = () => {
                         Avatar URL (opsiyonel)
                       </label>
                       <input
-                        type="url"
+                        type="text"
                         value={profileForm.avatar}
                         onChange={(e) => setProfileForm({ ...profileForm, avatar: e.target.value })}
                         className="w-full px-4 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 dark:text-gray-100"

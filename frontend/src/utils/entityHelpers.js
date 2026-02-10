@@ -129,11 +129,12 @@ export const normalizeEntity = (entity) => {
 
         // Normalized Relations
         subtasks: subtasks,
-        assigneeIds: assigneeIds,
-        assignees: fullAssignees.length > 0 ? fullAssignees : assigneeIds, // Map full objects if available
-        labels: fullLabels.length > 0 ? fullLabels : labelIds,
-        labelIds: labelIds,
-        tagIds: labelIds, // Alias for label IDs
+        comments: entity.comments || entity.Comments || [], // Ensure comments are accessible
+        assigneeIds: assigneeIds.map(Number),
+        labelIds: labelIds.map(Number),
+        assignees: fullAssignees.length > 0 ? fullAssignees : assigneeIds.map(id => ({ id: Number(id) })),
+        labels: fullLabels.length > 0 ? fullLabels : labelIds.map(id => ({ id: Number(id) })),
+        tagIds: labelIds.map(Number), // Alias for label IDs
 
         // Fix common casing issues
         projectId: entity.projectId || entity.ProjectId ? Number(entity.projectId || entity.ProjectId) : null,
@@ -147,7 +148,9 @@ export const normalizeEntity = (entity) => {
 
         // Dates
         startDate: entity.startDate || entity.StartDate || null,
-        dueDate: entity.dueDate || entity.DueDate || null
+        dueDate: entity.dueDate || entity.DueDate || null,
+        createdAt: entity.createdAt || entity.CreatedAt || new Date().toISOString(),
+        updatedAt: entity.updatedAt || entity.UpdatedAt || new Date().toISOString()
     };
 
     // Remove undefined keys to keep it clean

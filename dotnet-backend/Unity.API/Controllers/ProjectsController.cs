@@ -342,7 +342,6 @@ namespace Unity.API.Controllers
             // project.Favorite = !project.Favorite;
 
             // await _context.SaveChangesAsync();
-
             return Ok(project);
         }
     }

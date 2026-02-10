@@ -1,12 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
-import axios from 'axios';
+import api from '../services/api'; // Use centralized API
 import { toast } from 'sonner';
-
-const getBackendUrl = () => {
-    if (process.env.REACT_APP_BACKEND_URL) return process.env.REACT_APP_BACKEND_URL;
-    if (process.env.NODE_ENV === 'production') return window.location.origin;
-    return 'http://localhost:8080';
-};
 
 /**
  * useUserList Hook
@@ -32,17 +26,16 @@ export const useUserList = ({ workspaceId, global = false, enabled = true } = {}
         const fetchUsers = async () => {
             setLoading(true);
             try {
-                const token = localStorage.getItem('token');
-                let url = `${getBackendUrl()}/api/users`;
-                const params = new URLSearchParams();
+                // Use centralized API instance (BaseURL is already configured there)
+                const params = {};
 
                 if (global) {
-                    params.append('mode', 'global');
+                    params.mode = 'global';
                 } else if (workspaceId) {
-                    params.append('workspace_id', workspaceId);
+                    params.workspace_id = workspaceId;
                 }
 
-                const currentKey = params.toString();
+                const currentKey = JSON.stringify(params);
                 if (cacheKey.current === currentKey && users.length > 0) {
                     // Simple duplicate check if nothing changed? 
                     // Better just let it fetch to be fresh, or implement real caching.
@@ -50,10 +43,8 @@ export const useUserList = ({ workspaceId, global = false, enabled = true } = {}
                 }
                 cacheKey.current = currentKey;
 
-                const response = await axios.get(url, {
-                    params,
-                    headers: { Authorization: `Bearer ${token}` }
-                });
+                // api.get uses the configured base URL
+                const response = await api.get('/users', { params });
 
                 // Normalize response: handle array or object with data/users property
                 const data = response.data;

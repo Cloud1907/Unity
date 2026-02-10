@@ -20,6 +20,7 @@ namespace Unity.Infrastructure.Data
 
         public DbSet<Comment> Comments { get; set; }
         public DbSet<Attachment> Attachments { get; set; }
+        public DbSet<MagicLink> MagicLinks { get; set; }
         
         // Join Tables
         public DbSet<TaskAssignee> TaskAssignees { get; set; }
@@ -57,6 +58,7 @@ namespace Unity.Infrastructure.Data
             // Global Query Filters for Soft Delete
             modelBuilder.Entity<Project>().HasQueryFilter(p => !p.IsDeleted);
             modelBuilder.Entity<Department>().HasQueryFilter(d => !d.IsDeleted);
+            modelBuilder.Entity<TaskItem>().HasQueryFilter(t => !t.IsDeleted);
 
 
             // Enforce logic: TaskAssignee must have either TaskId OR SubtaskId (but not neither)
@@ -189,6 +191,11 @@ namespace Unity.Infrastructure.Data
 
             modelBuilder.Entity<TaskAssignee>()
                 .HasIndex(a => new { a.UserId, a.TaskId });
+
+            // Magic Link Token Index for fast lookups
+            modelBuilder.Entity<MagicLink>()
+                .HasIndex(m => m.Token)
+                .IsUnique();
         }
     }
 }
