@@ -25,9 +25,9 @@ const MagicLogin = () => {
         const verifyMagicLink = async () => {
             try {
                 console.log("[MagicLogin] Verifying token:", token);
-                // Clear any existing session to avoid mixed states
-                localStorage.removeItem('token');
-                localStorage.removeItem('user');
+                // Do NOT clear localStorage before API call!
+                // Clearing it causes a race condition: background requests (from DataContext etc.)
+                // detect no token, interceptor finds no refreshToken, and redirects to /login.
 
                 const response = await api.post('/auth/magic-login', { token });
                 console.log("[MagicLogin] Response:", response.data);
@@ -38,6 +38,7 @@ const MagicLogin = () => {
                 const finalTarget = data.targetUrl || data.TargetUrl;
 
                 if (finalToken && finalUser) {
+                    // NOW it's safe to clear and replace
                     localStorage.setItem('token', finalToken);
                     localStorage.setItem('user', JSON.stringify(finalUser));
                     

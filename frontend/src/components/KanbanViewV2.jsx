@@ -733,20 +733,26 @@ const KanbanViewV2 = ({ boardId, searchQuery, filters }) => {
   const [searchParams, setSearchParams] = useSearchParams();
 
   // Deep Link Support: Open task modal if 'task' param is present
+  const deepLinkHandled = React.useRef(false);
   useEffect(() => {
     const taskId = searchParams.get('task');
-    if (taskId && tasks.length > 0) {
-      // Search in all tasks
-      const task = tasks.find(t => t.id === Number(taskId));
-      if (task && (!selectedTask || selectedTask.id !== task.id)) {
-        console.log(`[Kanban DeepLink] Auto-opening task ${taskId}`);
-        setSelectedTask(task);
-        if (task.subtasks?.length > 0) setModalInitialSection('subtasks');
-        else setModalInitialSection('activity'); // Default to activity if no subtasks? Or just 'subtasks' is fine
-        setIsDetailOpen(true);
-      }
+    if (!taskId) {
+      deepLinkHandled.current = false; // Reset when param is gone
+      return;
     }
-  }, [searchParams, tasks, selectedTask]);
+    if (deepLinkHandled.current) return;
+    if (tasks.length === 0) return;
+
+    const task = tasks.find(t => t.id === Number(taskId));
+    if (task) {
+      console.log(`[Kanban DeepLink] Auto-opening task ${taskId}`);
+      deepLinkHandled.current = true;
+      setSelectedTask(task);
+      if (task.subtasks?.length > 0) setModalInitialSection('subtasks');
+      else setModalInitialSection('activity');
+      setIsDetailOpen(true);
+    }
+  }, [searchParams, tasks]);
 
   const [draggedTask, setDraggedTask] = useState(null);
   const [dragOverColumn, setDragOverColumn] = useState(null);
@@ -934,11 +940,11 @@ const KanbanViewV2 = ({ boardId, searchQuery, filters }) => {
     setIsDetailOpen(false);
     setSelectedTask(null);
     
-    // Clear URL param
-    const newParams = new URLSearchParams(searchParams);
-    if (newParams.has('task')) {
-        newParams.delete('task');
-        setSearchParams(newParams);
+    // Clear URL param without triggering React re-render
+    const url = new URL(window.location.href);
+    if (url.searchParams.has('task')) {
+      url.searchParams.delete('task');
+      window.history.replaceState({}, '', url.pathname + url.search);
     }
   };
 

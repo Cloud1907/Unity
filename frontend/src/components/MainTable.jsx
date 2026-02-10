@@ -132,18 +132,24 @@ const MainTable = ({ boardId, searchQuery, filters, groupBy }) => {
   }, [tasks, boardId, searchQuery, filters, projectUsers]);
 
   // Deep Link Support: Open task modal if 'task' param is present
+  const deepLinkHandled = useRef(false);
   useEffect(() => {
     const taskId = searchParams.get('task');
-    if (taskId && tasks.length > 0) {
-      // Search in all tasks (including subtasks) which are in the flat 'tasks' array
-      const task = tasks.find(t => t.id === Number(taskId));
-      if (task && (!selectedTask || selectedTask.id !== task.id)) {
-        console.log(`[DeepLink] Auto-opening task ${taskId}: ${task.title}`);
-        setSelectedTask(task);
-        setIsModalOpen(true);
-      }
+    if (!taskId) {
+      deepLinkHandled.current = false; // Reset when param is gone
+      return;
     }
-  }, [searchParams, tasks, selectedTask]);
+    if (deepLinkHandled.current) return; // Already handled this param
+    if (tasks.length === 0) return;
+    
+    const task = tasks.find(t => t.id === Number(taskId));
+    if (task) {
+      console.log(`[DeepLink] Auto-opening task ${taskId}: ${task.title}`);
+      deepLinkHandled.current = true;
+      setSelectedTask(task);
+      setIsModalOpen(true);
+    }
+  }, [searchParams, tasks]);
 
   // Grouped Tasks
   const groupedTasks = useMemo(() => {
@@ -603,12 +609,11 @@ const MainTable = ({ boardId, searchQuery, filters, groupBy }) => {
             onClose={() => {
               setIsModalOpen(false);
               setSelectedTask(null);
-              // Clear URL param
-              const newParams = new URLSearchParams(searchParams);
-              newParams.delete('task');
-              // Use navigate to replace URL without reload, or setSearchParams
-              // setSearchParams is available from hook
-              setSearchParams(newParams);
+              // Clear URL param without triggering React re-render
+              // Using replaceState avoids re-firing the deep link useEffect
+              const url = new URL(window.location.href);
+              url.searchParams.delete('task');
+              window.history.replaceState({}, '', url.pathname + url.search);
             }}
             initialSection={modalInitialSection}
           />
