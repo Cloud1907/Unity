@@ -34,6 +34,7 @@ namespace Unity.Core.Models
         public bool IsActive { get; set; } = true;
 
         public string? Gender { get; set; }
+        public DateTime? LastNotificationReadAt { get; set; }
         public string? PasswordHash { get; set; } = "";
 
         

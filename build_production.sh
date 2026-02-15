@@ -41,7 +41,12 @@ echo "🔗 Frontend dosyaları backend'e entegre ediliyor..."
 mkdir -p "$TEMP_BUILD_DIR/wwwroot"
 cp -r "$FRONTEND_DIR/build/"* "$TEMP_BUILD_DIR/wwwroot/"
 
-# 6. Sıkıştırma (Flat Structure)
+# 6. Sıkıştırma Öncesi Temizlik (uploads klasörünü hariç tut)
+echo "🧹 Gereksiz dosyalar (uploads) temizleniyor..."
+rm -rf "$TEMP_BUILD_DIR/wwwroot/uploads"
+rm -rf "$TEMP_BUILD_DIR/uploads"
+
+# 7. Sıkıştırma (Flat Structure)
 echo "🗜️ Paket oluşturuluyor (ZIP)..."
 cd "$TEMP_BUILD_DIR"
 zip -r "$OUTPUT_ZIP" ./*

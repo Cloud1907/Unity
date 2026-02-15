@@ -44,6 +44,7 @@ namespace Unity.Core.DTOs
     public class UpdateProfileRequest
     {
         public string? FullName { get; set; }
+        public string? Email { get; set; }
         public string? Avatar { get; set; }
         public string? Color { get; set; }
         public string? Gender { get; set; }
@@ -90,5 +91,16 @@ namespace Unity.Core.DTOs
         public string AccessToken { get; set; } = string.Empty;
         public string TargetUrl { get; set; } = string.Empty;
         public UserDto User { get; set; } = new UserDto();
+    }
+
+    public class ChangePasswordRequest
+    {
+        public string CurrentPassword { get; set; } = string.Empty;
+        public string NewPassword { get; set; } = string.Empty;
+    }
+
+    public class ForgotPasswordRequest
+    {
+        public string? Email { get; set; }
     }
 }

@@ -60,7 +60,7 @@ namespace Unity.API.Controllers
             {
                 "month" => new DateTime(now.Year, now.Month, 1),
                 "year" => now.AddYears(-1),
-                _ => now.AddDays(-(int)now.DayOfWeek + (now.DayOfWeek == DayOfWeek.Sunday ? -6 : 1)) // This week (Monday)
+                _ => now.AddDays(-7) // Last 7 days
             };
 
             // Query from SQL View - much faster than joins

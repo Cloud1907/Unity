@@ -200,17 +200,48 @@ namespace Unity.Infrastructure.Data
                 Console.WriteLine($"Migration Warning (MagicLinks UsedAt): {ex.Message}");
             }
 
-            // Create SQL View for Dashboard Performance Optimization
-            try
-            {
-                Console.WriteLine("DEBUG: Creating/Updating vw_DashboardTasks View...");
-                var createViewCmd = @"
+                // Schema Migration Patch: Ensure CompletedAt column exists on Tasks (New Requirement)
+                try
+                {
+                    var addCompletedAtCmd = "IF COL_LENGTH('Tasks', 'CompletedAt') IS NULL BEGIN ALTER TABLE Tasks ADD CompletedAt DATETIME2 NULL END";
+                    context.Database.ExecuteSqlRaw(addCompletedAtCmd);
+                    Console.WriteLine("DEBUG: Tasks.CompletedAt column verified/added.");
+
+                    // BACKFILL: Recover actual completion dates from ActivityLogs (User Approved)
+                    var recoveryCmd = @"
+                        UPDATE Tasks
+                        SET CompletedAt = LogData.ActualCompletionDate
+                        FROM Tasks t
+                        INNER JOIN (
+                            SELECT 
+                                TRY_CAST(EntityId AS INT) as TaskId, 
+                                MAX(LogDate) as ActualCompletionDate
+                            FROM ActivityLogs
+                            WHERE EntityType = 'Task' 
+                              AND FieldName = 'Status' 
+                              AND NewValue = 'done'
+                            GROUP BY EntityId
+                        ) LogData ON t.Id = LogData.TaskId
+                        WHERE t.Status = 'done';";
+                    context.Database.ExecuteSqlRaw(recoveryCmd);
+                    Console.WriteLine("DEBUG: Recovered actual completion dates from logs.");
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Migration Warning (Tasks CompletedAt): {ex.Message}");
+                }
+
+                // Create SQL View for Dashboard Performance Optimization
+                try
+                {
+                    Console.WriteLine("DEBUG: Creating/Updating vw_DashboardTasks View...");
+                    var createViewCmd = @"
                     IF OBJECT_ID('dbo.vw_DashboardTasks', 'V') IS NOT NULL
                         DROP VIEW dbo.vw_DashboardTasks;";
-                context.Database.ExecuteSqlRaw(createViewCmd);
+                    context.Database.ExecuteSqlRaw(createViewCmd);
 
-                // Create the view (must be separate batch)
-                var viewSql = @"
+                    // Create the view (must be separate batch)
+                    var viewSql = @"
 CREATE VIEW vw_DashboardTasks AS
 SELECT 
     t.Id AS TaskId,
@@ -221,6 +252,7 @@ SELECT
     t.DueDate,
     t.StartDate,
     t.UpdatedAt,
+    t.CompletedAt,
     t.ProjectId,
     p.Name AS ProjectName,
     p.Color AS ProjectColor,
@@ -233,8 +265,8 @@ INNER JOIN Projects p ON t.ProjectId = p.Id AND p.IsDeleted = 0
 INNER JOIN Departments d ON p.DepartmentId = d.Id AND d.IsDeleted = 0
 LEFT JOIN TaskAssignees ta ON t.Id = ta.TaskId
 WHERE t.IsDeleted = 0;";
-                context.Database.ExecuteSqlRaw(viewSql);
-                Console.WriteLine("DEBUG: vw_DashboardTasks View Created Successfully.");
+                    context.Database.ExecuteSqlRaw(viewSql);
+                    Console.WriteLine("DEBUG: vw_DashboardTasks View Created Successfully.");
 
                 // Create View for Dashboard Statistics (Performance Optimization)
                 var createStatsViewCmd = @"

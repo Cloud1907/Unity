@@ -87,7 +87,7 @@ namespace Unity.API.Controllers
             var visibleProjects = allProjects.Where(p =>
                 p.Owner == currentUser.Id ||
                 memberProjectIds.Contains(p.ProjectId) ||
-                (!p.IsPrivate && (currentUser.Role == "admin" || userDepts.Contains(p.DepartmentId)))
+                (!p.IsPrivate && (string.Equals(currentUser.Role, "admin", StringComparison.OrdinalIgnoreCase) || userDepts.Contains(p.DepartmentId)))
             ).ToList();
 
             return Ok(visibleProjects);
@@ -109,7 +109,7 @@ namespace Unity.API.Controllers
                             project.Members.Any(PM => PM.UserId == currentUser.Id);
 
             bool hasAccess = isMember ||
-                             (!project.IsPrivate && (currentUser.Role == "admin" || currentUser.Departments.Any(d => d.DepartmentId == project.DepartmentId)));
+                             (!project.IsPrivate && (string.Equals(currentUser.Role, "admin", StringComparison.OrdinalIgnoreCase) || currentUser.Departments.Any(d => d.DepartmentId == project.DepartmentId)));
 
             if (!hasAccess)
                 return Forbid();
@@ -181,7 +181,7 @@ namespace Unity.API.Controllers
                 return NotFound();
 
             // Permission Check: Owner, Member, or Admin
-            bool canEdit = currentUser.Role == "admin" ||
+            bool canEdit = string.Equals(currentUser.Role, "admin", StringComparison.OrdinalIgnoreCase) ||
                            existingProject.Owner == currentUser.Id ||
                            existingProject.Members.Any(PM => PM.UserId == currentUser.Id);
 
@@ -329,7 +329,7 @@ namespace Unity.API.Controllers
 
             var currentUser = await GetCurrentUserWithDeptsAsync();
 
-            bool hasAccess = currentUser.Role == "admin" ||
+            bool hasAccess = string.Equals(currentUser.Role, "admin", StringComparison.OrdinalIgnoreCase) ||
                              project.Owner == currentUser.Id ||
                              project.Members.Any(PM => PM.UserId == currentUser.Id) ||
                              currentUser.Departments.Any(d => d.DepartmentId == project.DepartmentId);

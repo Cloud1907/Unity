@@ -90,7 +90,7 @@ const SortableSubtaskItem = ({
                     }}
                     onBlur={() => onUpdateSubtask(subtask.id, { title: subtask.title })}
                     title={subtask.title}
-                    className={`w-full bg-transparent border-none text-sm font-semibold outline-none focus:ring-0 p-0 transition-colors ${subtask.isCompleted ? 'text-slate-400 line-through' : 'text-slate-700 dark:text-slate-200 group-hover:text-slate-900 dark:group-hover:text-white'
+                    className={`w-full bg-transparent border-none text-sm font-normal outline-none focus:ring-0 p-0 transition-colors ${subtask.isCompleted ? 'text-slate-400 line-through' : 'text-slate-700 dark:text-slate-200 group-hover:text-slate-900 dark:group-hover:text-white'
                         } `}
                 />
 

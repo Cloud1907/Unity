@@ -107,7 +107,7 @@ export const useTaskDetails = (initialTask, isOpen, onClose, initialSection = 's
             await refreshTask(task.id);
         } catch (error) {
             console.error(error);
-            toast.error('Yorum eklenemedi');
+            // toast.error('Yorum eklenemedi'); // Disabled to avoid double toast if API fails
         }
     };
 

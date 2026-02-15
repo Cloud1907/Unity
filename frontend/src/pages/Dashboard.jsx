@@ -1,8 +1,8 @@
-import React, { useMemo, useState, useEffect } from 'react';
+import React, { useMemo, useState, useEffect, useRef } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useData } from '../contexts/DataContext';
 import { useAuth } from '../contexts/AuthContext';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, animate } from 'framer-motion';
 import {
   Calendar, Target, Zap, AlertCircle, Search, CheckCircle2,
   Clock, ChevronDown, ChevronRight, FileText, Activity, Users
@@ -13,11 +13,17 @@ import NewTaskModal from '../components/NewTaskModal';
 import UserAvatar from '../components/ui/shared/UserAvatar';
 import { getAvatarUrl } from '../utils/avatarHelper';
 import { tasksAPI } from '../services/api';
+import useMediaQuery from '../hooks/useMediaQuery';
+
+import GreetingAnimation from '../components/dashboard/GreetingAnimation';
+import CountUp from '../components/dashboard/CountUp';
+
 
 const Dashboard = () => {
   const { projects, users, departments } = useData(); // Keep meta-data from context, but NOT tasks
   const { user } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
+  const isMobile = useMediaQuery('(max-width: 1024px)');
 
   // Dashboard State
   const [serverStats, setServerStats] = useState(null); // Independent Stats State
@@ -30,6 +36,13 @@ const Dashboard = () => {
   const [selectedTask, setSelectedTask] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [showNewTaskModal, setShowNewTaskModal] = useState(false);
+  const [startProgress, setStartProgress] = useState(false); // Trigger for progress bar
+
+  useEffect(() => {
+    // Delay progress bar animation slightly to ensure visible "filling" effect
+    const timer = setTimeout(() => setStartProgress(true), 300);
+    return () => clearTimeout(timer);
+  }, []);
 
   // Expanded states for accordions (default all open)
   const [expandedWorkspaces, setExpandedWorkspaces] = useState({});
@@ -100,7 +113,20 @@ const Dashboard = () => {
       result = result.filter(t => t.status === 'done');
     } else if (filter === 'in_progress') {
       result = result.filter(t => t.status !== 'done');
+    } else if (filter === 'todo') {
+      result = result.filter(t => t.status === 'todo');
+    } else if (filter === 'working') {
+      result = result.filter(t => t.status === 'working' || t.status === 'in_progress');
+    } else if (filter === 'stuck') {
+      result = result.filter(t => t.status === 'stuck');
+    } else if (filter === 'review') {
+      result = result.filter(t => t.status === 'review');
+    } else if (filter === 'overdue') {
+      result = result.filter(t => 
+        t.dueDate && new Date(t.dueDate) < new Date() && t.status !== 'done'
+      );
     }
+    // 'all' filter shows everything (no filtering)
 
     return result;
   }, [taskList, filter]);
@@ -199,45 +225,50 @@ const Dashboard = () => {
   if (loadingStats) return <div className="p-8"><DashboardSkeleton /></div>;
 
   return (
-    <div className="h-full bg-gray-50/50 dark:bg-gray-900 p-4 lg:p-6 overflow-y-auto">
+    <div className={`h-full bg-gray-50/50 dark:bg-gray-900 ${isMobile ? 'p-3' : 'p-4 lg:p-6'} overflow-y-auto`}>
       <div className="max-w-[1600px] mx-auto space-y-6">
 
         {/* Header - More Compact */}
         <div className="flex justify-between items-center">
           <div>
-            <h1 className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
-              Merhaba, {user?.fullName?.split(' ')[0]} 👋
+            <h1 className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2 min-h-[32px]">
+              {user && !loadingStats && (
+                <GreetingAnimation text={`Merhaba, ${user?.fullName?.split(' ')[0]}`} />
+              )}
             </h1>
             <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1 flex items-center gap-1">
               <Calendar size={12} />
               {new Date().toLocaleDateString('tr-TR', { weekday: 'long', day: 'numeric', month: 'long' })}
             </p>
           </div>
-
-
         </div>
 
         {/* Weekly Progress Bar - Compact */}
         <div className="bg-white dark:bg-slate-800 rounded-xl p-5 border border-slate-100 dark:border-slate-700 shadow-sm">
-          <div className="flex items-center justify-between mb-3">
+          <div className={`flex ${isMobile ? 'flex-col gap-4' : 'items-center justify-between'} mb-3`}>
             <div>
-              <h2 className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-1">Haftalık İlerleme</h2>
+              <h2 className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 mb-1">Haftalık İlerleme</h2>
               {/* Progress Bar Container */}
-              <div className="flex items-center gap-3 w-[300px] lg:w-[400px]">
+              <div className={`flex items-center gap-3 ${isMobile ? 'w-full' : 'w-[300px] lg:w-[400px]'}`}>
                 <div className="flex-1 h-2 bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden">
                   <motion.div
                     initial={{ width: 0 }}
-                    animate={{ width: `${stats.progressRate}%` }}
-                    transition={{ duration: 1, ease: "easeOut" }}
+                    animate={{ width: startProgress ? `${stats.progressRate}%` : 0 }}
+                    transition={{ duration: 1.5, ease: "easeOut" }}
                     className="h-full bg-indigo-500 rounded-full"
                   />
                 </div>
-                <span className="text-indigo-600 dark:text-indigo-400 font-bold text-xs">%{stats.progressRate}</span>
+                <CountUp 
+                  to={stats.progressRate} 
+                  prefix="%" 
+                  play={startProgress}
+                  className="text-indigo-600 dark:text-indigo-400 font-bold text-xs" 
+                />
               </div>
             </div>
 
             {/* Stats Row */}
-            <div className="flex gap-8 text-center">
+            <div className={`flex ${isMobile ? 'justify-between' : 'gap-8'} text-center`}>
               <div>
                 <div className="text-xl font-bold text-slate-900 dark:text-white">{stats.total}</div>
                 <div className="text-[10px] text-slate-500 font-medium mt-0.5">Toplam Görev</div>
@@ -255,9 +286,16 @@ const Dashboard = () => {
         </div>
 
         {/* Stat Cards Grid - Compact */}
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+        <div className={`grid ${isMobile ? 'grid-cols-2' : 'grid-cols-2 md:grid-cols-3 lg:grid-cols-6'} gap-3`}>
           {/* Total */}
-          <div className="bg-white dark:bg-slate-800 p-3.5 rounded-xl border border-indigo-100 dark:border-indigo-900/30 shadow-sm ring-1 ring-indigo-50 dark:ring-0">
+          <div 
+            onClick={() => handleFilterChange('all')}
+            className={`bg-white dark:bg-slate-800 p-3.5 rounded-xl shadow-sm cursor-pointer hover:shadow-md hover:scale-[1.02] transition-all ${
+              filter === 'all' 
+                ? 'border-2 border-indigo-500 ring-2 ring-indigo-100 dark:ring-indigo-900/50' 
+                : 'border border-indigo-100 dark:border-indigo-900/30 ring-1 ring-indigo-50 dark:ring-0'
+            }`}
+          >
             <div className="flex items-center gap-3 mb-2">
               <div className="p-1.5 bg-indigo-100 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 rounded-lg">
                 <Target size={16} />
@@ -268,7 +306,14 @@ const Dashboard = () => {
           </div>
 
           {/* Not Started */}
-          <div className="bg-white dark:bg-slate-800 p-3.5 rounded-xl border border-slate-100 dark:border-slate-700 shadow-sm hover:shadow-md transition-shadow">
+          <div 
+            onClick={() => handleFilterChange('todo')}
+            className={`bg-white dark:bg-slate-800 p-3.5 rounded-xl shadow-sm cursor-pointer hover:shadow-md hover:scale-[1.02] transition-all ${
+              filter === 'todo'
+                ? 'border-2 border-slate-500 ring-2 ring-slate-100 dark:ring-slate-700'
+                : 'border border-slate-100 dark:border-slate-700'
+            }`}
+          >
             <div className="flex items-center gap-3 mb-2">
               <div className="p-1.5 bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-400 rounded-lg">
                 <Calendar size={16} />
@@ -279,7 +324,14 @@ const Dashboard = () => {
           </div>
 
           {/* In Progress */}
-          <div className="bg-white dark:bg-slate-800 p-3.5 rounded-xl border border-slate-100 dark:border-slate-700 shadow-sm hover:shadow-md transition-shadow">
+          <div 
+            onClick={() => handleFilterChange('working')}
+            className={`bg-white dark:bg-slate-800 p-3.5 rounded-xl shadow-sm cursor-pointer hover:shadow-md hover:scale-[1.02] transition-all ${
+              filter === 'working'
+                ? 'border-2 border-amber-500 ring-2 ring-amber-100 dark:ring-amber-900/50'
+                : 'border border-slate-100 dark:border-slate-700'
+            }`}
+          >
             <div className="flex items-center gap-3 mb-2">
               <div className="p-1.5 bg-amber-100 dark:bg-amber-500/20 text-amber-600 dark:text-amber-400 rounded-lg">
                 <Zap size={16} />
@@ -290,7 +342,14 @@ const Dashboard = () => {
           </div>
 
           {/* Stuck */}
-          <div className="bg-white dark:bg-slate-800 p-3.5 rounded-xl border border-slate-100 dark:border-slate-700 shadow-sm hover:shadow-md transition-shadow">
+          <div 
+            onClick={() => handleFilterChange('stuck')}
+            className={`bg-white dark:bg-slate-800 p-3.5 rounded-xl shadow-sm cursor-pointer hover:shadow-md hover:scale-[1.02] transition-all ${
+              filter === 'stuck'
+                ? 'border-2 border-rose-500 ring-2 ring-rose-100 dark:ring-rose-900/50'
+                : 'border border-slate-100 dark:border-slate-700'
+            }`}
+          >
             <div className="flex items-center gap-3 mb-2">
               <div className="p-1.5 bg-rose-100 dark:bg-rose-500/20 text-rose-600 dark:text-rose-400 rounded-lg">
                 <AlertCircle size={16} />
@@ -301,7 +360,14 @@ const Dashboard = () => {
           </div>
 
           {/* Review */}
-          <div className=" bg-white dark:bg-slate-800 p-3.5 rounded-xl border border-slate-100 dark:border-slate-700 shadow-sm hover:shadow-md transition-shadow">
+          <div 
+            onClick={() => handleFilterChange('review')}
+            className={`bg-white dark:bg-slate-800 p-3.5 rounded-xl shadow-sm cursor-pointer hover:shadow-md hover:scale-[1.02] transition-all ${
+              filter === 'review'
+                ? 'border-2 border-blue-500 ring-2 ring-blue-100 dark:ring-blue-900/50'
+                : 'border border-slate-100 dark:border-slate-700'
+            }`}
+          >
             <div className="flex items-center gap-3 mb-2">
               <div className="p-1.5 bg-blue-100 dark:bg-blue-500/20 text-blue-600 dark:text-blue-400 rounded-lg">
                 <Search size={16} />
@@ -312,7 +378,14 @@ const Dashboard = () => {
           </div>
 
           {/* Overdue */}
-          <div className="bg-white dark:bg-slate-800 p-3.5 rounded-xl border border-slate-100 dark:border-slate-700 shadow-sm hover:shadow-md transition-shadow">
+          <div 
+            onClick={() => handleFilterChange('overdue')}
+            className={`bg-white dark:bg-slate-800 p-3.5 rounded-xl shadow-sm cursor-pointer hover:shadow-md hover:scale-[1.02] transition-all ${
+              filter === 'overdue'
+                ? 'border-2 border-rose-500 ring-2 ring-rose-100 dark:ring-rose-900/50'
+                : 'border border-slate-100 dark:border-slate-700'
+            }`}
+          >
             <div className="flex items-center gap-3 mb-2">
               <div className="p-1.5 bg-rose-50 dark:bg-rose-900/20 text-rose-500 dark:text-rose-400 rounded-lg">
                 <Clock size={16} />
@@ -324,7 +397,22 @@ const Dashboard = () => {
         </div>
 
         {/* Filter Buttons - Compact */}
-        <div className="flex gap-3">
+        <div className="flex gap-3 flex-wrap">
+          <button
+            onClick={() => handleFilterChange('all')}
+            className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-bold transition-all ${filter === 'all'
+              ? 'bg-indigo-600 text-white shadow-md shadow-indigo-200 dark:shadow-none'
+              : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-50 border border-transparent hover:border-slate-200'
+              }`}
+          >
+            <Target size={14} />
+            Tümü
+            <span className={`ml-1 px-1.5 py-0.5 rounded-md text-[10px] ${filter === 'all' ? 'bg-white/20' : 'bg-slate-100 dark:bg-slate-700'
+              }`}>
+              {stats.total}
+            </span>
+          </button>
+
           <button
             onClick={() => handleFilterChange('in_progress')}
             className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-bold transition-all ${filter === 'in_progress'
@@ -333,7 +421,7 @@ const Dashboard = () => {
               }`}
           >
             <Zap size={14} />
-            Devam Eden
+            {isMobile ? 'Devam' : 'Devam Eden'}
             <span className={`ml-1 px-1.5 py-0.5 rounded-md text-[10px] ${filter === 'in_progress' ? 'bg-white/20' : 'bg-slate-100 dark:bg-slate-700'
               }`}>
               {stats.continueCount}
@@ -348,7 +436,7 @@ const Dashboard = () => {
               }`}
           >
             <CheckCircle2 size={14} />
-            Tamamlandı
+            {isMobile ? 'Biten' : 'Tamamlandı'}
             <span className={`ml-1 px-1.5 py-0.5 rounded-md text-[10px] ${filter === 'done' ? 'bg-white/20' : 'bg-slate-100 dark:bg-slate-700'
               }`}>
               {stats.doneCount}
@@ -424,60 +512,120 @@ const Dashboard = () => {
                                   <div className="px-10 py-2 text-[10px] text-slate-400 italic">Bu projede görev yok.</div>
                                 ) : (
                                   <div className="bg-white dark:bg-slate-900 border-t border-slate-50 dark:border-slate-800/50">
-                                    {/* Table Header - Clean and Small */}
-                                    <div className="grid grid-cols-12 px-10 py-2 bg-slate-50/30 dark:bg-slate-800/30 text-[9px] font-bold text-slate-400 uppercase tracking-wider border-b border-slate-50 dark:border-slate-800/50">
-                                      <div className="col-span-5">Görev</div>
-                                      <div className="col-span-2">Bitiş</div>
-                                      <div className="col-span-2">Durum</div>
-                                      <div className="col-span-1 text-center">Kişi</div>
-                                      <div className="col-span-2 text-right">İlerleme</div>
-                                    </div>
-
-                                    {/* Task Rows - Compact */}
-                                    {project.tasks.map(task => (
-                                      <div
-                                        key={task.id}
-                                        onClick={() => handleTaskClick(task)}
-                                        className="grid grid-cols-12 px-10 py-3 hover:bg-slate-50 dark:hover:bg-slate-800/80 border-b border-slate-50 dark:border-slate-800/50 items-center cursor-pointer group transition-all"
-                                      >
-                                        <div className="col-span-5 flex items-center gap-3">
-                                          <div className={`p-1 rounded-full transition-colors flex-shrink-0 ${task.status === 'done' ? 'bg-emerald-50 text-emerald-500' : 'bg-slate-100 group-hover:bg-white text-slate-300 group-hover:text-indigo-500 group-hover:ring-2 ring-indigo-50'}`}>
-                                            {task.status === 'done' ? <CheckCircle2 size={14} /> : <div className="w-3.5 h-3.5 rounded-full border-2 border-current" />}
-                                          </div>
-                                          <span className={`text-xs font-semibold truncate ${task.status === 'done' ? 'text-slate-400 line-through' : 'text-slate-700 dark:text-slate-200 group-hover:text-indigo-600'}`}>
-                                            {task.title}
-                                          </span>
-                                        </div>
-                                        <div className="col-span-2 text-[10px] font-medium text-slate-500">
-                                          {task.dueDate ? new Date(task.dueDate).toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' }) : '-'}
-                                        </div>
-                                        <div className="col-span-2">
-                                          {getStatusBadge(task.status)}
-                                        </div>
-                                        <div className="col-span-1 flex justify-center">
-                                          {task.assignees && task.assignees.length > 0 ? (
-                                            <div className="flex -space-x-1.5">
-                                              {task.assignees.slice(0, 3).map((assignee, idx) => (
-                                                <UserAvatar
-                                                  key={idx}
-                                                  user={assignee}
-                                                  size="xs"
-                                                  className="w-6 h-6 border-2 border-white dark:border-slate-800 shadow-sm"
-                                                />
-                                              ))}
+                                    {isMobile ? (
+                                      /* Mobile CARD View */
+                                      <div className="divide-y divide-slate-50 dark:divide-slate-800">
+                                        {project.tasks.map(task => (
+                                          <div
+                                            key={task.id}
+                                            onClick={() => handleTaskClick(task)}
+                                            className="p-4 active:bg-slate-50 dark:active:bg-slate-800/80 cursor-pointer space-y-2"
+                                          >
+                                            <div className="flex items-start justify-between gap-3">
+                                              <div className="flex items-start gap-3 min-w-0">
+                                                <div className={`mt-0.5 p-1 rounded-full flex-shrink-0 ${task.status === 'done' ? 'bg-emerald-50 text-emerald-500' : 'bg-slate-100 text-slate-300'}`}>
+                                                  {task.status === 'done' ? <CheckCircle2 size={14} /> : <div className="w-3.5 h-3.5 rounded-full border-2 border-current" />}
+                                                </div>
+                                                <span className={`text-[13px] font-semibold leading-relaxed break-words ${task.status === 'done' ? 'text-slate-400 line-through' : 'text-slate-700 dark:text-slate-200'}`}>
+                                                  {task.title}
+                                                </span>
+                                              </div>
+                                              <div className="flex-shrink-0">
+                                                {getStatusBadge(task.status)}
+                                              </div>
                                             </div>
-                                          ) : (
-                                            <span className="text-slate-300">-</span>
-                                          )}
-                                        </div>
-                                        <div className="col-span-2 flex items-center justify-end gap-2">
-                                          <div className="w-16 h-1.5 bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden">
-                                            <div className={`h-full rounded-full ${task.progress === 100 ? 'bg-emerald-500' : 'bg-indigo-500'}`} style={{ width: `${task.progress || 0}%` }}></div>
+
+                                            <div className="flex items-center justify-between text-[11px] text-slate-500 pl-7">
+                                              <div className="flex items-center gap-3">
+                                                {task.dueDate && (
+                                                  <div className="flex items-center gap-1">
+                                                    <Clock size={12} />
+                                                    <span>{new Date(task.dueDate).toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' })}</span>
+                                                  </div>
+                                                )}
+                                                <div className="flex items-center gap-1.5">
+                                                  <div className="w-12 h-1 bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden">
+                                                    <div className={`h-full rounded-full ${task.progress === 100 ? 'bg-emerald-500' : 'bg-indigo-500'}`} style={{ width: `${task.progress || 0}%` }}></div>
+                                                  </div>
+                                                  <span className="font-bold">{task.progress || 0}%</span>
+                                                </div>
+                                              </div>
+
+                                              {task.assignees && task.assignees.length > 0 && (
+                                                <div className="flex -space-x-1.5">
+                                                  {task.assignees.slice(0, 3).map((assignee, idx) => (
+                                                    <UserAvatar
+                                                      key={idx}
+                                                      user={assignee}
+                                                      size="xs"
+                                                      className="w-5 h-5 border border-white dark:border-slate-800 shadow-sm"
+                                                    />
+                                                  ))}
+                                                </div>
+                                              )}
+                                            </div>
                                           </div>
-                                          <span className="text-[9px] font-bold text-slate-400 w-5 text-right">{task.progress || 0}%</span>
-                                        </div>
+                                        ))}
                                       </div>
-                                    ))}
+                                    ) : (
+                                      /* Desktop TABLE View */
+                                      <>
+                                        {/* Table Header - Clean and Small */}
+                                        <div className="grid grid-cols-12 px-10 py-2 bg-slate-50/30 dark:bg-slate-800/30 text-[9px] font-bold text-slate-400 border-b border-slate-50 dark:border-slate-800/50">
+                                          <div className="col-span-5">Görev</div>
+                                          <div className="col-span-2">Bitiş</div>
+                                          <div className="col-span-2">Durum</div>
+                                          <div className="col-span-1 text-center">Kişi</div>
+                                          <div className="col-span-2 text-right">İlerleme</div>
+                                        </div>
+
+                                        {/* Task Rows - Compact */}
+                                        {project.tasks.map(task => (
+                                          <div
+                                            key={task.id}
+                                            onClick={() => handleTaskClick(task)}
+                                            className="grid grid-cols-12 px-10 py-3 hover:bg-slate-50 dark:hover:bg-slate-800/80 border-b border-slate-50 dark:border-slate-800/50 items-center cursor-pointer group transition-all"
+                                          >
+                                            <div className="col-span-5 flex items-center gap-3">
+                                              <div className={`p-1 rounded-full transition-colors flex-shrink-0 ${task.status === 'done' ? 'bg-emerald-50 text-emerald-500' : 'bg-slate-100 group-hover:bg-white text-slate-300 group-hover:text-indigo-500 group-hover:ring-2 ring-indigo-50'}`}>
+                                                {task.status === 'done' ? <CheckCircle2 size={14} /> : <div className="w-3.5 h-3.5 rounded-full border-2 border-current" />}
+                                              </div>
+                                              <span className={`text-xs font-semibold truncate ${task.status === 'done' ? 'text-slate-400 line-through' : 'text-slate-700 dark:text-slate-200 group-hover:text-indigo-600'}`}>
+                                                {task.title}
+                                              </span>
+                                            </div>
+                                            <div className="col-span-2 text-[10px] font-medium text-slate-500">
+                                              {task.dueDate ? new Date(task.dueDate).toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' }) : '-'}
+                                            </div>
+                                            <div className="col-span-2">
+                                              {getStatusBadge(task.status)}
+                                            </div>
+                                            <div className="col-span-1 flex justify-center">
+                                              {task.assignees && task.assignees.length > 0 ? (
+                                                <div className="flex -space-x-1.5">
+                                                  {task.assignees.slice(0, 3).map((assignee, idx) => (
+                                                    <UserAvatar
+                                                      key={idx}
+                                                      user={assignee}
+                                                      size="xs"
+                                                      className="w-6 h-6 border-2 border-white dark:border-slate-800 shadow-sm"
+                                                    />
+                                                  ))}
+                                                </div>
+                                              ) : (
+                                                <span className="text-slate-300">-</span>
+                                              )}
+                                            </div>
+                                            <div className="col-span-2 flex items-center justify-end gap-2">
+                                              <div className="w-16 h-1.5 bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden">
+                                                <div className={`h-full rounded-full ${task.progress === 100 ? 'bg-emerald-500' : 'bg-indigo-500'}`} style={{ width: `${task.progress || 0}%` }}></div>
+                                              </div>
+                                              <span className="text-[9px] font-bold text-slate-400 w-5 text-right">{task.progress || 0}%</span>
+                                            </div>
+                                          </div>
+                                        ))}
+                                      </>
+                                    )}
                                   </div>
                                 )}
                               </motion.div>

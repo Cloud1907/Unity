@@ -12,7 +12,7 @@ import { TableSkeleton } from './skeletons/TableSkeleton';
 import EmptyState from './ui/EmptyState';
 
 // Import shared constants
-import { statuses, priorities, tShirtSizes, COLUMNS, generateGridTemplate, getDefaultColumnVisibility, EXPANDER_COLUMN_WIDTH, TASK_COLUMN_WIDTH } from '../constants/taskConstants';
+import { statuses, priorities, tShirtSizes, COLUMNS, generateGridTemplate, getDefaultColumnVisibility, EXPANDER_COLUMN_WIDTH, TASK_COLUMN_WIDTH, getStatusColor, getPriorityData } from '../constants/taskConstants';
 import { filterProjectUsers } from '../utils/userHelper';
 
 // GRID_TEMPLATE export removed as it's no longer used
@@ -361,12 +361,21 @@ const MainTable = ({ boardId, searchQuery, filters, groupBy }) => {
   }
 
   if (isMobile) {
+    // Helper to resolve assignee objects from IDs
+    const getAssignees = (ids) => {
+      if (!ids) return [];
+      return ids.map(id => users.find(u => u.id === Number(id)) || { id, fullName: '?' });
+    };
+
     return (
       <>
         <MobileBoardView
           tasks={boardTasks}
           onTaskClick={(task) => openTaskModal(task)}
           onNewTaskClick={() => setIsCreating(true)}
+          getStatusColor={getStatusColor}
+          getPriorityData={getPriorityData}
+          getAssignees={getAssignees}
         />
         {isModalOpen && selectedTask && (
           <ModernTaskModal task={selectedTask} isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} initialSection={modalInitialSection} />

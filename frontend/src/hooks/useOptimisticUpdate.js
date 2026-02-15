@@ -37,7 +37,14 @@ export const useOptimisticUpdate = (initialValue, onUpdate, options = {}) => {
 
         try {
             // 2. Call API (Queue managed by useTasks)
-            await onUpdate(newValue);
+            const result = await onUpdate(newValue);
+
+            // FIX: If API suppresses error (resolved with success: false), we must manually trigger rollback
+            if (result && result.success === false) {
+                const error = result.error || new Error('Update failed');
+                if (result.handled) error.handled = true;
+                throw error;
+            }
 
             if (isMounted.current) {
                 setStatus('success');
@@ -50,7 +57,9 @@ export const useOptimisticUpdate = (initialValue, onUpdate, options = {}) => {
                 // 3. Rollback & Shake
                 setStatus('error');
                 setLocalValue(previousValue);
-                toast.error('Değişiklik kaydedilemedi');
+                if (!error.handled) {
+                    toast.error('Değişiklik kaydedilemedi');
+                }
 
                 // Clear error status after animation
                 setTimeout(() => setStatus('idle'), 600);

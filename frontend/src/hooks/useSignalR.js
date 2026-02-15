@@ -40,7 +40,7 @@ export const useSignalR = (isAuthenticated, setTasks, setProjects, setDepartment
                 if (prev.some(t => t.id === normalized.id)) return prev;
                 return [...prev, normalized];
             });
-            toast.info(`Yeni görev eklendi: ${normalized.title}`);
+            // Toast removed: User will see toast only from their own action in component
         });
 
         connection.on('TaskUpdated', (updatedTask) => {
@@ -72,7 +72,7 @@ export const useSignalR = (isAuthenticated, setTasks, setProjects, setDepartment
         connection.on('TaskDeleted', (taskId) => {
             const targetId = getId(taskId);
             setTasks(prev => prev.filter(t => t.id !== targetId));
-            toast.info('Bir görev silindi');
+            // Toast removed: User will see toast only from their own action in useTasks.js
         });
 
         // Label Events
@@ -101,7 +101,7 @@ export const useSignalR = (isAuthenticated, setTasks, setProjects, setDepartment
                 if (prev.some(p => p.id === normalized.id)) return prev;
                 return [...prev, normalized];
             });
-            toast.info(`Yeni proje: ${normalized.name}`);
+            // Toast removed: User will see toast only from their own action in useProjects.js
         });
 
         connection.on('WorkspaceCreated', (newWorkspace) => {
@@ -110,7 +110,7 @@ export const useSignalR = (isAuthenticated, setTasks, setProjects, setDepartment
                 if (prev.some(d => d.id === normalized.id)) return prev;
                 return [...prev, normalized];
             });
-            toast.info(`Yeni çalışma alanı: ${normalized.name}`);
+            // Toast removed: User will see toast only from their own action in component
         });
 
         return () => {

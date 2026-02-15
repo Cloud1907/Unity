@@ -37,7 +37,6 @@ const Settings = () => {
   const tabs = [
     { id: 'profile', label: 'Profil', icon: User },
     { id: 'account', label: 'Hesap', icon: SettingsIcon },
-    { id: 'notifications', label: 'Bildirimler', icon: Bell },
     { id: 'security', label: 'Güvenlik', icon: Shield },
     { id: 'appearance', label: 'Görünüm', icon: Palette }
   ];
@@ -78,63 +77,29 @@ const Settings = () => {
   const handleAvatarUpload = async (e) => {
     const file = e.target.files[0];
     if (file) {
-      // User requested 10MB limit (10 * 1024 * 1024 bytes)
-      const MAX_SIZE_BYTES = 10 * 1024 * 1024; // 10MB
+      // 5MB limit for single file upload
+      const MAX_SIZE_BYTES = 5 * 1024 * 1024;
+      if (file.size > MAX_SIZE_BYTES) {
+        toast.error('Dosya boyutu 5MB\'dan büyük olamaz.');
+        return;
+      }
 
       try {
-        const reader = new FileReader();
-        reader.onload = (event) => {
-          const img = new Image();
-          img.onload = () => {
-            // Calculate new dimensions if needed to keep file size under control
-            // We aim for high quality, but if it's too huge, we resize.
-            let width = img.width;
-            let height = img.height;
+        const formData = new FormData();
+        formData.append('file', file);
 
-            // Max dimension for 10MB limit is quite large, but let's keep it reasonable for DB storage
-            // 2048x2048 is usually plenty for an avatar and stays well under 10MB as JPEG
-            const MAX_DIMENSION = 2048;
+        const { fileAPI } = await import('../services/api');
+        const response = await fileAPI.uploadAvatar(formData);
 
-            if (width > MAX_DIMENSION || height > MAX_DIMENSION) {
-              if (width > height) {
-                height *= MAX_DIMENSION / width;
-                width = MAX_DIMENSION;
-              } else {
-                width *= MAX_DIMENSION / height;
-                height = MAX_DIMENSION;
-              }
-            }
+        // Backend returns relative path: /uploads/avatars/xyz.jpg
+        const avatarUrl = response.data.url;
 
-            const canvas = document.createElement('canvas');
-            canvas.width = width;
-            canvas.height = height;
-            const ctx = canvas.getContext('2d');
-            ctx.drawImage(img, 0, 0, width, height);
-
-            // Compress lightly to ensure it fits easily within 10MB
-            // 0.9 quality is very high visual fidelity
-            let quality = 0.9;
-            let base64String = canvas.toDataURL('image/jpeg', quality);
-
-            // Automatic degradation if still too large (extremely unlikely for 2048px @ 0.9)
-            while (base64String.length > MAX_SIZE_BYTES * 1.37 && quality > 0.1) { // 1.37 is approx Base64 overhead
-              quality -= 0.1;
-              base64String = canvas.toDataURL('image/jpeg', quality);
-            }
-
-            setAvatarPreview(base64String);
-            setFormData(prev => ({ ...prev, avatar: base64String }));
-            toast.success('Avatar hazır! Kaydet butonuna basmayı unutmayın.');
-          };
-          img.src = event.target.result;
-        };
-        reader.onerror = () => {
-          toast.error('Dosya okuma hatası.');
-        };
-        reader.readAsDataURL(file);
+        setAvatarPreview(avatarUrl);
+        setFormData(prev => ({ ...prev, avatar: avatarUrl }));
+        toast.success('Avatar yüklendi! Kaydet butonuna basmayı unutmayın.');
       } catch (error) {
-        console.error('Avatar processing error:', error);
-        toast.error('Avatar işlenemedi.');
+        console.error('Avatar upload error:', error);
+        toast.error('Avatar yüklenemedi: ' + (error.response?.data?.message || error.message));
       }
     }
   };
@@ -143,6 +108,7 @@ const Settings = () => {
     try {
       const updateData = {
         fullName: formData.fullName,
+        email: formData.email,
         avatar: formData.avatar || avatarPreview || user?.avatar,
         color: formData.color || user?.color,
         gender: formData.gender
@@ -162,7 +128,8 @@ const Settings = () => {
       setIsEditing(false);
     } catch (error) {
       console.error('Profile update error:', error);
-      toast.error('Profil güncellenemedi: ' + (error.response?.data?.detail || error.message));
+      const errorMsg = error.response?.data?.message || error.response?.data?.detail || error.message;
+      toast.error('Profil güncellenemedi: ' + errorMsg);
     }
   };
 
@@ -492,34 +459,6 @@ const Settings = () => {
                     </div>
 
 
-                  </div>
-                </div>
-              )}
-
-              {/* Notifications Tab */}
-              {activeTab === 'notifications' && (
-                <div className="p-8">
-                  <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-6">Bildirim Tercihleri</h2>
-
-                  <div className="space-y-4">
-                    {[
-                      { label: 'E-posta Bildirimleri', desc: 'Önemli güncellemeler için e-posta alın' },
-                      { label: 'Görev Bildirimleri', desc: 'Size atanan görevler için bildirim alın' },
-                      { label: 'Yorum Bildirimleri', desc: 'Görevlerinize yapılan yorumlar için bildirim' },
-                      { label: 'Proje Bildirimleri', desc: 'Projelerinizle ilgili güncellemeler' },
-                      { label: 'Haftalık Özet', desc: 'Haftalık aktivite özeti e-postası' }
-                    ].map((item, idx) => (
-                      <div key={idx} className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800/50 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
-                        <div>
-                          <h4 className="font-medium text-gray-900 dark:text-white">{item.label}</h4>
-                          <p className="text-sm text-gray-500 dark:text-gray-400">{item.desc}</p>
-                        </div>
-                        <label className="relative inline-flex items-center cursor-pointer">
-                          <input type="checkbox" className="sr-only peer" defaultChecked={idx < 3} />
-                          <div className="w-11 h-6 bg-gray-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#6366f1]"></div>
-                        </label>
-                      </div>
-                    ))}
                   </div>
                 </div>
               )}

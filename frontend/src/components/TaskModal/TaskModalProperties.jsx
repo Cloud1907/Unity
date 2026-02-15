@@ -13,7 +13,7 @@ import { extractIds } from '../../utils/entityUtils';
 import { statuses, priorities } from '../../constants/taskConstants';
 import { useOptimisticUpdate } from '../../hooks/useOptimisticUpdate';
 
-export const TaskModalProperties = ({
+const TaskModalPropertiesInner = ({
     taskData,
     setTaskData,
     onUpdate,
@@ -21,7 +21,9 @@ export const TaskModalProperties = ({
     workspaceId,
     currentUser,
     onDeleteClick,
-    isSubtask
+    isSubtask,
+    isMobile = false,
+    className = ''
 }) => {
     const [showStatusMenu, setShowStatusMenu] = useState(false);
     const statusMenuRef = useRef(null);
@@ -49,8 +51,12 @@ export const TaskModalProperties = ({
     // Error Shake Animation Helper
     const getShakeClass = (hookState) => hookState.isError ? "animate-shake border-red-500" : "";
 
+    const baseClasses = isMobile
+        ? 'w-full bg-white dark:bg-slate-950 p-4 flex flex-col gap-5 overflow-y-auto'
+        : 'w-80 border-l border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/20 p-6 flex flex-col gap-6 overflow-y-auto';
+
     return (
-        <div className="w-80 border-l border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/20 p-6 flex flex-col gap-6 overflow-y-auto">
+        <div className={`${baseClasses} ${className}`}>
 
             {/* Status Dropdown - Hide for Subtasks */}
             {!isSubtask && (
@@ -279,3 +285,5 @@ export const TaskModalProperties = ({
         </div>
     );
 };
+
+export const TaskModalProperties = React.memo(TaskModalPropertiesInner);

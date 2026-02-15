@@ -97,7 +97,25 @@ export const useTasks = () => {
             console.error('Task update error in queue:', error);
             // Rollback on error
             setTasks(previousState);
-            reject(error);
+            const errorMessage = error.response?.data?.message || 'Güncelleme başarısız';
+            // Only show toast for 400 defaults (validation) to avoid spamming network errors if handled elsewhere
+            // But user wants to see strict validation errors.
+            if (error.response?.status === 400) {
+                toast.error(errorMessage);
+                // Cleanly resolve failure to prevent Uncaught Runtime Error overlay
+                resolve({ success: false, handled: true, error });
+            } else {
+                console.error('Task update failed silently (UI reverted)');
+                reject(error); // Keep rejecting critical errors if needed, or resolve false too?
+                // For critical errors (500 etc), maybe we want to see them in console/overlay?
+                // But better UX is consistent toast. 
+                // Let's resolve false for all to be safe against overlay.
+                // resolve({ success: false, error });
+            }
+            // For now, only suppressing 400 (validation) as requested.
+            // If we want to suppress ALL, we should move resolve out.
+            // But let's stick to the plan: Suppress validation errors.
+
         } finally {
             // Remove processed item and continue
             queue.shift();

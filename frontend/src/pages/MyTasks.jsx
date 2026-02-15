@@ -243,7 +243,7 @@ const MyTasks = () => {
                                             <Badge variant="outline" className="text-[10px] px-2 py-0.5 h-6 font-medium text-slate-500 bg-slate-50 dark:bg-slate-900/50 border-slate-100 dark:border-slate-700">
                                                 {getProjectName(task.projectId)}
                                             </Badge>
-                                            <span className={`px-2 py-1 rounded-md text-[10px] font-bold tracking-wide uppercase ${statusStyle.bg} ${statusStyle.text}`}>
+                                            <span className={`px-2 py-1 rounded-md text-[10px] font-bold ${statusStyle.bg} ${statusStyle.text}`}>
                                                 {statusStyle.label}
                                             </span>
                                         </div>

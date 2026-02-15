@@ -11,23 +11,23 @@ Her kod geliştirmesinden sonra, değişikliğin doğru çalıştığını doğr
 ### 1. Backend Çalışıyor mu?
 // turbo
 ```bash
-curl -s http://localhost:8080/api/health | head -1
+curl -s http://localhost:8000/api/health | head -1
 ```
 
 ### 2. Veritabanı Bağlantısı
 // turbo
 ```bash
-curl -s http://localhost:8080/api/users | head -5
+curl -s http://localhost:8000/api/users | head -5
 ```
 
 ### 3. Spesifik Endpoint Testi
 Değişiklik yapılan endpoint'i test et:
 ```bash
 # GET örneği
-curl -s http://localhost:8080/api/[endpoint] -H "Authorization: Bearer [token]"
+curl -s http://localhost:8000/api/[endpoint] -H "Authorization: Bearer [token]"
 
 # POST örneği
-curl -X POST http://localhost:8080/api/[endpoint] \
+curl -X POST http://localhost:8000/api/[endpoint] \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer [token]" \
   -d '{"field": "value"}'

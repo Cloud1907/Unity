@@ -255,7 +255,9 @@ export const timelogsAPI = {
 
 // Notifications API
 export const notificationsAPI = {
-  getAll: () => api.get('/notifications'),
+    getAll: () => api.get('/notifications'),
+    getUnreadCount: () => api.get('/notifications/unread-count'),
+    markRead: () => api.post('/notifications/mark-read')
 };
 
 // Activity API

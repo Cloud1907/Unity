@@ -59,6 +59,7 @@ namespace Unity.Core.Models
 
         public DateTime CreatedAt { get; set; } = TimeHelper.Now;
         public DateTime UpdatedAt { get; set; } = TimeHelper.Now;
+        public DateTime? CompletedAt { get; set; }
 
         public bool IsDeleted { get; set; } = false;
         public DateTime? DeletedAt { get; set; }

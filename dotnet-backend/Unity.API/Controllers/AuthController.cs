@@ -60,6 +60,13 @@ namespace Unity.API.Controllers
         {
             // Accept email, username, or firstname.lastname for login
             var loginIdentifier = request.Email ?? request.Username ?? "";
+            
+            // STRICT VALIDATION: Reject Turkish characters
+            if (ContainsTurkishCharacters(loginIdentifier))
+            {
+                return BadRequest(new { detail = "Lütfen kullanıcı adı veya e-posta adresinizde Türkçe karakter kullanmayınız. (Örn: 'ü' yerine 'u', 'ğ' yerine 'g' kullanınız.)" });
+            }
+
             LogToFile($"[AUTH_DEBUG] Login attempt for: '{loginIdentifier}'");
 
             // Try to find user by email, username, or fullname (with dot separator)
@@ -71,6 +78,20 @@ namespace Unity.API.Controllers
                     u.Username == loginIdentifier ||
                     u.FullName.ToLower().Replace(" ", ".") == loginIdentifier.ToLower()
                 );
+
+            if (user == null)
+            {
+                // Fallback: Try normalized username for Turkish characters
+                // Example: 'mülkiye' -> 'mulkiye'
+                var normalizedInput = NormalizeTurkishCharacters(loginIdentifier);
+                if (normalizedInput != loginIdentifier)
+                {
+                    LogToFile($"[AUTH_DEBUG] Attempting normalized lookup: '{normalizedInput}'");
+                    user = await _context.Users.AsNoTracking()
+                        .Include(u => u.Departments)
+                        .FirstOrDefaultAsync(u => u.Username == normalizedInput);
+                }
+            }
 
             if (user == null)
             {
@@ -591,28 +612,45 @@ namespace Unity.API.Controllers
                 }
             });
         }
+        private string NormalizeTurkishCharacters(string text)
+        {
+            if (string.IsNullOrEmpty(text)) return text;
+            return text.Replace("İ", "i").Replace("I", "i").Replace("ı", "i")
+                       .Replace("Ğ", "g").Replace("ğ", "g")
+                       .Replace("Ü", "u").Replace("ü", "u")
+                       .Replace("Ş", "s").Replace("ş", "s")
+                       .Replace("Ö", "o").Replace("ö", "o")
+                       .Replace("Ç", "c").Replace("ç", "c")
+                       .ToLowerInvariant();
+        }
+
+        private bool ContainsTurkishCharacters(string text)
+        {
+            if (string.IsNullOrEmpty(text)) return false;
+            var turkishChars = new[] { 'ç', 'Ç', 'ğ', 'Ğ', 'ı', 'İ', 'ö', 'Ö', 'ş', 'Ş', 'ü', 'Ü' };
+            return text.IndexOfAny(turkishChars) >= 0;
+        }
+
+        /*
+        [HttpGet("test-email")]
+        [AllowAnonymous]
+        public async Task<IActionResult> SendTestEmail([FromQuery] string email)
+        {
+            try
+            {
+                await _emailService.SendEmailAsync(
+                    email,
+                    "Test Email - Unity App",
+                    $"<h3>Merhaba,</h3><p>Bu bir test e-postasıdır. Eğer bu mesajı görüyorsanız, sistem <b>{email}</b> adresine başarıyla e-posta gönderebiliyor demektir.</p><p>Tarih: {DateTime.Now}</p>"
+                );
+                return Ok(new { message = $"Test email sent to {email}" });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { error = ex.Message, stack = ex.StackTrace });
+            }
+        }
+        */
     }
-}
-
-
-
-public class ChangePasswordRequest
-{
-    public string CurrentPassword { get; set; }
-    public string NewPassword { get; set; }
-}
-
-public class ForgotPasswordRequest
-{
-    public string Email { get; set; }
-}
-
-public class UpdateProfileRequest
-{
-    public string? FullName { get; set; }
-    public string? Email { get; set; }
-    public string? Avatar { get; set; }
-    public string? Color { get; set; }
-    public string? Gender { get; set; }
 }
 

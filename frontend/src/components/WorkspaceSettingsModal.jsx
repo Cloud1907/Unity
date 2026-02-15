@@ -129,7 +129,16 @@ const WorkspaceSettingsModal = ({ isOpen, onClose, initialWorkspace }) => {
 
     return (
         <Dialog open={isOpen} onOpenChange={onClose}>
-            <DialogContent className="sm:max-w-[500px] p-0 overflow-hidden bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800">
+            <DialogContent 
+                className="sm:max-w-[500px] p-0 overflow-hidden bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800"
+                onPointerDownOutside={(e) => {
+                    // Prevent closure on drag-out
+                }}
+                onInteractOutside={(e) => {
+                    // Prevent closure on random outside interaction to be safe
+                    e.preventDefault();
+                }}
+            >
                 <DialogHeader className="px-6 py-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50">
                     <DialogTitle className="flex items-center gap-2 text-lg font-semibold text-slate-900 dark:text-slate-100">
                         <div className="p-2 bg-indigo-100 dark:bg-indigo-900/30 rounded-lg">

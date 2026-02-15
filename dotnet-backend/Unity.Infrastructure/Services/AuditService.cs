@@ -30,6 +30,12 @@ namespace Unity.Infrastructure.Services
                 if (user != null) userName = user.FullName;
             }
 
+            var options = new JsonSerializerOptions
+            {
+                ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles,
+                WriteIndented = false
+            };
+
             var log = new AuditLog
             {
                 UserId = userId,
@@ -38,8 +44,8 @@ namespace Unity.Infrastructure.Services
                 EntityName = entity,
                 EntityId = entityId,
                 Description = description,
-                OldValues = oldVal != null ? JsonSerializer.Serialize(oldVal) : null,
-                NewValues = newVal != null ? JsonSerializer.Serialize(newVal) : null,
+                OldValues = oldVal != null ? JsonSerializer.Serialize(oldVal, options) : null,
+                NewValues = newVal != null ? JsonSerializer.Serialize(newVal, options) : null,
                 Timestamp = TimeHelper.Now
             };
 

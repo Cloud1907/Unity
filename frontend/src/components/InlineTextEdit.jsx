@@ -68,7 +68,7 @@ const InlineTextEdit = ({ value, onSave, placeholder = 'Görev adı girin...', c
                     onKeyDown={handleKeyDown}
                     placeholder={placeholder}
                     rows={1}
-                    className={inputClassName || `w-full bg-white border border-indigo-500 rounded px-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500 resize-none overflow-hidden leading-normal ${className}`}
+                    className={inputClassName || `w-full bg-white dark:bg-slate-800 border border-indigo-500 rounded px-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500 resize-none overflow-hidden leading-normal ${className}`}
                     style={{ minHeight: '28px' }}
                 />
             </div>

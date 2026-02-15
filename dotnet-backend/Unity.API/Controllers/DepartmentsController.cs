@@ -47,14 +47,28 @@ namespace Unity.API.Controllers
         [HttpGet]
         public async Task<ActionResult<IEnumerable<Department>>> GetDepartments()
         {
-            int userId = GetCurrentUserId();
-            if (userId == 0) return Unauthorized();
+            var currentUser = await GetCurrentUserWithDeptsAsync();
+            if (currentUser == null) return Unauthorized();
 
-            // Return only workspaces where the user is a member
+            // ADMIN: Return ALL departments for Admin Panel user mapping
+            bool isAdmin = string.Equals(currentUser.Role, "admin", StringComparison.OrdinalIgnoreCase);
+
+            if (isAdmin)
+            {
+                var allDepts = await _context.Departments
+                    .AsNoTracking()
+                    .Where(d => !d.IsDeleted) // !!!
+                    .OrderBy(d => d.Name)
+                    .ToListAsync();
+                
+                return allDepts;
+            }
+
+            // MEMBER: Return only workspaces where the user is a member
             return await _context.UserDepartments
                 .AsNoTracking() // PERFORMANCE FIX: Read-only
                 .Include(ud => ud.Department)
-                .Where(ud => ud.UserId == userId)
+                .Where(ud => ud.UserId == currentUser.Id)
                 .Select(ud => ud.Department)
                 .Where(d => d != null && !d.IsDeleted)
                 .ToListAsync();
@@ -281,7 +295,7 @@ namespace Unity.API.Controllers
             var currentUser = await _context.Users.FindAsync(currentUserId);
 
             // Permission Check: Admin OR Creator
-            bool isAdmin = currentUser?.Role == "admin";
+            bool isAdmin = string.Equals(currentUser?.Role, "admin", StringComparison.OrdinalIgnoreCase);
             bool isCreator = department.CreatedBy == currentUserId;
 
             if (!isAdmin && !isCreator)

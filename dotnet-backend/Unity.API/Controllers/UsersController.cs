@@ -67,10 +67,13 @@ namespace Unity.API.Controllers
             // Server-side search
             if (!string.IsNullOrWhiteSpace(search))
             {
-                var searchLower = search.ToLower();
+                var s = search.Trim();
+                // Simple but effective case-insensitive matching that handles common scenarios
                 query = query.Where(u => 
-                    u.FullName.ToLower().Contains(searchLower) || 
-                    u.Email.ToLower().Contains(searchLower));
+                    u.FullName.Contains(s) || 
+                    u.Email.Contains(s) ||
+                    u.FullName.ToLower().Contains(s.ToLower()) ||
+                    u.Email.ToLower().Contains(s.ToLower()));
             }
 
             var totalCount = await query.CountAsync();
@@ -252,7 +255,7 @@ namespace Unity.API.Controllers
             }
 
             // Admin-only fields
-            if (currentUser.Role == "admin")
+            if (string.Equals(currentUser.Role, "admin", StringComparison.OrdinalIgnoreCase))
             {
                 existingUser.Role = user.Role ?? existingUser.Role;
                 

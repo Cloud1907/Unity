@@ -27,17 +27,20 @@ namespace Unity.API.Controllers
             var task = await _context.Tasks.AsNoTracking().FirstOrDefaultAsync(t => t.Id == taskId);
             if (task == null) return NotFound();
 
-            // Project Membership Check (Security Fix)
+            // Project & Workspace Membership Check (Security Fix)
             var userIdStr = User.FindFirst("id")?.Value;
             if (int.TryParse(userIdStr, out int currentUserId))
             {
-                var isMember = await _context.ProjectMembers
+                var project = await _context.Projects.AsNoTracking().FirstOrDefaultAsync(p => p.Id == task.ProjectId);
+                var isProjectMember = await _context.ProjectMembers
                     .AnyAsync(pm => pm.ProjectId == task.ProjectId && pm.UserId == currentUserId);
                 
-                var project = await _context.Projects.AsNoTracking().FirstOrDefaultAsync(p => p.Id == task.ProjectId);
-                var isAdmin = User.IsInRole("admin");
+                var isWorkspaceMember = project != null && await _context.UserDepartments
+                    .AnyAsync(ud => ud.DepartmentId == project.DepartmentId && ud.UserId == currentUserId);
+                
+                var isAdmin = User.IsInRole("admin") || User.IsInRole("Admin");
 
-                if (!isAdmin && !isMember && (project != null && project.Owner != currentUserId))
+                if (!isAdmin && !isProjectMember && !isWorkspaceMember && (project != null && project.Owner != currentUserId))
                 {
                     return StatusCode(403, new { message = "Bu görev loglarını görme yetkiniz yok." });
                 }

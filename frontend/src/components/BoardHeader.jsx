@@ -1,3 +1,4 @@
+import { notificationsAPI } from '../services/api';
 import React, { useState, useEffect } from 'react';
 import { Star, MoreHorizontal, Filter, Search, Users as UsersIcon, Tag, Table, LayoutGrid, Calendar, BarChart3, Users, Trash2, MoreVertical, Settings, Layers, Plus, Zap } from 'lucide-react';
 import { useData } from '../contexts/DataContext';
@@ -38,10 +39,28 @@ const BoardHeader = ({
   const [showSettingsMenu, setShowSettingsMenu] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
   const [notificationPosition, setNotificationPosition] = useState({ top: 0, left: 0 });
   const notificationButtonRef = React.useRef(null);
 
   const board = projects.find(b => b.id === Number(boardId));
+
+  // Fetch unread count on mount and periodically
+  useEffect(() => {
+    const fetchUnreadCount = async () => {
+      try {
+        const res = await notificationsAPI.getUnreadCount();
+        setUnreadCount(res.data);
+      } catch (err) {
+        console.error("Failed to fetch unread count", err);
+      }
+    };
+
+    fetchUnreadCount();
+    // Poll every 60 seconds
+    const interval = setInterval(fetchUnreadCount, 60000);
+    return () => clearInterval(interval);
+  }, []);
 
   // Get all users who belong to the same workspace (department) as this project
   const boardMembers = React.useMemo(() => {
@@ -62,8 +81,6 @@ const BoardHeader = ({
       return isInWorkspace;
     });
 
-
-
     return members;
   }, [board, users, boardId]);
 
@@ -74,13 +91,23 @@ const BoardHeader = ({
     (board?.members && Array.isArray(board.members) && board.members.some(m => m.userId === currentUser.id))
   );
 
-  const handleToggleNotifications = () => {
+  const handleToggleNotifications = async () => {
     if (!showNotifications && notificationButtonRef.current) {
       const rect = notificationButtonRef.current.getBoundingClientRect();
       setNotificationPosition({
         top: rect.bottom + 8,
         left: rect.right - 320
       });
+      
+      // Mark as read when opening
+      if (unreadCount > 0) {
+        try {
+            await notificationsAPI.markRead();
+            setUnreadCount(0);
+        } catch (err) {
+            console.error("Failed to mark notifications as read", err);
+        }
+      }
     }
     setShowNotifications(!showNotifications);
   };
@@ -214,12 +241,17 @@ const BoardHeader = ({
               onClick={handleToggleNotifications}
               aria-label="Bildirimler"
               aria-expanded={showNotifications}
-              className={`p-2 rounded-full transition-all ${showNotifications ? 'bg-indigo-50 text-indigo-600' : 'text-slate-400 hover:bg-slate-100 hover:text-indigo-500'}`}
+              className={`p-2 rounded-full transition-all relative ${showNotifications ? 'bg-indigo-50 text-indigo-600 dark:bg-indigo-900/30 dark:text-indigo-400' : 'text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-indigo-500 dark:hover:text-indigo-400'}`}
             >
 
               <div className="relative">
                 <Settings size={20} className="hidden" />
                 <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-bell"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" /><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" /></svg>
+                {unreadCount > 0 && (
+                    <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white shadow-sm ring-1 ring-white dark:ring-slate-900">
+                        {unreadCount > 9 ? '9+' : unreadCount}
+                    </span>
+                )}
               </div>
             </button>
             <NotificationPopover
@@ -277,8 +309,8 @@ const BoardHeader = ({
                 key={view.id}
                 onClick={() => onViewChange(view.id)}
                 className={`flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-all ${currentView === view.id
-                  ? 'bg-gray-100 text-gray-900'
-                  : 'text-gray-500 hover:text-gray-900 hover:bg-gray-50'
+                  ? 'bg-gray-100 text-gray-900 dark:bg-gray-800 dark:text-gray-100'
+                  : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800'
                   }`}
               >
                 <IconComponent size={16} strokeWidth={1.5} />
@@ -306,7 +338,7 @@ const BoardHeader = ({
               onClick={() => setShowGroupByMenu(!showGroupByMenu)}
               variant="outline"
               size="sm"
-              className={`gap-2 rounded-md px-3 py-1.5 border border-gray-300 dark:border-gray-700 hover:border-gray-400 dark:hover:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors h-8 text-xs font-medium ${groupBy ? 'bg-blue-50 border-blue-200 text-blue-700' : 'text-gray-700 dark:text-gray-300'}`}
+              className={`gap-2 rounded-md px-3 py-1.5 border border-gray-300 dark:border-gray-700 hover:border-gray-400 dark:hover:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors h-8 text-xs font-medium ${groupBy ? 'bg-blue-50 border-blue-200 text-blue-700 dark:bg-blue-900/30 dark:border-blue-700/50 dark:text-blue-400' : 'text-gray-700 dark:text-gray-300'}`}
             >
               <Layers size={14} strokeWidth={1.5} />
               <span>{groupBy ? 'Gruplandı' : 'Grupla'}</span>
@@ -318,28 +350,28 @@ const BoardHeader = ({
             </Button>
 
             {showGroupByMenu && (
-              <div className="absolute right-0 top-full mt-2 w-48 bg-white rounded-lg shadow-xl border border-gray-200 z-50 py-1">
-                <div className="px-3 py-2 text-xs font-medium text-gray-500 border-b border-gray-100">
+              <div className="absolute right-0 top-full mt-2 w-48 bg-white dark:bg-gray-900 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 z-50 py-1">
+                <div className="px-3 py-2 text-xs font-medium text-gray-500 dark:text-gray-400 border-b border-gray-100 dark:border-gray-800">
                   Şuna Göre Grupla
                 </div>
                 <button
                   onClick={() => { onGroupByChange(null); setShowGroupByMenu(false); }}
-                  className={`w-full text-left px-4 py-2 text-xs hover:bg-gray-50 flex items-center justify-between ${!groupBy ? 'text-blue-600 bg-blue-50' : 'text-gray-700'}`}
+                  className={`w-full text-left px-4 py-2 text-xs hover:bg-gray-50 dark:hover:bg-gray-800 flex items-center justify-between ${!groupBy ? 'text-blue-600 bg-blue-50 dark:bg-blue-900/20' : 'text-gray-700 dark:text-gray-300'}`}
                 >
                   <span>Gruplama Yok</span>
                   {!groupBy && <span className="text-blue-600">✓</span>}
                 </button>
-                <div className="border-t border-gray-100 my-1"></div>
+                <div className="border-t border-gray-100 dark:border-gray-800 my-1"></div>
                 <button
                   onClick={() => { onGroupByChange('status'); setShowGroupByMenu(false); }}
-                  className={`w-full text-left px-4 py-2 text-xs hover:bg-gray-50 flex items-center justify-between ${groupBy === 'status' ? 'text-blue-600 bg-blue-50' : 'text-gray-700'}`}
+                  className={`w-full text-left px-4 py-2 text-xs hover:bg-gray-50 dark:hover:bg-gray-800 flex items-center justify-between ${groupBy === 'status' ? 'text-blue-600 bg-blue-50 dark:bg-blue-900/20' : 'text-gray-700 dark:text-gray-300'}`}
                 >
                   <span>Durum</span>
                   {groupBy === 'status' && <span className="text-blue-600">✓</span>}
                 </button>
                 <button
                   onClick={() => { onGroupByChange('priority'); setShowGroupByMenu(false); }}
-                  className={`w-full text-left px-4 py-2 text-xs hover:bg-gray-50 flex items-center justify-between ${groupBy === 'priority' ? 'text-blue-600 bg-blue-50' : 'text-gray-700'}`}
+                  className={`w-full text-left px-4 py-2 text-xs hover:bg-gray-50 dark:hover:bg-gray-800 flex items-center justify-between ${groupBy === 'priority' ? 'text-blue-600 bg-blue-50 dark:bg-blue-900/20' : 'text-gray-700 dark:text-gray-300'}`}
                 >
                   <span>Öncelik</span>
                   {groupBy === 'priority' && <span className="text-blue-600">✓</span>}
@@ -347,7 +379,7 @@ const BoardHeader = ({
 
                 <button
                   onClick={() => { onGroupByChange('labels'); setShowGroupByMenu(false); }}
-                  className={`w-full text-left px-4 py-2 text-xs hover:bg-gray-50 flex items-center justify-between ${groupBy === 'labels' ? 'text-blue-600 bg-blue-50' : 'text-gray-700'}`}
+                  className={`w-full text-left px-4 py-2 text-xs hover:bg-gray-50 dark:hover:bg-gray-800 flex items-center justify-between ${groupBy === 'labels' ? 'text-blue-600 bg-blue-50 dark:bg-blue-900/20' : 'text-gray-700 dark:text-gray-300'}`}
                 >
                   <span>Etiket</span>
                   {groupBy === 'labels' && <span className="text-blue-600">✓</span>}

@@ -37,7 +37,8 @@ const ProfileSettings = () => {
       updateUser(response.data);
       toast.success('Profil güncellendi!');
     } catch (error) {
-      toast.error('Profil güncellenemedi');
+      const errorMsg = error.response?.data?.message || error.response?.data?.detail || error.message;
+      toast.error('Profil güncellenemedi: ' + errorMsg);
     } finally {
       setLoading(false);
     }

@@ -40,11 +40,11 @@ function TaskRow({
     // --- HANDLERS (Memoized) ---
 
     const handleUpdateTask = useCallback((id, data) => {
-        updateTask(id, data);
+        return updateTask(id, data);
     }, [updateTask]);
 
     const handleUpdateStatus = useCallback((id, status) => {
-        updateTaskStatus(id, status);
+        return updateTaskStatus(id, status);
     }, [updateTaskStatus]);
 
     const handleToggleRow = useCallback((id) => {
@@ -83,7 +83,7 @@ function TaskRow({
     return (
         <React.Fragment>
             <div
-                className={`grid items-center border-b border-slate-200 dark:border-slate-700 transition-colors duration-200 group w-full ${depth > 0 ? 'bg-slate-50/50 hover:bg-slate-100' : 'hover:bg-slate-50'}`}
+                className={`grid items-center border-b border-slate-200 dark:border-slate-700 transition-colors duration-200 group w-full ${depth > 0 ? 'bg-slate-50/50 dark:bg-slate-800/20 hover:bg-slate-100 dark:hover:bg-slate-800' : 'hover:bg-slate-50 dark:hover:bg-slate-800'}`}
                 onClick={handleOpenModal} // Prevent opening modal for subtasks
                 style={{
                     display: 'grid',
@@ -277,6 +277,7 @@ function TaskRow({
                                     handleUpdateTask(task.id, { dueDate: newDate });
                                 }
                             }}
+                            isCompleted={task.status === 'done' || task.isCompleted}
                         />
                     </div>
                 )}
@@ -342,6 +343,19 @@ function TaskRow({
                                         <Plus size={14} />
                                     )}
                                 </button>
+                            )}
+                        </div>
+                    )
+                }
+
+                {/* 10.5. Completed At */}
+                {
+                    visibleColumns.completedAt && (
+                        <div className="h-full flex items-center px-3 border-r border-slate-200 dark:border-slate-700" style={{ boxSizing: 'border-box' }}>
+                            {depth === 0 && (
+                                <span className="text-xs text-gray-500 dark:text-gray-400">
+                                    {(task.status === 'done' || task.isCompleted) && task.completedAt ? new Date(task.completedAt).toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' }) : '-'}
+                                </span>
                             )}
                         </div>
                     )

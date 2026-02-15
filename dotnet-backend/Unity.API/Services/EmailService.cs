@@ -37,7 +37,9 @@ namespace Unity.API.Services
                     From = new MailAddress(username, "Unity Bilgilendirme"),
                     Subject = subject,
                     Body = body,
-                    IsBodyHtml = true
+                    IsBodyHtml = true,
+                    SubjectEncoding = System.Text.Encoding.UTF8,
+                    BodyEncoding = System.Text.Encoding.UTF8
                 };
                 mailMessage.To.Add(to);
 

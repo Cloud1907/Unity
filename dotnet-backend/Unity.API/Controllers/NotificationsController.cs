@@ -37,23 +37,7 @@ namespace Unity.API.Controllers
             var userId = GetCurrentUserId();
             if (userId == 0) return Unauthorized();
 
-            // 1. Get IDs of tasks user is involved in (Creator or Assignee)
-            var involvedTaskIds = await _context.Tasks
-                .Where(t => t.CreatedBy == userId || t.Assignees.Any(a => a.UserId == userId))
-                .Select(t => t.Id.ToString())
-                .ToListAsync();
-
-            // 2. Get IDs of projects user is a member of
-            var involvedProjectIds = await _context.ProjectMembers
-                .Where(m => m.UserId == userId)
-                .Select(m => m.ProjectId.ToString())
-                .ToListAsync();
-
-            // 3. Filter AuditLogs:
-            // - Related to user's tasks
-            // - Related to user's projects
-            // - Performed by someone else (optional refinement, but let's show all relevant for now as requested)
-            
+            // Filter AuditLogs directly for assignments to this user
             var logs = await _context.AuditLogs
                 .Where(l => 
                     l.Action == "ASSIGN_TASK" && 
@@ -72,6 +56,43 @@ namespace Unity.API.Controllers
             }
 
             return logs;
+        }
+
+        [HttpGet("unread-count")]
+        public async Task<ActionResult<int>> GetUnreadCount()
+        {
+            var userId = GetCurrentUserId();
+            if (userId == 0) return Unauthorized();
+
+            var user = await _context.Users.FindAsync(userId);
+            if (user == null) return NotFound();
+
+            var lastRead = user.LastNotificationReadAt ?? DateTime.MinValue;
+
+            var count = await _context.AuditLogs
+                .Where(l => 
+                    l.Action == "ASSIGN_TASK" && 
+                    l.Description.StartsWith($"ASSIGNED_TO:{userId}:") &&
+                    l.Timestamp > lastRead
+                )
+                .CountAsync();
+
+            return count;
+        }
+
+        [HttpPost("mark-read")]
+        public async Task<IActionResult> MarkRead()
+        {
+            var userId = GetCurrentUserId();
+            if (userId == 0) return Unauthorized();
+
+            var user = await _context.Users.FindAsync(userId);
+            if (user == null) return NotFound();
+
+            user.LastNotificationReadAt = DateTime.UtcNow;
+            await _context.SaveChangesAsync();
+
+            return Ok();
         }
     }
 }

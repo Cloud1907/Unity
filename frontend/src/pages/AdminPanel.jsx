@@ -34,37 +34,35 @@ const AdminPanel = () => {
    * FIX: Removed hardcoded localhost:8080.
    * Now uses usersAPI from services which handles BaseURL dynamically.
    */
+  // 1. Define fetchAdminUsers with useCallback for stability
+  const fetchAdminUsers = React.useCallback(async () => {
+    // Only fetch if on users tab
+    if (activeTab !== 'users') return;
+
+    try {
+      const response = await usersAPI.getAdminUsers(searchTerm, roleFilter);
+      const data = response.data;
+
+      setAdminUsers(data.users);
+      setStats({
+        totalUsers: data.totalUsers,
+        adminCount: data.adminCount,
+        memberCount: data.memberCount
+      });
+    } catch (error) {
+      console.error('Failed to fetch admin users:', error);
+      toast.error('Kullanıcı listesi güncellenemedi.');
+    }
+  }, [activeTab, searchTerm, roleFilter]); // Dependencies for fetch
+
+  // 2. Trigger fetch on dependencies change (Debounced)
   useEffect(() => {
-    // Fetch admin users with server-side filtering
-    const fetchAdminUsers = async () => {
-      if (activeTab !== 'users') return;
-
-      try {
-        // Use the centralized API service
-        const response = await usersAPI.getAdminUsers(searchTerm, roleFilter);
-
-        // API service returns the data directly (response.data)
-        const data = response.data;
-
-        setAdminUsers(data.users);
-        setStats({
-          totalUsers: data.totalUsers,
-          adminCount: data.adminCount,
-          memberCount: data.memberCount
-        });
-      } catch (error) {
-        console.error('Failed to fetch admin users:', error);
-        toast.error('Kullanıcı listesi güncellenemedi.');
-      }
-    };
-
-    // Debounce search for users
     const timeoutId = setTimeout(() => {
       fetchAdminUsers();
     }, 300);
 
     return () => clearTimeout(timeoutId);
-  }, [searchTerm, roleFilter, activeTab]);
+  }, [fetchAdminUsers]);
 
   useEffect(() => {
     fetchDepartments();
@@ -415,7 +413,7 @@ const AdminPanel = () => {
           <UserFormModal
             isOpen={isAddModalOpen}
             onClose={() => setIsAddModalOpen(false)}
-            onSuccess={fetchUsers}
+            onSuccess={fetchAdminUsers}
             projects={projects}
           />
         )
@@ -429,7 +427,7 @@ const AdminPanel = () => {
               setIsEditModalOpen(false);
               setSelectedUser(null);
             }}
-            onSuccess={fetchUsers}
+            onSuccess={fetchAdminUsers}
             user={selectedUser}
             projects={projects}
           />
@@ -482,10 +480,33 @@ const AdminPanel = () => {
 };
 
 const ConfirmModal = ({ isOpen, onClose, onConfirm, title, message }) => {
+  const backdropRef = React.useRef(null);
+  const isMouseDownOnBackdrop = React.useRef(false);
+
   if (!isOpen) return null;
+
+  const handleMouseDown = (e) => {
+    if (e.target === backdropRef.current) isMouseDownOnBackdrop.current = true;
+    else isMouseDownOnBackdrop.current = false;
+  };
+
+  const handleMouseUp = (e) => {
+    if (isMouseDownOnBackdrop.current && e.target === backdropRef.current) onClose();
+    isMouseDownOnBackdrop.current = false;
+  };
+
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={onClose}>
-      <div className="bg-white dark:bg-gray-800 rounded-xl p-6 max-w-md w-full" onClick={(e) => e.stopPropagation()}>
+    <div
+      ref={backdropRef}
+      className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+      onMouseDown={handleMouseDown}
+      onMouseUp={handleMouseUp}
+    >
+      <div
+        className="bg-white dark:bg-gray-800 rounded-xl p-6 max-w-md w-full"
+        onMouseDown={(e) => e.stopPropagation()}
+        onMouseUp={(e) => e.stopPropagation()}
+      >
         <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">{title}</h3>
         <p className="text-gray-600 dark:text-gray-400 mb-6">{message}</p>
         <div className="flex gap-3 justify-end">
@@ -500,6 +521,9 @@ const ConfirmModal = ({ isOpen, onClose, onConfirm, title, message }) => {
 // Department Form Modal Component
 const DepartmentFormModal = ({ isOpen, onClose, onSuccess, dept = null }) => {
   const { createDepartment, updateDepartment } = useData();
+  const backdropRef = React.useRef(null);
+  const isMouseDownOnBackdrop = React.useRef(false);
+
   const [formData, setFormData] = useState({
     name: dept?.name || '',
     description: dept?.description || '',
@@ -510,6 +534,16 @@ const DepartmentFormModal = ({ isOpen, onClose, onSuccess, dept = null }) => {
   const [loading, setLoading] = useState(false);
 
   const colors = ['#0086c0', '#6366f1', '#8b5cf6', '#00c875', '#fdab3d', '#e2445c', '#ff5a5f'];
+
+  const handleMouseDown = (e) => {
+    if (e.target === backdropRef.current) isMouseDownOnBackdrop.current = true;
+    else isMouseDownOnBackdrop.current = false;
+  };
+
+  const handleMouseUp = (e) => {
+    if (isMouseDownOnBackdrop.current && e.target === backdropRef.current) onClose();
+    isMouseDownOnBackdrop.current = false;
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -532,9 +566,16 @@ const DepartmentFormModal = ({ isOpen, onClose, onSuccess, dept = null }) => {
     }
   };
 
+  if (!isOpen) return null;
+
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={onClose}>
-      <div className="bg-white dark:bg-gray-800 rounded-xl p-4 max-w-lg w-full" onClick={(e) => e.stopPropagation()}>
+    <div
+      ref={backdropRef}
+      className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+    >
+      <div
+        className="bg-white dark:bg-gray-800 rounded-xl p-4 max-w-lg w-full"
+      >
         <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-4">
           {dept ? 'Çalışma Alanını Düzenle' : 'Yeni Çalışma Alanı Ekle'}
         </h2>
@@ -615,10 +656,33 @@ const DepartmentFormModal = ({ isOpen, onClose, onSuccess, dept = null }) => {
 // User Form Modal Component (UPDATED FOR MULTI-DEPARTMENT)
 const UserFormModal = ({ isOpen, onClose, onSuccess, user = null, projects = [] }) => {
   const { departments } = useData();
+  const backdropRef = React.useRef(null);
+  const isMouseDownOnBackdrop = React.useRef(false);
+
   const getUserDepartments = () => {
     if (!user) return [];
-    if (user.departments) return user.departments;
-    if (user.department) return [user.department];
+    
+    // Scenario 1: We have IDs (e.g. from standard UserDto)
+    if (user.departments && user.departments.length > 0 && typeof user.departments[0] === 'number') {
+      return user.departments;
+    }
+
+    // Scenario 2: Admin DTO with Names
+    if (user.departmentNames) {
+      return user.departmentNames
+        .map(name => {
+          const d = departments.find(dept => dept.name === name);
+          return d ? d.id : null;
+        })
+        .filter(id => id !== null);
+    }
+    
+    // Scenario 3: Legacy single department string
+    if (user.department) {
+       const d = departments.find(dept => dept.name === user.department);
+       return d ? [d.id] : [];
+    }
+    
     return [];
   };
 
@@ -631,6 +695,16 @@ const UserFormModal = ({ isOpen, onClose, onSuccess, user = null, projects = [] 
     departments: getUserDepartments()
   });
   const [loading, setLoading] = useState(false);
+
+  const handleMouseDown = (e) => {
+    if (e.target === backdropRef.current) isMouseDownOnBackdrop.current = true;
+    else isMouseDownOnBackdrop.current = false;
+  };
+
+  const handleMouseUp = (e) => {
+    if (isMouseDownOnBackdrop.current && e.target === backdropRef.current) onClose();
+    isMouseDownOnBackdrop.current = false;
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -695,9 +769,16 @@ const UserFormModal = ({ isOpen, onClose, onSuccess, user = null, projects = [] 
     });
   };
 
+  if (!isOpen) return null;
+
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={onClose}>
-      <div className="bg-white dark:bg-gray-800 rounded-xl p-6 max-w-lg w-full max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+    <div
+      ref={backdropRef}
+      className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+    >
+      <div
+        className="bg-white dark:bg-gray-800 rounded-xl p-6 max-w-lg w-full max-h-[90vh] overflow-y-auto"
+      >
         <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">
           {user ? 'Kullanıcıyı Düzenle' : 'Yeni Kullanıcı Ekle'}
         </h2>
@@ -756,7 +837,9 @@ const UserFormModal = ({ isOpen, onClose, onSuccess, user = null, projects = [] 
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Çalışma Alanları (Çoklu Seçim)</label>
             <div className="max-h-60 overflow-y-auto border border-gray-300 dark:border-gray-700 rounded-lg p-3 space-y-1">
-              {departments.map(dept => {
+              {departments
+                .sort((a, b) => a.name.localeCompare(b.name, 'tr'))
+                .map(dept => {
                 const deptId = dept.id;
                 const isChecked = formData.departments.includes(deptId) || formData.departments.includes(dept.name);
                 return (

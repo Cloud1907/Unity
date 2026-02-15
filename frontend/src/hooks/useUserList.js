@@ -10,9 +10,10 @@ import { toast } from 'sonner';
  * @param {Object} options
  * @param {number|string} [options.workspaceId] - If provided, restricts list to this workspace.
  * @param {boolean} [options.global] - If true, fetches ALL users (Admin/Creation context).
+ * @param {number} [options.pageSize] - Number of users to fetch per request.
  * @param {boolean} [options.enabled] - Defaults to true. Set false to defer fetching.
  */
-export const useUserList = ({ workspaceId, global = false, enabled = true } = {}) => {
+export const useUserList = ({ workspaceId, global = false, pageSize, enabled = true } = {}) => {
     const [users, setUsers] = useState([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
@@ -31,8 +32,12 @@ export const useUserList = ({ workspaceId, global = false, enabled = true } = {}
 
                 if (global) {
                     params.mode = 'global';
+                    params.pageSize = pageSize || 1000; // Default to 1000 for global/admin lists
                 } else if (workspaceId) {
                     params.workspace_id = workspaceId;
+                    if (pageSize) params.pageSize = pageSize;
+                } else if (pageSize) {
+                    params.pageSize = pageSize;
                 }
 
                 const currentKey = JSON.stringify(params);
@@ -60,7 +65,7 @@ export const useUserList = ({ workspaceId, global = false, enabled = true } = {}
         };
 
         fetchUsers();
-    }, [workspaceId, global, enabled]);
+    }, [workspaceId, global, pageSize, enabled]);
 
     return { users, loading, error };
 };

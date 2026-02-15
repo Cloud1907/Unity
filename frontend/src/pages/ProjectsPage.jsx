@@ -2,11 +2,13 @@ import React, { useState } from 'react';
 import { useData } from '../contexts/DataContext';
 import { useNavigate } from 'react-router-dom';
 import { Plus, FolderKanban, Star, Users, CheckCircle, Clock } from 'lucide-react';
+import useMediaQuery from '../hooks/useMediaQuery';
 
 const ProjectsPage = () => {
   const { projects, tasks, users } = useData();
   const navigate = useNavigate();
   const [filter, setFilter] = useState('all'); // all, favorites, active
+  const isMobile = useMediaQuery('(max-width: 768px)');
 
   const filteredProjects = projects.filter(project => {
     if (filter === 'favorites') return project.favorite;
@@ -35,27 +37,27 @@ const ProjectsPage = () => {
 
   return (
     <div className="h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-950 overflow-auto">
-      <div className="max-w-7xl mx-auto p-8">
+      <div className={`${isMobile ? 'p-4' : 'p-8'} max-w-7xl mx-auto`}>
         {/* Header */}
-        <div className="flex items-center justify-between mb-8">
+        <div className={`flex ${isMobile ? 'flex-col gap-4' : 'items-center justify-between'} mb-8`}>
           <div>
-            <div className="flex items-center gap-3 mb-2">
-              <FolderKanban size={32} className="text-blue-600 dark:text-blue-400" />
-              <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Tüm Projeler</h1>
+            <div className={`flex items-center gap-3 ${isMobile ? 'mb-1' : 'mb-2'}`}>
+              <FolderKanban size={isMobile ? 24 : 32} className="text-blue-600 dark:text-blue-400" />
+              <h1 className={`${isMobile ? 'text-2xl' : 'text-3xl'} font-bold text-gray-900 dark:text-white`}>Tüm Projeler</h1>
             </div>
-            <p className="text-gray-600 dark:text-gray-400">Tüm projelerinizi görüntüleyin ve yönetin</p>
+            <p className="text-gray-600 dark:text-gray-400 text-sm">Tüm projelerinizi görüntüleyin ve yönetin</p>
           </div>
-          <button className="h-9 px-4 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors flex items-center gap-2 text-sm font-medium shadow-sm">
+          <button className={`${isMobile ? 'w-full justify-center' : ''} h-9 px-4 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors flex items-center gap-2 text-sm font-medium shadow-sm whitespace-nowrap`}>
             <Plus size={18} />
             Yeni Proje
           </button>
         </div>
 
-        {/* Filters */}
-        <div className="flex gap-2 mb-6">
+        {/* Filters - Horizontally scrollable on mobile */}
+        <div className={`flex gap-2 mb-6 overflow-x-auto scrollbar-hide pb-1 -mx-1 px-1`}>
           <button
             onClick={() => setFilter('all')}
-            className={`h-8 px-3 rounded-md text-xs font-medium transition-colors border ${filter === 'all'
+            className={`h-8 px-3 rounded-md text-xs font-medium transition-colors border shrink-0 ${filter === 'all'
               ? 'bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100 border-gray-200 dark:border-gray-700'
               : 'bg-white dark:bg-gray-900 text-gray-600 dark:text-gray-400 border-transparent hover:bg-gray-50 dark:hover:bg-gray-800'
               }`}
@@ -64,7 +66,7 @@ const ProjectsPage = () => {
           </button>
           <button
             onClick={() => setFilter('favorites')}
-            className={`h-8 px-3 rounded-md text-xs font-medium transition-colors border ${filter === 'favorites'
+            className={`h-8 px-3 rounded-md text-xs font-medium transition-colors border shrink-0 ${filter === 'favorites'
               ? 'bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100 border-gray-200 dark:border-gray-700'
               : 'bg-white dark:bg-gray-900 text-gray-600 dark:text-gray-400 border-transparent hover:bg-gray-50 dark:hover:bg-gray-800'
               }`}
@@ -73,7 +75,7 @@ const ProjectsPage = () => {
           </button>
           <button
             onClick={() => setFilter('active')}
-            className={`h-8 px-3 rounded-md text-xs font-medium transition-colors border ${filter === 'active'
+            className={`h-8 px-3 rounded-md text-xs font-medium transition-colors border shrink-0 ${filter === 'active'
               ? 'bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100 border-gray-200 dark:border-gray-700'
               : 'bg-white dark:bg-gray-900 text-gray-600 dark:text-gray-400 border-transparent hover:bg-gray-50 dark:hover:bg-gray-800'
               }`}

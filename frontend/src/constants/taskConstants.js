@@ -49,6 +49,7 @@ export const COLUMNS = [
     { id: 'tShirtSize', label: 'T-Shirt', width: '120px', defaultVisible: false },
     { id: 'progress', label: 'İlerleme', width: '160px', defaultVisible: true },
     { id: 'files', label: 'Dosyalar', width: '110px', defaultVisible: true },
+    { id: 'completedAt', label: 'Tamamlandı', width: '140px', defaultVisible: true },
     { id: 'createdBy', label: 'Oluşturan', width: '180px', defaultVisible: true }
 ];
 

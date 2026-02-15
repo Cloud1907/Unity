@@ -5,7 +5,7 @@ import { Calendar as CalendarComponent } from './ui/calendar';
 import { tr } from 'date-fns/locale';
 import { toSkyISOString } from '../utils/dateUtils';
 
-const InlineDatePicker = ({ value, onChange, placeholder = '', icon: Icon = Calendar }) => {
+const InlineDatePicker = ({ value, onChange, placeholder = '', icon: Icon = Calendar, isCompleted = false }) => {
     const [isOpen, setIsOpen] = useState(false);
     const datePickerRef = useRef(null);
     const buttonRef = useRef(null);
@@ -23,8 +23,6 @@ const InlineDatePicker = ({ value, onChange, placeholder = '', icon: Icon = Cale
             // Default position: below
             let top = rect.bottom + 4;
             let left = rect.left;
-
-
 
             // Space Constraints
             const spaceBelow = viewportHeight - rect.bottom;
@@ -83,7 +81,8 @@ const InlineDatePicker = ({ value, onChange, placeholder = '', icon: Icon = Cale
         return date.toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' });
     };
 
-    const isOverdue = value && new Date(value) < new Date();
+    // Fix: Completed tasks should never show overdue red color
+    const isOverdue = !isCompleted && value && new Date(value) < new Date();
 
     const pickerContent = (
         <div

@@ -18,6 +18,7 @@ Projeyi derlemek ve paketlemek için aşağıdaki komutu çalıştırın. Bu scr
 **Kritik Kural:**
 - Çıktı Dosyası: Masaüstünde **`UnityApp_Setup.zip`** ismiyle oluşmalıdır.
 - Dosya Yapısı: ZIP dosyası açıldığında dosyalar doğrudan kök dizinde olmalıdır (klasör içinde olmamalıdır).
+- Veri Güvenliği: `uploads` (yüklenen dosyalar) klasörü pakete **dahil edilmez.** Mevcut verileri ezmemek için bu klasörü sunucuda manuel yönetmelisiniz.
 
 ## Manuel Adımlar (Referans)
 

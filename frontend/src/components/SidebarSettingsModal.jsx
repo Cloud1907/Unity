@@ -96,8 +96,7 @@ const SidebarSettingsModal = ({ isOpen, onClose }) => {
     const userDepts = React.useMemo(() => {
         if (!user) return [];
         return departments.filter(d =>
-            user.role === 'admin' ||
-            (user.departments && user.departments.includes(d.id))
+            user.departments && user.departments.includes(d.id)
         );
     }, [departments, user]);
 

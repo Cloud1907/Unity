@@ -184,17 +184,35 @@ const NewProjectModal = ({ isOpen, onClose, initialData = null }) => {
     }
   };
 
+  // Backdrop click guard to prevent accidental closure on drag-out
+  const backdropRef = React.useRef(null);
+  const isMouseDownOnBackdrop = React.useRef(false);
+
+  const handleBackdropMouseDown = (e) => {
+    if (e.target === backdropRef.current) {
+      isMouseDownOnBackdrop.current = true;
+    } else {
+      isMouseDownOnBackdrop.current = false;
+    }
+  };
+
+  const handleBackdropMouseUp = (e) => {
+    if (isMouseDownOnBackdrop.current && e.target === backdropRef.current) {
+      onClose();
+    }
+    isMouseDownOnBackdrop.current = false;
+  };
+
   if (!isOpen) return null;
 
   return (
     <div
+      ref={backdropRef}
       className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4"
       style={{ zIndex: 9999 }}
-      onClick={onClose}
     >
       <div
         className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl max-w-md w-full max-h-[90vh] overflow-y-auto"
-        onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
         <div className="flex items-center justify-between p-5 border-b border-gray-100 dark:border-gray-800 sticky top-0 bg-white dark:bg-gray-900 z-10">

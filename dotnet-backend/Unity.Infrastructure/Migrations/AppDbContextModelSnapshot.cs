@@ -582,6 +582,9 @@ namespace Unity.Infrastructure.Migrations
                     b.Property<string>("JobTitle")
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<DateTime?>("LastNotificationReadAt")
+                        .HasColumnType("datetime2");
+
                     b.Property<int?>("Manager")
                         .HasColumnType("int");
 

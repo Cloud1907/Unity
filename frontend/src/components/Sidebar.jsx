@@ -223,6 +223,7 @@ const Sidebar = ({ currentBoard, onBoardChange, onNewBoard }) => {
           <div className="space-y-1">
             <Link
               to="/dashboard"
+              onClick={() => setIsMobileOpen(false)}
               className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-indigo-50 dark:hover:bg-indigo-900/20 hover:text-indigo-600 dark:hover:text-indigo-400 transition-all font-medium text-slate-600 dark:text-slate-400 text-[13px] group"
             >
               <Home size={18} className="group-hover:scale-110 transition-transform" />
@@ -230,6 +231,7 @@ const Sidebar = ({ currentBoard, onBoardChange, onNewBoard }) => {
             </Link>
             <Link
               to="/reports"
+              onClick={() => setIsMobileOpen(false)}
               className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-indigo-50 dark:hover:bg-indigo-900/20 hover:text-indigo-600 dark:hover:text-indigo-400 transition-all font-medium text-slate-600 dark:text-slate-400 text-[13px] group"
             >
               <TrendingUp size={18} className="group-hover:scale-110 transition-transform" />
@@ -269,16 +271,18 @@ const Sidebar = ({ currentBoard, onBoardChange, onNewBoard }) => {
 
             </div>
 
-            {/* Yeni Proje Button - Moved here from bottom */}
-            <button
-              onClick={() => setShowNewProjectModal(true)}
-              className="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800/50 transition-all text-slate-500 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 group text-xs font-medium mb-2"
-            >
-              <div className="w-5 h-5 rounded bg-slate-100 dark:bg-slate-800 flex items-center justify-center group-hover:bg-indigo-100 dark:group-hover:bg-indigo-900/50 transition-colors">
-                <Plus size={12} />
+            {/* New Items Section - Separated */}
+            {expandedSections.boards && (
+              <div className="px-2 py-2 border-t border-slate-200 dark:border-slate-700/50">
+                <button
+                  onClick={() => setShowNewProjectModal(true)}
+                  className="w-full flex items-center gap-2 px-2 py-1.5 rounded-md hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-all text-slate-600 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 group text-[13px] font-medium"
+                >
+                  <Plus size={14} className="shrink-0" />
+                  <span>Yeni Proje</span>
+                </button>
               </div>
-              <span>Yeni Proje</span>
-            </button>
+            )}
 
             {expandedSections.boards && (() => {
               let sortedDepts = [...departments];
@@ -365,60 +369,83 @@ const Sidebar = ({ currentBoard, onBoardChange, onNewBoard }) => {
 
                     // console.log(`Dept ${dept.name} (${dept.id}): isMember=${isMember}, isAdmin=${isAdmin}, Projects=${deptProjects.length}`);
 
-                    if (!isMember && !isAdmin) return null;
+                    // Only show if member (Admins should also be members to see it in sidebar, to keep it clean)
+                    if (!isMember) return null;
 
                     // Check if this workspace is collapsed
                     const pref = prefsMap.get(dept.id);
                     const isCollapsed = pref ? pref.isCollapsed : false;
 
+                    // Calculate member count for this workspace
+                    const memberCount = dept.members?.length || 0;
+
                     return (
-                      <div key={dept.id} className="space-y-1 relative group/section">
+                      <div key={dept.id} className="space-y-1 mb-3">
+                        {/* Workspace Header - Simple Cursor-style */}
                         <div
                           onClick={() => toggleWorkspaceCollapse(dept.id, isCollapsed)}
-                          className="px-3 py-1.5 pb-2 flex items-center justify-between border-b border-slate-100 dark:border-slate-800/50 mb-1 cursor-pointer transition-colors"
+                          className="group/workspace w-full flex items-center justify-between px-2 py-1.5 hover:bg-slate-50 dark:hover:bg-slate-800/50 rounded-md transition-colors cursor-pointer"
                         >
-                          <div className="flex items-center gap-2">
-                            <div className={`text-slate-400 hover:text-indigo-500 transition-all duration-200 ${isCollapsed ? '-rotate-90' : ''}`}>
+                          <div className="flex items-center gap-2 min-w-0 flex-1">
+                            {/* Chevron */}
+                            <div className={`text-slate-400 transition-transform duration-200 ${isCollapsed ? '-rotate-90' : ''}`}>
                               <ChevronDown size={14} />
                             </div>
-                            <div className="flex items-center gap-1.5 min-w-0">
-                              <Users size={14} className={`shrink-0 ${isCollapsed ? 'text-indigo-600' : 'text-slate-400 group-hover:text-indigo-500'}`} />
-                              <span className="truncate max-w-[120px] text-xs font-medium text-slate-400 dark:text-slate-500 capitalize tracking-wide">
-                                {dept.name}
+                            
+                            {/* Workspace Icon */}
+                            <Users size={14} className="text-slate-500 dark:text-slate-400 shrink-0" />
+                            
+                            {/* Workspace Name */}
+                            <span className="text-[13px] font-medium text-slate-700 dark:text-slate-300 truncate">
+                              {dept.name}
+                            </span>
+                            
+                            {/* Member Count Badge */}
+                            {memberCount > 0 && (
+                              <span className="text-[11px] text-slate-400 dark:text-slate-500">
+                                {memberCount}
                               </span>
-                            </div>
+                            )}
                           </div>
-                          <div className="flex items-center gap-2">
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                onOpenWorkspaceSettings(dept);
-                              }}
-                              className="opacity-0 group-hover/section:opacity-100 p-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded transition-all"
-                              title="Çalışma Alanı Ayarları"
-                            >
-                              <Settings size={12} className="text-slate-400 hover:text-indigo-600" />
-                            </button>
-                          </div>
+
+                          {/* Settings Icon */}
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onOpenWorkspaceSettings(dept);
+                            }}
+                            className="opacity-0 group-hover/workspace:opacity-100 p-1 hover:bg-slate-100 dark:hover:bg-slate-700 rounded transition-all"
+                            title="Çalışma Alanı Ayarları"
+                          >
+                            <Settings size={12} className="text-slate-400 hover:text-indigo-600" />
+                          </button>
                         </div>
 
-                        {/* Only show projects if not collapsed */}
-                        {!isCollapsed && deptProjects.map(board => (
-                          <Link
-                            key={board.id}
-                            to={`/board/${board.id}`}
-                            className={`group w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-all text-sm font-medium relative overflow-hidden ${activeBoardId === board.id
-                              ? 'bg-indigo-50 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-300'
-                              : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'
-                              }`}
-                          >
-                            <div
-                              className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-3/5 rounded-r-full transition-opacity"
-                              style={{ backgroundColor: board.color || '#4F46E5', opacity: activeBoardId === board.id ? 1 : 0.6 }}
-                            />
-                            <span className="flex-1 truncate pl-2">{board.name}</span>
-                          </Link>
-                        ))}
+                        {/* Projects List with Tree Lines */}
+                        {!isCollapsed && deptProjects.length > 0 && (
+                          <div className="ml-4 pl-2 border-l border-slate-200 dark:border-slate-700 space-y-0.5">
+                            {deptProjects.map((board, index) => (
+                              <Link
+                                key={board.id}
+                                to={`/board/${board.id}`}
+                                onClick={() => setIsMobileOpen(false)}
+                                className={`group w-full flex items-center gap-2 pl-2 pr-2 py-1.5 rounded-md transition-all text-[13px] font-medium relative ${activeBoardId === board.id
+                                  ? 'bg-indigo-50 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-300'
+                                  : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/50'
+                                  }`}
+                              >
+                                {/* Tree connector line */}
+                                <div className="absolute -left-2 top-1/2 w-2 h-px bg-slate-200 dark:bg-slate-700" />
+                                
+                                {/* Project Icon - Small dot */}
+                                <div className="shrink-0 w-1.5 h-1.5 rounded-full" style={{ backgroundColor: board.color || '#4F46E5' }} />
+                                
+                                {/* Project Name */}
+                                <span className="flex-1 truncate">{board.name}</span>
+                              </Link>
+                            ))}
+                          </div>
+                        )}
                       </div>
                     );
                   })}
@@ -436,6 +463,7 @@ const Sidebar = ({ currentBoard, onBoardChange, onNewBoard }) => {
                         <Link
                           key={board.id}
                           to={`/board/${board.id}`}
+                          onClick={() => setIsMobileOpen(false)}
                           className={`group w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-all text-sm font-medium relative overflow-hidden ${activeBoardId === board.id
                             ? 'bg-indigo-50 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-300'
                             : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'

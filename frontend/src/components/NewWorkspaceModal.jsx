@@ -63,6 +63,19 @@ const PREMIUM_ICONS = [
     { name: 'Component', icon: Component }
 ];
 
+// Turkish character normalization helper
+const normalizeText = (text) => {
+    if (!text) return '';
+    return text.toLowerCase()
+        .replace(/ğ/g, 'g')
+        .replace(/ü/g, 'u')
+        .replace(/ş/g, 's')
+        .replace(/ı/g, 'i')
+        .replace(/ö/g, 'o')
+        .replace(/ç/g, 'c')
+        .replace(/İ/g, 'i');
+};
+
 const NewWorkspaceModal = ({ isOpen, onClose }) => {
     const { createDepartment, fetchProjects } = useData();
     // Global Mode: Fetch ALL users for workspace creation
@@ -147,11 +160,15 @@ const NewWorkspaceModal = ({ isOpen, onClose }) => {
     };
 
     // Filter users: Match search AND Must NOT be already selected
-    const filteredUsers = users.filter(user =>
-        !selectedUserIds.includes(user.id) &&
-        (user.fullName.toLowerCase().includes(searchMember.toLowerCase()) ||
-            user.email?.toLowerCase().includes(searchMember.toLowerCase()))
-    );
+    const filteredUsers = users.filter(user => {
+        if (selectedUserIds.includes(user.id)) return false;
+        
+        const searchNorm = normalizeText(searchMember);
+        const nameNorm = normalizeText(user.fullName);
+        const emailNorm = normalizeText(user.email);
+        
+        return nameNorm.includes(searchNorm) || emailNorm.includes(searchNorm);
+    });
 
     const selectedUsers = users.filter(u => selectedUserIds.includes(u.id));
 
@@ -160,7 +177,21 @@ const NewWorkspaceModal = ({ isOpen, onClose }) => {
             if (!open) resetForm();
             onClose(open);
         }}>
-            <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
+            <DialogContent 
+                className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto"
+                onPointerDownOutside={(e) => {
+                    // Prevent accidental closure if drag started inside the modal
+                    // but ended outside (standard Radix behavior usually handles this, 
+                    // but we make it explicit for consistency)
+                    if (e.detail.originalEvent.type === 'pointerdown') {
+                        // Allow click outside if it's a clear separate click
+                    }
+                }}
+                onInteractOutside={(e) => {
+                    // Require explicit interaction to close, preventing accidental drag-out closure
+                    e.preventDefault();
+                }}
+            >
                 <DialogHeader>
                     <DialogTitle>Yeni Çalışma Alanı Oluştur</DialogTitle>
                     <DialogDescription>

@@ -260,156 +260,168 @@ namespace Unity.API.Controllers
         [HttpPost]
         public async Task<ActionResult<TaskItem>> PostTask([FromBody] JsonElement body)
         {
-            var currentUser = await GetCurrentUserWithDeptsAsync();
-
-            var task = new TaskItem
+            try
             {
-                AssignedBy = currentUser.Id,
-                CreatedBy = currentUser.Id,
-                CreatedAt = TimeHelper.Now,
-                UpdatedAt = TimeHelper.Now,
-                Status = "todo",
-                Priority = "medium",
-                Progress = 0
-            };
+                var currentUser = await GetCurrentUserWithDeptsAsync();
 
-            if (body.TryGetProperty("title", out var titleProp) && titleProp.ValueKind == JsonValueKind.String)
-                task.Title = titleProp.GetString();
-            else
-                return BadRequest(new { message = "Title is required" });
-
-            if (body.TryGetProperty("description", out var descProp) && descProp.ValueKind == JsonValueKind.String)
-                task.Description = descProp.GetString();
-            else if (body.TryGetProperty("Description", out var descProp2) && descProp2.ValueKind == JsonValueKind.String)
-                task.Description = descProp2.GetString();
-
-            if (body.TryGetProperty("taskUrl", out var urlProp) && urlProp.ValueKind == JsonValueKind.String)
-                task.TaskUrl = urlProp.GetString();
-            else if (body.TryGetProperty("TaskUrl", out var urlProp2) && urlProp2.ValueKind == JsonValueKind.String)
-                task.TaskUrl = urlProp2.GetString();
-
-            if (body.TryGetProperty("status", out var statusProp) && statusProp.ValueKind == JsonValueKind.String)
-                task.Status = statusProp.GetString();
-
-            if (body.TryGetProperty("priority", out var priorityProp) && priorityProp.ValueKind == JsonValueKind.String)
-                task.Priority = priorityProp.GetString();
-
-            if (body.TryGetProperty("projectId", out var pidProp) && pidProp.ValueKind == JsonValueKind.Number)
-                task.ProjectId = pidProp.GetInt32();
-            else if (body.TryGetProperty("project", out var projProp) && projProp.ValueKind == JsonValueKind.Object)
-            {
-                if (projProp.TryGetProperty("id", out var pidProp2) && pidProp2.ValueKind == JsonValueKind.Number)
-                    task.ProjectId = pidProp2.GetInt32();
-            }
-
-            // Handle Labels
-            if (body.TryGetProperty("labels", out var labelsProp) && labelsProp.ValueKind == JsonValueKind.Array)
-            {
-                foreach (var item in labelsProp.EnumerateArray())
+                var task = new TaskItem
                 {
-                    int? lKey = null;
-                    if (item.ValueKind == JsonValueKind.Number) lKey = item.GetInt32();
-                    else if (item.ValueKind == JsonValueKind.String && int.TryParse(item.GetString(), out var val)) lKey = val;
-                    else if (item.ValueKind == JsonValueKind.Object)
-                    {
-                        if (item.TryGetProperty("id", out var idProp) || item.TryGetProperty("labelId", out idProp))
-                        {
-                            if (idProp.ValueKind == JsonValueKind.Number) lKey = idProp.GetInt32();
-                            else if (idProp.ValueKind == JsonValueKind.String && int.TryParse(idProp.GetString(), out var valObj)) lKey = valObj;
-                        }
-                    }
+                    AssignedBy = currentUser.Id,
+                    CreatedBy = currentUser.Id,
+                    CreatedAt = TimeHelper.Now,
+                    UpdatedAt = TimeHelper.Now,
+                    Status = "todo",
+                    Priority = "medium",
+                    Progress = 0
+                };
 
-                    if (lKey.HasValue)
+                Console.WriteLine($"[DEBUG] PostTask Raw Body: {body.GetRawText()}");
+                
+                foreach (var prop in body.EnumerateObject())
+                {
+                    var val = prop.Value;
+                    var name = prop.Name.ToLowerInvariant();
+                    Console.WriteLine($"[DEBUG] Prop: '{prop.Name}' -> '{name}' | Kind: {val.ValueKind} | Val: {val}");
+
+                    switch (name)
                     {
-                        task.Labels.Add(new TaskLabel { LabelId = lKey.Value });
+                        case "title":
+                            if (val.ValueKind == JsonValueKind.String) task.Title = val.GetString();
+                            break;
+                        case "description":
+                            if (val.ValueKind == JsonValueKind.String) task.Description = val.GetString();
+                            break;
+                        case "taskurl":
+                            if (val.ValueKind == JsonValueKind.String) task.TaskUrl = val.GetString();
+                            break;
+                        case "status":
+                            if (val.ValueKind == JsonValueKind.String) task.Status = val.GetString();
+                            break;
+                        case "priority":
+                            if (val.ValueKind == JsonValueKind.String) task.Priority = val.GetString();
+                            break;
+                        case "projectid":
+                            if (val.ValueKind == JsonValueKind.Number) task.ProjectId = val.GetInt32();
+                            else if (val.ValueKind == JsonValueKind.String && int.TryParse(val.GetString(), out var pid)) task.ProjectId = pid;
+                            break;
+                        case "project": // Handle nested project object
+                            if (val.ValueKind == JsonValueKind.Object && val.TryGetProperty("id", out var pidProp) && pidProp.ValueKind == JsonValueKind.Number)
+                                task.ProjectId = pidProp.GetInt32();
+                            break;
+                        case "startdate":
+                            if (val.ValueKind == JsonValueKind.String && val.TryGetDateTime(out var sd)) task.StartDate = sd.ToUniversalTime();
+                            else if (val.ValueKind == JsonValueKind.Null) task.StartDate = null;
+                            break;
+                        case "duedate":
+                            if (val.ValueKind == JsonValueKind.String && val.TryGetDateTime(out var dd)) task.DueDate = dd.ToUniversalTime();
+                            else if (val.ValueKind == JsonValueKind.Null) task.DueDate = null;
+                            break;
+                        case "labels":
+                            if (val.ValueKind == JsonValueKind.Array)
+                            {
+                                foreach (var item in val.EnumerateArray())
+                                {
+                                    int? lKey = null;
+                                    if (item.ValueKind == JsonValueKind.Number) lKey = item.GetInt32();
+                                    else if (item.ValueKind == JsonValueKind.String && int.TryParse(item.GetString(), out var lVal)) lKey = lVal;
+                                    else if (item.ValueKind == JsonValueKind.Object)
+                                    {
+                                        if (item.TryGetProperty("id", out var idProp) || item.TryGetProperty("labelId", out idProp))
+                                        {
+                                            if (idProp.ValueKind == JsonValueKind.Number) lKey = idProp.GetInt32();
+                                            else if (idProp.ValueKind == JsonValueKind.String && int.TryParse(idProp.GetString(), out var lObjVal)) lKey = lObjVal;
+                                        }
+                                    }
+                                    if (lKey.HasValue) task.Labels.Add(new TaskLabel { LabelId = lKey.Value });
+                                }
+                            }
+                            break;
+                        case "assignees":
+                            if (val.ValueKind == JsonValueKind.Array)
+                            {
+                                foreach (var item in val.EnumerateArray())
+                                {
+                                    int? uid = null;
+                                    if (item.ValueKind == JsonValueKind.Number) uid = item.GetInt32();
+                                    else if (item.ValueKind == JsonValueKind.String && int.TryParse(item.GetString(), out var uVal)) uid = uVal;
+                                    else if (item.ValueKind == JsonValueKind.Object)
+                                    {
+                                        if (item.TryGetProperty("id", out var idProp) || item.TryGetProperty("userId", out idProp))
+                                        {
+                                            if (idProp.ValueKind == JsonValueKind.Number) uid = idProp.GetInt32();
+                                            else if (idProp.ValueKind == JsonValueKind.String && int.TryParse(idProp.GetString(), out var uObjVal)) uid = uObjVal;
+                                        }
+                                    }
+                                    if (uid.HasValue) task.Assignees.Add(new TaskAssignee { UserId = uid.Value });
+                                }
+                            }
+                            break;
                     }
                 }
-            }
 
-            // Handle Assignees
-            if (body.TryGetProperty("assignees", out var assigneesProp) && assigneesProp.ValueKind == JsonValueKind.Array)
-            {
-                // Get existing assignee IDs to identify NEW ones (for email notification)
-                // For a new task, this list will be empty initially.
-                var existingAssigneeIds = new List<int>(); // No existing assignees for a new task
+                if (string.IsNullOrEmpty(task.Title))
+                    return BadRequest(new { message = "Başlık (Title) zorunludur." });
 
-                foreach (var item in assigneesProp.EnumerateArray())
+                if (task.ProjectId == 0)
+                    return BadRequest(new { message = "Proje seçimi zorunludur." });
+
+                // Auto-assign creator logic REMOVED per user request
+                // if (task.Assignees.Count == 0) ...
+
+                _context.Tasks.Add(task);
+                await _context.SaveChangesAsync();
+
+                // CLEAN READ PATTERN: Ensure we return the full object with all relationships
+                _context.ChangeTracker.Clear();
+
+                var freshTask = await _context.Tasks.AsNoTracking()
+                    .Include(t => t.Assignees).ThenInclude(a => a.User)
+                    .Include(t => t.Labels).ThenInclude(l => l.Label)
+                    .Include(t => t.Subtasks).ThenInclude(s => s.Assignees)
+                    .Include(t => t.Comments).ThenInclude(c => c.User)
+                    .Include(t => t.Attachments)
+                    .FirstOrDefaultAsync(t => t.Id == task.Id);
+
+                if (freshTask != null)
                 {
-                    int? uid = null;
-                    if (item.ValueKind == JsonValueKind.Number) uid = item.GetInt32();
-                    else if (item.ValueKind == JsonValueKind.Object)
-                    {
-                        if (item.TryGetProperty("id", out var idProp) || item.TryGetProperty("userId", out idProp))
-                            uid = idProp.GetInt32();
-                    }
-
-                    if (uid.HasValue)
-                    {
-                        task.Assignees.Add(new TaskAssignee { UserId = uid.Value });
-
-                        // Check if this is a NEW assignment (and not the current user assigning themselves)
-                        // For PostTask, all assignees from the body are "new"
-                        if (!existingAssigneeIds.Contains(uid.Value) && uid.Value != currentUser.Id)
-                        {
-                            // Email notification is now handled after SaveChangesAsync to ensure TaskId is available.
-                            // See lines below _context.SaveChangesAsync()
-                        }
-                    }
+                    freshTask.LabelIds = freshTask.Labels.Select(l => l.LabelId).ToList();
+                    freshTask.AssigneeIds = freshTask.Assignees.Select(a => a.UserId).ToList();
                 }
-                // _activityLogger.LogChangeAsync is typically for updates, not initial creation.
-                // If needed for creation, it would be logged after task.Id is available.
+
+                await _auditService.LogAsync(
+                    currentUser.Id.ToString(),
+                    "CREATE_TASK",
+                    "Task",
+                    task.Id.ToString(),
+                    null,
+                    freshTask ?? (object)task,
+                    $"Task '{task.Title}' created."
+                );
+
+                await _hubContext.Clients.All.SendAsync("TaskCreated", freshTask ?? task);
+
+                // Send Email Notifications Async
+                if (task.Assignees != null && task.Assignees.Any())
+                {
+                    var assignedUserIds = task.Assignees.Select(a => a.UserId).Distinct().ToList();
+                    SendAssignmentEmailsInBackground(task.Id, assignedUserIds, currentUser.Id);
+                }
+
+                return CreatedAtAction(nameof(GetTask), new { id = task.Id }, freshTask ?? task);
             }
-
-            // Auto-assign creator logic REMOVED per user request
-            // if (task.Assignees.Count == 0) ...
-
-            _context.Tasks.Add(task);
-            await _context.SaveChangesAsync();
-
-            // CLEAN READ PATTERN: Ensure we return the full object with all relationships
-            _context.ChangeTracker.Clear();
-
-            var freshTask = await _context.Tasks.AsNoTracking()
-                .Include(t => t.Assignees).ThenInclude(a => a.User)
-                .Include(t => t.Labels).ThenInclude(l => l.Label)
-                .Include(t => t.Subtasks).ThenInclude(s => s.Assignees)
-                .Include(t => t.Comments).ThenInclude(c => c.User)
-                .Include(t => t.Attachments)
-                .FirstOrDefaultAsync(t => t.Id == task.Id);
-
-            if (freshTask != null)
+            catch (Exception ex)
             {
-                freshTask.LabelIds = freshTask.Labels.Select(l => l.LabelId).ToList();
-                freshTask.AssigneeIds = freshTask.Assignees.Select(a => a.UserId).ToList();
+                Console.WriteLine($"[ERROR] PostTask failed: {ex.Message}");
+                Console.WriteLine(ex.StackTrace);
+                return StatusCode(500, new { message = "Bir hata oluştu.", error = ex.Message });
             }
-
-            await _auditService.LogAsync(
-                currentUser.Id.ToString(),
-                "CREATE_TASK",
-                "Task",
-                task.Id.ToString(),
-                null,
-                freshTask ?? (object)task,
-                $"Task '{task.Title}' created."
-            );
-
-            await _hubContext.Clients.All.SendAsync("TaskCreated", freshTask ?? task);
-
-            // Send Email Notifications Async
-            if (task.Assignees != null && task.Assignees.Any())
-            {
-                var assignedUserIds = task.Assignees.Select(a => a.UserId).Distinct().ToList();
-                SendAssignmentEmailsInBackground(task.Id, assignedUserIds, currentUser.Id);
-            }
-
-            return CreatedAtAction(nameof(GetTask), new { id = task.Id }, freshTask ?? task);
         }
 
         private async Task<bool> HasWriteAccessAsync(TaskItem task, User user)
         {
             Console.WriteLine($"[DEBUG] HasWriteAccessAsync checking: User={user.Id}, Task={task.Id}, Project={task.ProjectId}");
 
-            if (user.Role == "admin") { Console.WriteLine(" - Access GRANTED: Admin"); return true; }
+            if (string.Equals(user.Role, "admin", StringComparison.OrdinalIgnoreCase)) { Console.WriteLine(" - Access GRANTED: Admin"); return true; }
             if (task.CreatedBy == user.Id) { Console.WriteLine(" - Access GRANTED: Creator"); return true; }
             if (task.AssignedBy == user.Id) { Console.WriteLine(" - Access GRANTED: Assigner"); return true; }
             if (task.Assignees != null && task.Assignees.Any(ta => ta.UserId == user.Id)) { Console.WriteLine(" - Access GRANTED: Assignee"); return true; }
@@ -631,13 +643,51 @@ namespace Unity.API.Controllers
                         }
                         break;
                     case "status":
-                        if (property.Value.ValueKind == JsonValueKind.String)
+                if (property.Value.ValueKind == JsonValueKind.String)
+                {
+                    var oldStatus = task.Status;
+                    var newStatus = property.Value.GetString();
+
+                    // 1. Validation: Cannot mark as 'done' if incomplete subtasks exist
+                    if (newStatus == "done")
+                    {
+                         var incompleteSubtasks = await _context.Subtasks
+                            .AnyAsync(s => s.TaskId == id && !s.IsCompleted);
+
+                        if (incompleteSubtasks)
                         {
-                            var oldStatus = task.Status;
-                            task.Status = property.Value.GetString();
-                            await _activityLogger.LogChangeAsync(currentUser.Id, "UPDATE", "Task", task.Id.ToString(), "Status", oldStatus, task.Status);
+                            return BadRequest(new { message = "Alt görevler tamamlanmadan ana görev kapatılamaz." });
                         }
-                        break;
+                        
+                        // Auto-Progress Rule 1: specific to 'done'
+                        if (task.Progress < 100) task.Progress = 100;
+                    }
+
+                    // 2. Automation: Progress Logic for 'working' (Devam Ediyor)
+                    if ((newStatus == "working" || newStatus == "review") && task.Progress == 0)
+                    {
+                        task.Progress = 25;
+                    }
+
+                    // 3. Automation: CompletedAt Logic
+                    if (newStatus == "done" && oldStatus != "done")
+                    {
+                        // Mark as completed now
+                        task.CompletedAt = DateTime.UtcNow;
+                    }
+                    else if (newStatus != "done" && oldStatus == "done")
+                    {
+                        // Re-opened: Clear completion date
+                        task.CompletedAt = null;
+                        
+                        // Optional: Reset progress if moving back to todo? (Keeping simple for now per user request)
+                        if (newStatus == "todo") task.Progress = 0;
+                    }
+
+                    task.Status = newStatus;
+                    await _activityLogger.LogChangeAsync(currentUser.Id, "UPDATE", "Task", task.Id.ToString(), "Status", oldStatus, task.Status);
+                }
+                break;
                     case "priority":
                         if (property.Value.ValueKind == JsonValueKind.String)
                         {
@@ -896,6 +946,29 @@ namespace Unity.API.Controllers
 
             var oldStatus = task.Status;
             task.Status = status;
+
+            // 1. Validation: Cannot mark as 'done' if incomplete subtasks exist
+            if (status == "done")
+            {
+                var incompleteSubtasks = await _context.Subtasks
+                    .AnyAsync(s => s.TaskId == id && !s.IsCompleted);
+
+                if (incompleteSubtasks)
+                {
+                    return BadRequest(new { message = "Alt görevler tamamlanmadan ana görev kapatılamaz." });
+                }
+                
+                // Auto-Progress Rule 1: specific to 'done'
+                if (task.Progress < 100) task.Progress = 100;
+            }
+
+            // 2. Automation: Progress Logic for 'working' (Devam Ediyor)
+            // If status is 'working' and progress is 0, bump to 25.
+            if ((status == "working" || status == "review") && task.Progress == 0)
+            {
+                task.Progress = 25;
+            }
+
             task.UpdatedAt = TimeHelper.Now;
             await _context.SaveChangesAsync();
 
@@ -1135,7 +1208,7 @@ namespace Unity.API.Controllers
             var currentUser = await GetCurrentUserWithDeptsAsync();
 
             // Allow if admin, task owner, or comment creator
-            bool canDelete = currentUser.Role == "admin" ||
+            bool canDelete = string.Equals(currentUser.Role, "admin", StringComparison.OrdinalIgnoreCase) ||
                              task.AssignedBy == currentUser.Id ||
                              comment.CreatedBy == currentUser.Id;
 
@@ -1165,7 +1238,7 @@ namespace Unity.API.Controllers
             var currentUser = await GetCurrentUserWithDeptsAsync();
 
             // Allow if admin, task owner, or uploader
-            bool canDelete = currentUser.Role == "admin" ||
+            bool canDelete = string.Equals(currentUser.Role, "admin", StringComparison.OrdinalIgnoreCase) ||
                              task.AssignedBy == currentUser.Id ||
                              attachment.CreatedBy == currentUser.Id;
 
