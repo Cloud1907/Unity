@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { Hexagon } from 'lucide-react';
+import UniTaskLogo, { GridMark } from './UniTaskLogo';
 
 const LoadingLogo = () => {
     return (
@@ -8,8 +8,8 @@ const LoadingLogo = () => {
             <motion.div
                 className="relative"
                 animate={{
-                    scale: [1, 1.1, 1],
-                    opacity: [0.5, 1, 0.5],
+                    scale: [1, 1.08, 1],
+                    opacity: [0.7, 1, 0.7],
                 }}
                 transition={{
                     duration: 2,
@@ -17,14 +17,13 @@ const LoadingLogo = () => {
                     ease: "easeInOut"
                 }}
             >
-                <div className="bg-indigo-600 p-4 rounded-xl shadow-lg shadow-indigo-200 dark:shadow-none">
-                    <Hexagon className="w-12 h-12 text-white fill-indigo-600" strokeWidth={1.5} />
-                </div>
+                <GridMark size="xl" />
                 {/* Glow effect */}
                 <motion.div
-                    className="absolute inset-0 bg-indigo-500 rounded-xl blur-xl -z-10"
+                    className="absolute inset-0 rounded-xl blur-2xl -z-10"
+                    style={{ backgroundColor: 'rgba(91, 53, 245, 0.25)' }}
                     animate={{
-                        opacity: [0.2, 0.6, 0.2],
+                        opacity: [0.15, 0.5, 0.15],
                         scale: [1, 1.2, 1],
                     }}
                     transition={{
@@ -34,14 +33,14 @@ const LoadingLogo = () => {
                     }}
                 />
             </motion.div>
-            <motion.p
-                className="mt-6 text-indigo-600 dark:text-indigo-400 font-medium tracking-wide text-sm"
+            <motion.div
+                className="mt-6"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                transition={{ delay: 0.5 }}
+                transition={{ delay: 0.4 }}
             >
-                UNITY
-            </motion.p>
+                <UniTaskLogo size="sm" variant="full" hideTagline={true} />
+            </motion.div>
         </div>
     );
 };

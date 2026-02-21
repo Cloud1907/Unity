@@ -12,7 +12,7 @@ fi
 echo "Starting Backend (Unity.API)..."
 cd dotnet-backend/Unity.API
 # Redirect output to log file and run in background
-dotnet watch run --urls=http://localhost:8080 > ../../start_dev.log 2>&1 &
+dotnet watch run --urls=http://0.0.0.0:8080 > ../../start_dev.log 2>&1 &
 BACKEND_PID=$!
 cd ../..
 

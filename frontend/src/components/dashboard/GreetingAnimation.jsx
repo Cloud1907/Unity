@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Sparkles } from 'lucide-react';
 
-const GreetingAnimation = ({ text }) => {
+const GreetingAnimation = React.memo(({ text }) => {
   const [start, setStart] = useState(false);
 
   useEffect(() => {
@@ -53,6 +53,7 @@ const GreetingAnimation = ({ text }) => {
       </motion.div>
     </motion.div>
   );
-};
+});
 
 export default GreetingAnimation;
+

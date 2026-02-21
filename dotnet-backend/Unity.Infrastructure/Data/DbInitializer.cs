@@ -484,6 +484,10 @@ WHERE p.IsDeleted = 0;";
             // Password Hash
             var passwordHash = BCrypt.Net.BCrypt.HashPassword("test123");
 
+
+
+
+
             /* 
                [DISABLED BY USER ORDER] - Auto-seeding is disabled to prevent duplicate/demo data creation.
                Use provided SQL scripts for data management.

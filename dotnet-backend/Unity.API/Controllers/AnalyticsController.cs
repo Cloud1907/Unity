@@ -10,22 +10,11 @@ using Unity.Core.Models;
 
 namespace Unity.API.Controllers
 {
-    [Route("api/[controller]")]
-    [ApiController]
     [Authorize]
-    public class AnalyticsController : ControllerBase
+    public class AnalyticsController : BaseController
     {
-        private readonly AppDbContext _context;
-
-        public AnalyticsController(AppDbContext context)
+        public AnalyticsController(AppDbContext context) : base(context)
         {
-            _context = context;
-        }
-
-        private int GetCurrentUserId()
-        {
-            var claim = User.FindFirst("id")?.Value ?? User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-            return int.TryParse(claim, out int id) ? id : 0;
         }
 
         // CONSTITUTION CHECK: Use strict integer joins for Workload

@@ -70,12 +70,24 @@ namespace Unity.Infrastructure.Services
 
                     var mailMessage = new MailMessage
                     {
-                        From = new MailAddress(_username, "Unity Task Management"),
+                        From = new MailAddress(_username, "UniTask Management"),
                         Subject = subject,
-                        Body = body,
                         IsBodyHtml = true,
                     };
 
+                    AlternateView htmlView = AlternateView.CreateAlternateViewFromString(body, null, "text/html");
+                    
+                    try {
+                        var logoPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "logo.png");
+                        if (System.IO.File.Exists(logoPath))
+                        {
+                            LinkedResource logo = new LinkedResource(logoPath, "image/png");
+                            logo.ContentId = "unitasklogo";
+                            htmlView.LinkedResources.Add(logo);
+                        }
+                    } catch { }
+
+                    mailMessage.AlternateViews.Add(htmlView);
                     mailMessage.To.Add(to);
                     
                     // Update heartbeat before actual send
@@ -208,7 +220,7 @@ namespace Unity.Infrastructure.Services
 <head>
   <meta http-equiv=""Content-Type"" content=""text/html; charset=UTF-8"" />
   <meta name=""viewport"" content=""width=device-width, initial-scale=1.0"" />
-  <title>Univera Unity Task Notification</title>
+  <title>Univera UniTask Notification</title>
   
   <!--[if !mso]><!-->
   <link href=""https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"" rel=""stylesheet"">
@@ -237,41 +249,47 @@ namespace Unity.Infrastructure.Services
           
           <!-- HEADER -->
           <tr>
-            <td align=""center"" valign=""top"" bgcolor=""#4f46e5"" style=""background-color: #4f46e5; background-image: linear-gradient(135deg, #4f46e5 0%, #3730a3 100%); border-radius: 24px 24px 0 0; padding: 30px 20px 40px 20px;"">
-              <!--[if gte mso 9]>
-              <v:rect xmlns:v=""urn:schemas-microsoft-com:vml"" fill=""true"" stroke=""false"" style=""width:600px;height:240px;"">
-                <v:fill type=""gradient"" color2=""#3730a3"" color1=""#4f46e5"" angle=""135"" />
-                <v:textbox style=""mso-fit-shape-to-text:true"" inset=""0,0,0,0"">
-              <![endif]-->
+            <td align=""left"" valign=""top"" bgcolor=""#25224D"" style=""background-color: #25224D; border-radius: 24px 24px 0 0; padding: 40px 40px 40px 40px;"">
               
               <table border=""0"" cellpadding=""0"" cellspacing=""0"" width=""100%"">
                 <tr>
-                  <td align=""center"">
+                  <td align=""left"">
                     <table border=""0"" cellpadding=""0"" cellspacing=""0"">
                       <tr>
-                        <td width=""56"" height=""56"" bgcolor=""#7c3aed"" align=""center"" valign=""middle"" style=""background: linear-gradient(135deg, #a855f7 0%, #7c3aed 100%); border-radius: 14px; box-shadow: 0 8px 20px rgba(0,0,0,0.2);"">
-                           <img src=""https://img.icons8.com/ios-filled/50/ffffff/hexagon.png"" width=""28"" height=""28"" alt="""" style=""display: block;"" />
+                        <!-- LOGO ICON (CID Embedded – logo.png icon) -->
+                        <td valign=""middle"" style=""padding-right: 16px; padding-bottom: 2px;"">
+                          <img src=""cid:unitasklogo"" width=""56"" height=""56"" alt=""UniTask"" style=""display: block; border: 0; outline: none; width: 56px; height: 56px;"" />
+                        </td>
+                        <!-- LOGO TEXT & TAGLINE -->
+                        <td valign=""middle"">
+                          <table border=""0"" cellpadding=""0"" cellspacing=""0"">
+                            <tr>
+                              <td align=""left"" style=""font-family: 'Inter', Helvetica, Arial, sans-serif; font-size: 32px; font-weight: 900; color: #ffffff; letter-spacing: -1.5px; line-height: 1;"">
+                                Uni<span style=""color: #9B7BFF;"">Task</span>
+                              </td>
+                            </tr>
+                            <tr>
+                              <td align=""left"" style=""padding: 8px 0;"">
+                                <div style=""height: 1px; width: 100%; background-color: rgba(255,255,255,0.15);""></div>
+                              </td>
+                            </tr>
+                            <tr>
+                              <td align=""left"" style=""font-family: 'Inter', Helvetica, Arial, sans-serif; font-size: 13px; font-weight: 600; color: #cbd5e1; letter-spacing: 0.2px;"">
+                                Univera Task Management
+                              </td>
+                            </tr>
+                          </table>
                         </td>
                       </tr>
                     </table>
                   </td>
                 </tr>
                 <tr>
-                  <td align=""center"" style=""font-family: 'Inter', Helvetica, Arial, sans-serif; font-size: 28px; font-weight: 700; color: #ffffff; letter-spacing: -0.5px; padding-top: 15px; padding-bottom: 5px;"">
-                    Unity
-                  </td>
-                </tr>
-                <tr>
-                  <td align=""center"" style=""font-family: 'Inter', Helvetica, Arial, sans-serif; font-size: 13px; font-weight: 500; color: #e0e7ff; letter-spacing: 0.5px; padding-bottom: 15px;"">
-                    Univera Task Management
-                  </td>
-                </tr>
-                <tr>
-                  <td align=""center"">
+                  <td align=""left"" style=""padding-top: 25px;"">
                     <table border=""0"" cellpadding=""0"" cellspacing=""0"">
                       <tr>
-                        <td style=""background-color: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.2); border-radius: 8px; padding: 8px 16px;"">
-                          <span style=""font-family: 'Inter', Helvetica, Arial, sans-serif; font-size: 12px; color: #ffffff; line-height: 1.4;"">
+                        <td style=""background-color: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.15); border-radius: 8px; padding: 10px 16px;"">
+                          <span style=""font-family: 'Inter', Helvetica, Arial, sans-serif; font-size: 12px; color: #cbd5e1; line-height: 1.4;"">
                             <strong>{assignerName}</strong> tarafından <strong>{assigneeName}</strong> kullanıcısına atandı.
                           </span>
                         </td>
@@ -280,11 +298,6 @@ namespace Unity.Infrastructure.Services
                   </td>
                 </tr>
               </table>
-
-              <!--[if gte mso 9]>
-                </v:textbox>
-              </v:rect>
-              <![endif]-->
             </td>
           </tr>
 
@@ -424,7 +437,7 @@ namespace Unity.Infrastructure.Services
           <!-- FOOTER -->
           <tr>
             <td align=""center"" style=""padding: 25px; font-family: 'Inter', Helvetica, Arial, sans-serif; font-size: 12px; color: #94a3b8;"">
-              &copy; {DateTime.Now.Year} Univera Unity Task Management
+              &copy; {DateTime.Now.Year} Univera UniTask Management
             </td>
           </tr>
 
@@ -439,12 +452,16 @@ namespace Unity.Infrastructure.Services
             // Send email in background to prevent blocking
             // Send email synchronously (awaited) to ensure delivery before returning
             // This is better for debugging "email not arriving" issues
+            var logPath = "/tmp/unity_email.log";
             try 
             {
                 await SendEmailAsync(to, subject, body);
+                System.IO.File.AppendAllText(logPath, $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] SUCCESS: To: {to} | Subject: {subject}\n");
             }
             catch (Exception ex)
             {
+                var errorMsg = $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] ERROR: To: {to} | Subject: {subject} | Error: {ex.Message}";
+                System.IO.File.AppendAllText(logPath, errorMsg + "\n" + ex.StackTrace + "\n");
                 LogDebug($"Email send failed: {ex.Message}");
                 throw; // Propagate to controller so it returns 500
             }

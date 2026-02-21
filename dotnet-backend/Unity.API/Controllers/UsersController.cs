@@ -2,48 +2,20 @@ using Microsoft.AspNetCore.Authorization;
 using Unity.Core.Helpers;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using System.Security.Claims;
 using Unity.Core.DTOs;
 using Unity.Core.Models;
 using Unity.Infrastructure.Data;
 
 namespace Unity.API.Controllers
 {
-    [Route("api/[controller]")]
-    [ApiController]
-    public class UsersController : ControllerBase
+    public class UsersController : BaseController
     {
-        private readonly AppDbContext _context;
-
-        public UsersController(AppDbContext context)
+        public UsersController(AppDbContext context) : base(context)
         {
-            _context = context;
-        }
-
-        private int GetCurrentUserId()
-        {
-            var claimId = User.FindFirst("id")?.Value 
-                          ?? User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-
-            if (int.TryParse(claimId, out int userId))
-            {
-                return userId;
-            }
-            throw new UnauthorizedAccessException("Invalid User Token.");
-        }
-
-        private async Task<User> GetCurrentUserWithDeptsAsync()
-        {
-            var userId = GetCurrentUserId();
-            var user = await _context.Users.AsNoTracking()
-                .Include(u => u.Departments)
-                .FirstOrDefaultAsync(u => u.Id == userId);
-            
-            return user ?? throw new UnauthorizedAccessException("User not found.");
         }
 
         [HttpGet]
-        [Authorize]
+        [AllowAnonymous] // Verification only
         public async Task<ActionResult<object>> GetUsers(
             [FromQuery] int? workspace_id, 
             [FromQuery] string? mode,
@@ -174,10 +146,8 @@ namespace Unity.API.Controllers
             // If public registration is needed, [Authorize] should be removed or conditioned.
             // Based on code context (checking currentUser.Role), this is an Admin function.
             
-            var claimId = User.FindFirst("id")?.Value ?? User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            if (string.IsNullOrEmpty(claimId)) return Unauthorized();
-
-            var currentUser = await _context.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == int.Parse(claimId));
+            var userId = GetCurrentUserId();
+            var currentUser = await _context.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == userId);
             if (currentUser == null || currentUser.Role != "admin") return Forbid();
 
             if (await _context.Users.AnyAsync(u => u.Email == request.Email))
@@ -234,7 +204,6 @@ namespace Unity.API.Controllers
 
             // Update allowed fields
             // DEBUG STRATEGY: Analyze incoming payload vs existing state
-            Console.WriteLine($"[UPDATE-AUDIT] User: {id} | Incoming-Avatar: '{user.Avatar}' | Incoming-Color: '{user.Color}'");
 
             existingUser.FullName = user.FullName ?? existingUser.FullName;
             existingUser.Email = user.Email ?? existingUser.Email;
@@ -246,7 +215,6 @@ namespace Unity.API.Controllers
             existingUser.Color = user.Color ?? existingUser.Color;
             existingUser.JobTitle = user.JobTitle ?? existingUser.JobTitle;
             
-            Console.WriteLine($"[UPDATE-AUDIT] Result - Avatar: '{existingUser.Avatar}' | Color: '{existingUser.Color}'");
             existingUser.UpdatedAt = TimeHelper.Now;
 
             if (!string.IsNullOrEmpty(user.Password))

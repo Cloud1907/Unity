@@ -41,4 +41,4 @@ This project maintains a **Zero Tolerance Policy** for legacy MongoDB artifacts.
 *   **Behavior**: Logic must fail fast (throw exception) if data integrity is compromised (missing ID).
 
 ---
-*This document serves as the immutable constitution of the Unity Enterprise codebase. Changes to these standards require a full architectural review.*
+*This document serves as the immutable constitution of the UniTask Enterprise codebase. Changes to these standards require a full architectural review.*

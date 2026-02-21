@@ -4,7 +4,7 @@ import { Plus, Search } from 'lucide-react';
 
 import UserAvatar from './ui/shared/UserAvatar';
 
-const InlineAssigneePicker = ({ assigneeIds, assignees, allUsers, onChange, showNames = false }) => {
+const InlineAssigneePicker = ({ assigneeIds, projectUsers = [], allUsers = [], onChange, showNames = false }) => {
     const [isOpen, setIsOpen] = useState(false);
     const pickerRef = useRef(null);
     const buttonRef = useRef(null);
@@ -25,11 +25,11 @@ const InlineAssigneePicker = ({ assigneeIds, assignees, allUsers, onChange, show
         ).filter(Boolean);
 
         // STALE UPDATE PROTECTION:
-        // Only update local state from props if:
-        // a) We haven't clicked anything in the last 2 seconds (waiting for server/context sync)
-        // b) OR if the picker is closed (reset for next open)
+        // While picker is open, NEVER overwrite local state from props
+        // When closed, only accept if no recent interaction (5s window)
+        if (isOpen) return;
         const now = Date.now();
-        if (!isOpen || (now - lastInteractionTime.current > 2000)) {
+        if (now - lastInteractionTime.current > 5000) {
             setLocalSelectedIds(propIds);
         }
     }, [assigneeIds, isOpen]);
@@ -59,28 +59,40 @@ const InlineAssigneePicker = ({ assigneeIds, assignees, allUsers, onChange, show
     // --- UI HELPERS ---
 
     useEffect(() => {
-        if (isOpen && buttonRef.current) {
-            const rect = buttonRef.current.getBoundingClientRect();
-            const viewportHeight = window.innerHeight;
-            const popoverHeight = 350;
+        const updatePosition = () => {
+            if (isOpen && buttonRef.current) {
+                const rect = buttonRef.current.getBoundingClientRect();
+                const viewportHeight = window.innerHeight;
+                const popoverHeight = 350;
 
-            let top = rect.bottom + 4;
-            let left = rect.left;
-            const spaceBelow = viewportHeight - rect.bottom;
-            const shouldOpenUp = spaceBelow < popoverHeight || rect.top > viewportHeight / 2;
+                let top = rect.bottom + 4;
+                let left = rect.left;
+                const spaceBelow = viewportHeight - rect.bottom;
+                const shouldOpenUp = spaceBelow < popoverHeight || rect.top > viewportHeight / 2;
 
-            let style = { left };
-            if (shouldOpenUp) {
-                style.bottom = viewportHeight - rect.top + 4;
-                style.top = null;
-                style.transformOrigin = 'bottom left';
-            } else {
-                style.top = top;
-                style.bottom = null;
-                style.transformOrigin = 'top left';
+                let style = { left };
+                if (shouldOpenUp) {
+                    style.bottom = viewportHeight - rect.top + 4;
+                    style.top = 'auto';
+                    style.transformOrigin = 'bottom left';
+                } else {
+                    style.top = top;
+                    style.bottom = 'auto';
+                    style.transformOrigin = 'top left';
+                }
+                setPosition(style);
             }
-            setPosition(style);
+        };
+
+        updatePosition();
+        if (isOpen) {
+            window.addEventListener('scroll', updatePosition, true);
+            window.addEventListener('resize', updatePosition);
         }
+        return () => {
+            window.removeEventListener('scroll', updatePosition, true);
+            window.removeEventListener('resize', updatePosition);
+        };
     }, [isOpen]);
 
     useEffect(() => {
@@ -95,23 +107,25 @@ const InlineAssigneePicker = ({ assigneeIds, assignees, allUsers, onChange, show
     }, [isOpen]);
 
     const filteredUsers = useMemo(() => {
-        const sourceUsers = allUsers || [];
+        // Dropdown uses projectUsers (users eligible for assignment)
+        // If projectUsers is empty/undefined, fallback to allUsers? No, keep it strict or fallback safely.
+        const sourceUsers = (projectUsers && projectUsers.length > 0) ? projectUsers : allUsers;
+        
         if (!searchTerm) return sourceUsers;
         const lowSearch = searchTerm.toLowerCase();
         return sourceUsers.filter(u => u.fullName?.toLowerCase().includes(lowSearch));
-    }, [allUsers, searchTerm]);
+    }, [projectUsers, allUsers, searchTerm]);
 
     const resolvedAssignees = useMemo(() => {
+        // Resolution uses allUsers (global registry) to ensure we can show anyone assigned
         return localSelectedIds.map(aid => {
             const userInGlobal = allUsers?.find(u => Number(u.id) === Number(aid));
             if (userInGlobal) return userInGlobal;
-            if (Array.isArray(assignees)) {
-                const userInProp = assignees.find(u => Number(u.id ?? u.userId) === Number(aid));
-                if (userInProp) return userInProp;
-            }
+            
+            // Fallback for edge cases (should happen rarely now)
             return { id: aid, fullName: '...', avatar: null };
         });
-    }, [localSelectedIds, allUsers, assignees]);
+    }, [localSelectedIds, allUsers]);
 
     const pickerContent = (
         <div

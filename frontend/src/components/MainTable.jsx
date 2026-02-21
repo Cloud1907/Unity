@@ -1,7 +1,8 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Plus, ChevronDown } from 'lucide-react';
+import { Plus, ChevronDown, CheckCircle2 } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
+import { subDays, subMonths, isAfter, parseISO } from 'date-fns';
 import { useDataState, useDataActions } from '../contexts/DataContext';
 import { useAuth } from '../contexts/AuthContext';
 import ModernTaskModal from './ModernTaskModal';
@@ -17,7 +18,7 @@ import { filterProjectUsers } from '../utils/userHelper';
 
 // GRID_TEMPLATE export removed as it's no longer used
 
-const MainTable = ({ boardId, searchQuery, filters, groupBy }) => {
+const MainTable = ({ boardId, searchQuery, filters, groupBy, completedFilter = '7days' }) => {
   const { tasks, tasksHasMore, users, projects, labels, loading } = useDataState();
   const { user: currentUser } = useAuth();
 
@@ -128,8 +129,42 @@ const MainTable = ({ boardId, searchQuery, filters, groupBy }) => {
       }
     }
 
+    // New: Completed Task Date Filter
+    // Filter out old completed tasks based on selection
+    if (completedFilter !== 'all') {
+        filtered = filtered.filter(t => {
+            if (t.status !== 'done') return true; // Keep active tasks
+
+            const completedDate = t.completedAt || t.updatedAt;
+            // If no date, treat as old/unknown -> Hide in restricted views? 
+            // Better UX: Show if "all", hide if strict timeframe. 
+            // Decision: If it has no date, it's likely very old or legacy. Hide in strict views.
+            if (!completedDate) return false; 
+
+            const now = new Date();
+            let thresholdDate;
+
+            switch (completedFilter) {
+                case '7days': thresholdDate = subDays(now, 7); break;
+                case '1month': thresholdDate = subMonths(now, 1); break;
+                case '3months': thresholdDate = subMonths(now, 3); break;
+                default: return true;
+            }
+
+            return isAfter(parseISO(completedDate), thresholdDate);
+        });
+    }
+
+    // Sort: Oldest first (New tasks at bottom)
+    // First try SortOrder (if supported), then CreatedAt, then ID
+    filtered.sort((a, b) => {
+        // Strict Sort: ID based (Oldest first)
+        // User requested stability: ID is immutable, so this prevents jumping rows even if timestamps update.
+        return a.id - b.id;
+    });
+
     return filtered;
-  }, [tasks, boardId, searchQuery, filters, projectUsers]);
+  }, [tasks, boardId, searchQuery, filters, projectUsers, completedFilter]);
 
   // Deep Link Support: Open task modal if 'task' param is present
   const deepLinkHandled = useRef(false);
@@ -184,6 +219,11 @@ const MainTable = ({ boardId, searchQuery, filters, groupBy }) => {
         if (!groups[key]) groups[key] = [];
         groups[key].push(task);
       }
+    });
+
+    // Explicitly sort each group by ID to guarantee stable order
+    Object.keys(groups).forEach(key => {
+        groups[key].sort((a, b) => a.id - b.id);
     });
 
     return groups;
@@ -507,6 +547,7 @@ const MainTable = ({ boardId, searchQuery, filters, groupBy }) => {
                         task={item.task}
                         index={item.index}
                         users={filteredUsers}
+                        allUsers={users} // Pass global users for correct resolution
                         boardId={boardId}
                         workspaceId={projects.find(p => p.id === Number(boardId))?.departmentId || null}
                         statuses={statuses}

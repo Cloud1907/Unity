@@ -41,8 +41,11 @@ const InlineLabelPicker = ({ taskId, currentLabels = [], projectId, onUpdate }) 
     ).filter(Boolean);
 
     // STALE UPDATE PROTECTION:
+    // While picker is open, NEVER overwrite local state from props
+    // When closed, only accept if no recent interaction (5s window)
+    if (isOpen) return;
     const now = Date.now();
-    if (!isOpen || (now - lastInteractionTime.current > 2000)) {
+    if (now - lastInteractionTime.current > 5000) {
       setLocalSelectedIds(propIds);
     }
   }, [currentLabels, isOpen]);
@@ -55,6 +58,22 @@ const InlineLabelPicker = ({ taskId, currentLabels = [], projectId, onUpdate }) 
   const buttonRef = useRef(null);
   const colorInputRef = useRef(null);
   const [position, setPosition] = useState({ top: 0, left: 0 });
+  
+  // --- DETAILS CACHE ---
+  // Stores details for labels encountered to prevent "..." flickers
+  const detailsCache = useRef(new Map());
+
+  // Populate cache from current labels and global labels
+  useEffect(() => {
+    (currentLabels || []).forEach(l => {
+        if (typeof l === 'object' && l !== null && l.id) {
+            detailsCache.current.set(Number(l.id), { name: l.name, color: l.color });
+        }
+    });
+    (labels || []).forEach(l => {
+        detailsCache.current.set(Number(l.id), { name: l.name, color: l.color });
+    });
+  }, [currentLabels, labels]);
 
   const toggleLabel = useCallback((labelId) => {
     lastInteractionTime.current = Date.now();
@@ -103,29 +122,40 @@ const InlineLabelPicker = ({ taskId, currentLabels = [], projectId, onUpdate }) 
   }, [labels, projectId, searchQuery]);
 
   useEffect(() => {
-    if (isOpen && buttonRef.current) {
-      const rect = buttonRef.current.getBoundingClientRect();
-      const viewportHeight = window.innerHeight;
-      const popoverWidth = 260;
-      const popoverHeight = 380;
+    const updatePosition = () => {
+      if (isOpen && buttonRef.current) {
+        const rect = buttonRef.current.getBoundingClientRect();
+        const viewportHeight = window.innerHeight;
+        const popoverHeight = 380;
 
-      let top = rect.bottom + 4;
-      let left = rect.left;
-      const spaceBelow = viewportHeight - rect.bottom;
-      const shouldOpenUp = spaceBelow < popoverHeight || rect.top > viewportHeight / 2;
+        let top = rect.bottom + 4;
+        let left = rect.left;
+        const spaceBelow = viewportHeight - rect.bottom;
+        const shouldOpenUp = spaceBelow < popoverHeight || rect.top > viewportHeight / 2;
 
-      let style = { left };
-      if (shouldOpenUp) {
-        style.bottom = viewportHeight - rect.top + 4;
-        style.top = null;
-        style.transformOrigin = 'bottom left';
-      } else {
-        style.top = top;
-        style.bottom = null;
-        style.transformOrigin = 'top left';
+        let style = { left };
+        if (shouldOpenUp) {
+          style.bottom = viewportHeight - rect.top + 4;
+          style.top = 'auto';
+          style.transformOrigin = 'bottom left';
+        } else {
+          style.top = top;
+          style.bottom = 'auto';
+          style.transformOrigin = 'top left';
+        }
+        setPosition(style);
       }
-      setPosition(style);
+    };
+
+    updatePosition();
+    if (isOpen) {
+        window.addEventListener('scroll', updatePosition, true);
+        window.addEventListener('resize', updatePosition);
     }
+    return () => {
+        window.removeEventListener('scroll', updatePosition, true);
+        window.removeEventListener('resize', updatePosition);
+    };
   }, [isOpen]);
 
   useEffect(() => {
@@ -162,11 +192,20 @@ const InlineLabelPicker = ({ taskId, currentLabels = [], projectId, onUpdate }) 
 
   const selectedLabels = useMemo(() => {
     return localSelectedIds.map(sid => {
-      const fromGlobal = labels.find(l => Number(l.id) === Number(sid));
+      const sidNum = Number(sid);
+      // 1. Check Global
+      const fromGlobal = labels.find(l => Number(l.id) === sidNum);
       if (fromGlobal) return fromGlobal;
-      const fromProp = currentLabels.find(l => typeof l === 'object' && l !== null && Number(l.id ?? l.labelId) === Number(sid));
+      
+      // 2. Check Local Details Cache (Persistent across renders)
+      const cached = detailsCache.current.get(sidNum);
+      if (cached) return { id: sidNum, ...cached };
+
+      // 3. Fallback to Prop check
+      const fromProp = currentLabels.find(l => typeof l === 'object' && l !== null && Number(l.id ?? l.labelId) === sidNum);
       if (fromProp) return fromProp;
-      return { id: sid, name: '...', color: '#cccccc' };
+
+      return { id: sidNum, name: '...', color: '#cccccc' };
     });
   }, [localSelectedIds, labels, currentLabels]);
 

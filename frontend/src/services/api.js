@@ -207,9 +207,9 @@ export const tasksAPI = {
   getAll: (params) => api.get('/tasks', { params }),
   getById: (id) => api.get(`/tasks/${id}`),
   create: (data) => api.post('/tasks', data),
-  update: (id, data) => api.patch(`/tasks/${id}`, data),
+  update: (id, data) => api.put(`/tasks/${id}`, data),
   delete: (id) => api.delete(`/tasks/${id}`),
-  updateStatus: (id, status) => api.put(`/tasks/${id}/status`, null, { params: { status } }),
+  updateStatus: (id, status) => api.put(`/tasks/${id}/status`, { status }),
   updateProgress: (id, progress) => api.put(`/tasks/${id}/progress`, null, { params: { progress } }),
   assign: (id, userId) => api.post(`/tasks/${id}/assign`, null, { params: { userId: userId } }),
 };

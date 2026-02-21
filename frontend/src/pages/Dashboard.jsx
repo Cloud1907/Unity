@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useEffect, useRef } from 'react';
+import React, { useMemo, useState, useEffect, useRef, useCallback } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useData } from '../contexts/DataContext';
 import { useAuth } from '../contexts/AuthContext';
@@ -188,26 +188,26 @@ const Dashboard = () => {
   }, [groupedData.length, filter]);
 
 
-  // Handlers
-  const handleFilterChange = (newFilter) => {
+  // Handlers (stabilized with useCallback)
+  const handleFilterChange = useCallback((newFilter) => {
     setFilter(newFilter);
     setSearchParams({ filter: newFilter });
-  };
+  }, [setSearchParams]);
 
-  const handleTaskClick = (task) => {
+  const handleTaskClick = useCallback((task) => {
     setSelectedTask(task);
     setIsModalOpen(true);
-  };
+  }, []);
 
-  const toggleWorkspace = (id) => {
+  const toggleWorkspace = useCallback((id) => {
     setExpandedWorkspaces(prev => ({ ...prev, [id]: !prev[id] }));
-  };
+  }, []);
 
-  const toggleProject = (id) => {
+  const toggleProject = useCallback((id) => {
     setExpandedProjects(prev => ({ ...prev, [id]: !prev[id] }));
-  };
+  }, []);
 
-  const getStatusBadge = (status) => {
+  const getStatusBadge = useCallback((status) => {
     switch (status) {
       case 'in_progress':
       case 'working': return <span className="text-amber-600 bg-amber-50 px-2 py-0.5 rounded text-[10px] font-bold">Devam Ediyor</span>;
@@ -219,7 +219,7 @@ const Dashboard = () => {
       case 'review': return <span className="text-blue-600 bg-blue-50 px-2 py-0.5 rounded text-[10px] font-bold">İncelemede</span>;
       default: return <span className="text-slate-500 bg-slate-50 px-2 py-0.5 rounded text-[10px] font-bold">{status}</span>;
     }
-  };
+  }, []);
 
 
   if (loadingStats) return <div className="p-8"><DashboardSkeleton /></div>;
@@ -243,156 +243,160 @@ const Dashboard = () => {
           </div>
         </div>
 
-        {/* Weekly Progress Bar - Compact */}
-        <div className="bg-white dark:bg-slate-800 rounded-xl p-5 border border-slate-100 dark:border-slate-700 shadow-sm">
-          <div className={`flex ${isMobile ? 'flex-col gap-4' : 'items-center justify-between'} mb-3`}>
-            <div>
-              <h2 className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 mb-1">Haftalık İlerleme</h2>
-              {/* Progress Bar Container */}
-              <div className={`flex items-center gap-3 ${isMobile ? 'w-full' : 'w-[300px] lg:w-[400px]'}`}>
-                <div className="flex-1 h-2 bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden">
+        {/* Weekly Progress Bar - Premium Glassmorphism */}
+        <div className="bg-white/70 dark:bg-slate-800/70 backdrop-blur-xl rounded-3xl p-6 border border-white/20 dark:border-slate-700/50 shadow-xl shadow-indigo-500/5">
+          <div className={`flex ${isMobile ? 'flex-col gap-6' : 'items-center justify-between'} mb-3`}>
+            <div className="flex-1">
+              <div className="flex items-center gap-2 mb-2">
+                <Target size={14} className="text-indigo-500" />
+                <h2 className="text-[11px] font-bold text-slate-500 dark:text-slate-400 tracking-wider">Haftalık İlerleme</h2>
+              </div>
+              <div className={`flex items-center gap-4 ${isMobile ? 'w-full' : 'w-[400px] lg:w-[500px]'}`}>
+                <div className="flex-1 h-3 bg-slate-100 dark:bg-slate-700/50 rounded-full overflow-hidden p-0.5">
                   <motion.div
                     initial={{ width: 0 }}
                     animate={{ width: startProgress ? `${stats.progressRate}%` : 0 }}
-                    transition={{ duration: 1.5, ease: "easeOut" }}
-                    className="h-full bg-indigo-500 rounded-full"
+                    transition={{ duration: 1.5, ease: [0.34, 1.56, 0.64, 1] }}
+                    className="h-full bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full shadow-lg shadow-indigo-500/30"
                   />
                 </div>
-                <CountUp 
-                  to={stats.progressRate} 
-                  prefix="%" 
-                  play={startProgress}
-                  className="text-indigo-600 dark:text-indigo-400 font-bold text-xs" 
-                />
+                <div className="flex items-center gap-1 min-w-[50px]">
+                  <CountUp 
+                    to={stats.progressRate} 
+                    prefix="%" 
+                    play={startProgress}
+                    className="text-indigo-600 dark:text-indigo-400 font-black text-lg" 
+                  />
+                </div>
               </div>
             </div>
 
-            {/* Stats Row */}
-            <div className={`flex ${isMobile ? 'justify-between' : 'gap-8'} text-center`}>
-              <div>
-                <div className="text-xl font-bold text-slate-900 dark:text-white">{stats.total}</div>
-                <div className="text-[10px] text-slate-500 font-medium mt-0.5">Toplam Görev</div>
+            {/* Stats Row - Premium Styling */}
+            <div className={`flex ${isMobile ? 'justify-around' : 'gap-12'} items-end text-center`}>
+              <div className="group transition-transform hover:scale-110">
+                <CountUp to={stats.total} className="text-3xl font-black text-slate-900 dark:text-white leading-none" />
+                <div className="text-[10px] text-slate-400 font-bold mt-1 tracking-tighter">Toplam</div>
               </div>
-              <div>
-                <div className="text-xl font-bold text-indigo-600 dark:text-indigo-400">{stats.continueCount}</div>
-                <div className="text-[10px] text-slate-500 font-medium mt-0.5">Devam Eden</div>
+              <div className="group transition-transform hover:scale-110">
+                <CountUp to={stats.continueCount} className="text-3xl font-black text-indigo-600 dark:text-indigo-400 leading-none" />
+                <div className="text-[10px] text-indigo-400/70 font-bold mt-1 tracking-tighter">Aktif</div>
               </div>
-              <div>
-                <div className="text-xl font-bold text-rose-500 dark:text-rose-400">{stats.overdue}</div>
-                <div className="text-[10px] text-slate-500 font-medium mt-0.5">Geciken</div>
+              <div className="group transition-transform hover:scale-110">
+                <CountUp to={stats.overdue} className="text-3xl font-black text-rose-500 dark:text-rose-400 leading-none" />
+                <div className="text-[10px] text-rose-400/70 font-bold mt-1 tracking-tighter">Geciken</div>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Stat Cards Grid - Compact */}
-        <div className={`grid ${isMobile ? 'grid-cols-2' : 'grid-cols-2 md:grid-cols-3 lg:grid-cols-6'} gap-3`}>
+        {/* Stat Cards Grid - Professional Glassmorphism */}
+        <div className={`grid ${isMobile ? 'grid-cols-2' : 'grid-cols-2 md:grid-cols-3 lg:grid-cols-6'} gap-4`}>
           {/* Total */}
           <div 
             onClick={() => handleFilterChange('all')}
-            className={`bg-white dark:bg-slate-800 p-3.5 rounded-xl shadow-sm cursor-pointer hover:shadow-md hover:scale-[1.02] transition-all ${
+            className={`group h-32 bg-white/70 dark:bg-slate-800/70 backdrop-blur-md p-4 rounded-2xl cursor-pointer transition-[transform,box-shadow] duration-200 ease-out flex flex-col justify-between border shadow-sm hover:shadow-lg hover:scale-[1.02] ${
               filter === 'all' 
-                ? 'border-2 border-indigo-500 ring-2 ring-indigo-100 dark:ring-indigo-900/50' 
-                : 'border border-indigo-100 dark:border-indigo-900/30 ring-1 ring-indigo-50 dark:ring-0'
+                ? 'border-indigo-500 ring-4 ring-indigo-500/10' 
+                : 'border-slate-200 dark:border-slate-700/50 hover:border-indigo-300'
             }`}
           >
-            <div className="flex items-center gap-3 mb-2">
-              <div className="p-1.5 bg-indigo-100 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 rounded-lg">
-                <Target size={16} />
+            <div className="flex items-center justify-between">
+              <div className="p-2 bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 rounded-xl group-hover:scale-110 transition-transform">
+                <Target size={18} />
               </div>
-              <span className="text-xl font-bold text-slate-900 dark:text-white">{stats.total}</span>
+              <span className="text-2xl font-black text-slate-900 dark:text-white leading-none">{stats.total}</span>
             </div>
-            <div className="text-[10px] text-slate-500 font-medium">Toplam Görev</div>
+            <div className="text-[10px] text-slate-500 font-bold tracking-wider">Toplam Görev</div>
           </div>
 
           {/* Not Started */}
           <div 
             onClick={() => handleFilterChange('todo')}
-            className={`bg-white dark:bg-slate-800 p-3.5 rounded-xl shadow-sm cursor-pointer hover:shadow-md hover:scale-[1.02] transition-all ${
+            className={`group h-32 bg-white/70 dark:bg-slate-800/70 backdrop-blur-md p-4 rounded-2xl cursor-pointer transition-all flex flex-col justify-between border shadow-sm hover:shadow-lg hover:scale-[1.02] ${
               filter === 'todo'
-                ? 'border-2 border-slate-500 ring-2 ring-slate-100 dark:ring-slate-700'
-                : 'border border-slate-100 dark:border-slate-700'
+                ? 'border-slate-500 ring-4 ring-slate-500/10'
+                : 'border-slate-200 dark:border-slate-700/50 hover:border-slate-400'
             }`}
           >
-            <div className="flex items-center gap-3 mb-2">
-              <div className="p-1.5 bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-400 rounded-lg">
-                <Calendar size={16} />
+            <div className="flex items-center justify-between">
+              <div className="p-2 bg-slate-500/10 text-slate-600 dark:text-slate-400 rounded-xl group-hover:scale-110 transition-transform">
+                <Calendar size={18} />
               </div>
-              <span className="text-xl font-bold text-slate-900 dark:text-white">{stats.todo}</span>
+              <CountUp to={stats.todo} className="text-2xl font-black text-slate-900 dark:text-white leading-none" />
             </div>
-            <div className="text-[10px] text-slate-500 font-medium">Başlanmadı</div>
+            <div className="text-[10px] text-slate-500 font-bold tracking-wider">Başlanmadı</div>
           </div>
 
           {/* In Progress */}
           <div 
             onClick={() => handleFilterChange('working')}
-            className={`bg-white dark:bg-slate-800 p-3.5 rounded-xl shadow-sm cursor-pointer hover:shadow-md hover:scale-[1.02] transition-all ${
+            className={`group h-32 bg-white/70 dark:bg-slate-800/70 backdrop-blur-md p-4 rounded-2xl cursor-pointer transition-all flex flex-col justify-between border shadow-sm hover:shadow-lg hover:scale-[1.02] ${
               filter === 'working'
-                ? 'border-2 border-amber-500 ring-2 ring-amber-100 dark:ring-amber-900/50'
-                : 'border border-slate-100 dark:border-slate-700'
+                ? 'border-amber-500 ring-4 ring-amber-500/10'
+                : 'border-slate-200 dark:border-slate-700/50 hover:border-amber-400'
             }`}
           >
-            <div className="flex items-center gap-3 mb-2">
-              <div className="p-1.5 bg-amber-100 dark:bg-amber-500/20 text-amber-600 dark:text-amber-400 rounded-lg">
-                <Zap size={16} />
+            <div className="flex items-center justify-between">
+              <div className="p-2 bg-amber-500/10 text-amber-600 dark:text-amber-400 rounded-xl group-hover:scale-110 transition-transform">
+                <Zap size={18} />
               </div>
-              <span className="text-xl font-bold text-slate-900 dark:text-white">{stats.inProgress}</span>
+              <CountUp to={stats.inProgress} className="text-2xl font-black text-slate-900 dark:text-white leading-none" />
             </div>
-            <div className="text-[10px] text-slate-500 font-medium">Devam Ediyor</div>
+            <div className="text-[10px] text-slate-500 font-bold tracking-wider">Devam Ediyor</div>
           </div>
 
           {/* Stuck */}
           <div 
             onClick={() => handleFilterChange('stuck')}
-            className={`bg-white dark:bg-slate-800 p-3.5 rounded-xl shadow-sm cursor-pointer hover:shadow-md hover:scale-[1.02] transition-all ${
+            className={`group h-32 bg-white/70 dark:bg-slate-800/70 backdrop-blur-md p-4 rounded-2xl cursor-pointer transition-all flex flex-col justify-between border shadow-sm hover:shadow-lg hover:scale-[1.02] ${
               filter === 'stuck'
-                ? 'border-2 border-rose-500 ring-2 ring-rose-100 dark:ring-rose-900/50'
-                : 'border border-slate-100 dark:border-slate-700'
+                ? 'border-rose-500 ring-4 ring-rose-500/10'
+                : 'border-slate-200 dark:border-slate-700/50 hover:border-rose-400'
             }`}
           >
-            <div className="flex items-center gap-3 mb-2">
-              <div className="p-1.5 bg-rose-100 dark:bg-rose-500/20 text-rose-600 dark:text-rose-400 rounded-lg">
-                <AlertCircle size={16} />
+            <div className="flex items-center justify-between">
+              <div className="p-2 bg-rose-500/10 text-rose-600 dark:text-rose-400 rounded-xl group-hover:scale-110 transition-transform">
+                <AlertCircle size={18} />
               </div>
-              <span className="text-xl font-bold text-slate-900 dark:text-white">{stats.stuck}</span>
+              <CountUp to={stats.stuck} className="text-2xl font-black text-slate-900 dark:text-white leading-none" />
             </div>
-            <div className="text-[10px] text-slate-500 font-medium">Takıldı</div>
+            <div className="text-[10px] text-slate-500 font-bold tracking-wider">Takıldı</div>
           </div>
 
           {/* Review */}
           <div 
             onClick={() => handleFilterChange('review')}
-            className={`bg-white dark:bg-slate-800 p-3.5 rounded-xl shadow-sm cursor-pointer hover:shadow-md hover:scale-[1.02] transition-all ${
+            className={`group h-32 bg-white/70 dark:bg-slate-800/70 backdrop-blur-md p-4 rounded-2xl cursor-pointer transition-all flex flex-col justify-between border shadow-sm hover:shadow-lg hover:scale-[1.02] ${
               filter === 'review'
-                ? 'border-2 border-blue-500 ring-2 ring-blue-100 dark:ring-blue-900/50'
-                : 'border border-slate-100 dark:border-slate-700'
+                ? 'border-blue-500 ring-4 ring-blue-500/10'
+                : 'border-slate-200 dark:border-slate-700/50 hover:border-blue-400'
             }`}
           >
-            <div className="flex items-center gap-3 mb-2">
-              <div className="p-1.5 bg-blue-100 dark:bg-blue-500/20 text-blue-600 dark:text-blue-400 rounded-lg">
-                <Search size={16} />
+            <div className="flex items-center justify-between">
+              <div className="p-2 bg-blue-500/10 text-blue-600 dark:text-blue-400 rounded-xl group-hover:scale-110 transition-transform">
+                <Search size={18} />
               </div>
-              <span className="text-xl font-bold text-slate-900 dark:text-white">{stats.review}</span>
+              <CountUp to={stats.review} className="text-2xl font-black text-slate-900 dark:text-white leading-none" />
             </div>
-            <div className="text-[10px] text-slate-500 font-medium">İncelemede</div>
+            <div className="text-[10px] text-slate-500 font-bold tracking-wider">İncelemede</div>
           </div>
 
           {/* Overdue */}
           <div 
             onClick={() => handleFilterChange('overdue')}
-            className={`bg-white dark:bg-slate-800 p-3.5 rounded-xl shadow-sm cursor-pointer hover:shadow-md hover:scale-[1.02] transition-all ${
+            className={`group h-32 bg-white/70 dark:bg-slate-800/70 backdrop-blur-md p-4 rounded-2xl cursor-pointer transition-all flex flex-col justify-between border shadow-sm hover:shadow-lg hover:scale-[1.02] ${
               filter === 'overdue'
-                ? 'border-2 border-rose-500 ring-2 ring-rose-100 dark:ring-rose-900/50'
-                : 'border border-slate-100 dark:border-slate-700'
+                ? 'border-rose-500 ring-4 ring-rose-500/10 shadow-lg shadow-rose-500/10'
+                : 'border-slate-200 dark:border-slate-700/50 hover:border-rose-400'
             }`}
           >
-            <div className="flex items-center gap-3 mb-2">
-              <div className="p-1.5 bg-rose-50 dark:bg-rose-900/20 text-rose-500 dark:text-rose-400 rounded-lg">
-                <Clock size={16} />
+            <div className="flex items-center justify-between">
+              <div className="p-2 bg-rose-50 dark:bg-rose-900/20 text-rose-500 dark:text-rose-400 rounded-xl group-hover:scale-110 transition-transform">
+                <Clock size={18} />
               </div>
-              <span className="text-xl font-bold text-slate-900 dark:text-white">{stats.overdue}</span>
+              <span className="text-2xl font-black text-slate-900 dark:text-white leading-none">{stats.overdue}</span>
             </div>
-            <div className="text-[10px] text-slate-500 font-medium">Gecikti</div>
+            <div className="text-[10px] text-slate-500 font-bold tracking-wider">Gecikti</div>
           </div>
         </div>
 
@@ -484,6 +488,8 @@ const Dashboard = () => {
                       initial={{ height: 0, opacity: 0 }}
                       animate={{ height: "auto", opacity: 1 }}
                       exit={{ height: 0, opacity: 0 }}
+                      transition={{ duration: 0.25, ease: [0.4, 0, 0.2, 1] }}
+                      style={{ overflow: 'hidden' }}
                       className="border-t border-indigo-100/50 dark:border-slate-700/50"
                     >
                       {workspace.projects.map(project => (
@@ -507,6 +513,8 @@ const Dashboard = () => {
                                 initial={{ height: 0 }}
                                 animate={{ height: "auto" }}
                                 exit={{ height: 0 }}
+                                transition={{ duration: 0.2, ease: [0.4, 0, 0.2, 1] }}
+                                style={{ overflow: 'hidden' }}
                               >
                                 {project.tasks.length === 0 ? (
                                   <div className="px-10 py-2 text-[10px] text-slate-400 italic">Bu projede görev yok.</div>
@@ -551,18 +559,24 @@ const Dashboard = () => {
                                                 </div>
                                               </div>
 
-                                              {task.assignees && task.assignees.length > 0 && (
+                                              {(task.assigneeIds && task.assigneeIds.length > 0) || (task.assignees && task.assignees.length > 0) ? (
                                                 <div className="flex -space-x-1.5">
-                                                  {task.assignees.slice(0, 3).map((assignee, idx) => (
-                                                    <UserAvatar
-                                                      key={idx}
-                                                      user={assignee}
-                                                      size="xs"
-                                                      className="w-5 h-5 border border-white dark:border-slate-800 shadow-sm"
-                                                    />
-                                                  ))}
+                                                  {(() => {
+                                                    // Resolve Users
+                                                    const rawIds = task.assigneeIds || task.assignees?.map(a => a.id || a.userId) || [];
+                                                    const resolved = rawIds.map(id => users.find(u => Number(u.id) === Number(id)) || { id, fullName: 'Bilinmeyen' });
+                                                    
+                                                    return resolved.slice(0, 3).map((assignee, idx) => (
+                                                      <UserAvatar
+                                                        key={idx}
+                                                        user={assignee}
+                                                        size="xs"
+                                                        className="w-5 h-5 border border-white dark:border-slate-800 shadow-sm"
+                                                      />
+                                                    ));
+                                                  })()}
                                                 </div>
-                                              )}
+                                              ) : null}
                                             </div>
                                           </div>
                                         ))}
@@ -601,16 +615,22 @@ const Dashboard = () => {
                                               {getStatusBadge(task.status)}
                                             </div>
                                             <div className="col-span-1 flex justify-center">
-                                              {task.assignees && task.assignees.length > 0 ? (
+                                              {(task.assigneeIds && task.assigneeIds.length > 0) || (task.assignees && task.assignees.length > 0) ? (
                                                 <div className="flex -space-x-1.5">
-                                                  {task.assignees.slice(0, 3).map((assignee, idx) => (
-                                                    <UserAvatar
-                                                      key={idx}
-                                                      user={assignee}
-                                                      size="xs"
-                                                      className="w-6 h-6 border-2 border-white dark:border-slate-800 shadow-sm"
-                                                    />
-                                                  ))}
+                                                  {(() => {
+                                                     // Resolve Users
+                                                     const rawIds = task.assigneeIds || task.assignees?.map(a => a.id || a.userId) || [];
+                                                     const resolved = rawIds.map(id => users.find(u => Number(u.id) === Number(id)) || { id, fullName: 'Bilinmeyen' });
+                                                     
+                                                     return resolved.slice(0, 3).map((assignee, idx) => (
+                                                      <UserAvatar
+                                                        key={idx}
+                                                        user={assignee}
+                                                        size="xs"
+                                                        className="w-6 h-6 border-2 border-white dark:border-slate-800 shadow-sm"
+                                                      />
+                                                    ));
+                                                  })()}
                                                 </div>
                                               ) : (
                                                 <span className="text-slate-300">-</span>

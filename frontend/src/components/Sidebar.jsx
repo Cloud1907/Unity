@@ -1,8 +1,9 @@
 import React, { useState, useRef } from 'react';
-import { Home, Settings, Plus, ChevronDown, ChevronRight, LogOut, Menu, X, Lock, Users, Hexagon, TrendingUp, FolderPlus, CheckSquare } from 'lucide-react';
+import { Home, Settings, Plus, ChevronDown, ChevronRight, LogOut, Menu, X, Lock, Users, TrendingUp, FolderPlus, CheckSquare } from 'lucide-react';
 import { Link, useParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useDataState } from '../contexts/DataContext';
+import { useTheme } from 'next-themes';
 import UserAvatar from './ui/shared/UserAvatar';
 import { getAvatarUrl, getInitials, getUserColor } from '../utils/avatarHelper';
 import NewProjectModal from './NewProjectModal';
@@ -12,6 +13,7 @@ import NewWorkspaceModal from './NewWorkspaceModal';
 import { DynamicIcon } from './IconPicker';
 import pkg from '../../package.json';
 import { toast } from 'sonner';
+import UniTaskLogo from './ui/UniTaskLogo';
 
 // User Profile Component
 const UserProfile = () => {
@@ -97,6 +99,7 @@ const Sidebar = ({ currentBoard, onBoardChange, onNewBoard }) => {
   const [showSidebarSettings, setShowSidebarSettings] = useState(false);
   const [selectedWorkspace, setSelectedWorkspace] = useState(null);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
+  const { resolvedTheme } = useTheme(); // Get current theme
 
   // PERFORMANCE FIX: Removed local state overrides and debounce refs
   // const [localCollapsedOverrides, setLocalCollapsedOverrides] = useState({});
@@ -196,13 +199,16 @@ const Sidebar = ({ currentBoard, onBoardChange, onNewBoard }) => {
       `}>
 
         {/* App Logo/Header */}
-        <div className="h-16 flex items-center px-6 border-b border-slate-100 dark:border-slate-900">
-          <div className="flex items-center gap-3">
-            <div className="bg-indigo-600 p-1.5 rounded-lg shadow-sm shadow-indigo-200 dark:shadow-none">
-              <Hexagon className="w-6 h-6 text-white fill-indigo-600" strokeWidth={1.5} />
-            </div>
-            <span className="font-bold text-xl text-slate-900 dark:text-white tracking-tight">Unity</span>
+        <div className="flex flex-col px-8 pt-8 pb-4">
+          <div className="flex items-center mb-4">
+             <UniTaskLogo 
+               size="sm" 
+               variant={resolvedTheme === 'dark' ? 'full-dark' : 'full'} 
+               hideTagline={true} 
+               withAnimation={true}
+             />
           </div>
+          <div className="h-px w-full bg-gradient-to-r from-transparent via-slate-200 to-transparent dark:via-slate-800" />
         </div>
 
         {/* Mobile Close Button */}
@@ -489,14 +495,6 @@ const Sidebar = ({ currentBoard, onBoardChange, onNewBoard }) => {
         <div className="p-4 border-t border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50">
           <UserProfile />
 
-          <div className="mt-2 flex flex-col items-center gap-1">
-            <div className="flex items-center justify-center gap-2 text-[10px] text-slate-400 font-medium">
-              <Link to="/settings" className="hover:text-indigo-500 transition-colors">Ayarlar</Link>
-            </div>
-            <div className="text-[9px] text-slate-300 dark:text-slate-600 font-medium tracking-wide">
-              Univera Task Management
-            </div>
-          </div>
         </div>
       </div>
 

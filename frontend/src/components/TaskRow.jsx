@@ -16,6 +16,7 @@ function TaskRow({
     task,
     index,
     users,
+    allUsers, // Global users list, passed from parent
     boardId,
     workspaceId,
     statuses,
@@ -58,20 +59,22 @@ function TaskRow({
     const handleAssigneeChange = useCallback((newIds) => {
         // Optimistic Data: Construct full objects for avatars to prevent "..."
         const optimisticAssignees = newIds.map(id => {
-            const user = users.find(u => Number(u.id) === Number(id));
+            // Use allUsers for lookup to support cross-project/historical assignees
+            const lookupList = allUsers || users || [];
+            const user = lookupList.find(u => Number(u.id) === Number(id));
             if (user) return user;
             return { id, userId: id, fullName: '...', avatar: null }; // Fallback
         });
 
         if (depth > 0) {
-            updateSubtask(task.id, { assignees: newIds }, { assignees: optimisticAssignees });
+            updateSubtask(task.id, { assigneeIds: newIds }, { assignees: optimisticAssignees });
         } else {
-            handleUpdateTask(task.id, { assignees: newIds }, { assignees: optimisticAssignees });
+            handleUpdateTask(task.id, { assigneeIds: newIds }, { assignees: optimisticAssignees });
         }
     }, [depth, task.id, handleUpdateTask, updateSubtask, users]);
 
     const handleLabelUpdate = useCallback((tid, newLabels) => {
-        handleUpdateTask(tid, { labels: newLabels });
+        handleUpdateTask(tid, { labelIds: newLabels });
     }, [handleUpdateTask]);
 
     const getStatusColor = useCallback((statusId) =>
@@ -241,7 +244,8 @@ function TaskRow({
                         <InlineAssigneePicker
                             assigneeIds={extractIds(task.assignees, 'userId')}
                             assignees={task.assignees}
-                            allUsers={users}
+                            allUsers={allUsers || users} // Use global list for resolution
+                            projectUsers={users} // Use filtered list for selection dropdown
                             workspaceId={workspaceId}
                             onChange={handleAssigneeChange}
                         />
@@ -282,20 +286,6 @@ function TaskRow({
                     </div>
                 )}
 
-                {/* 7. Labels */}
-                {visibleColumns.labels && (
-                    <div className="h-full flex items-center px-3 border-r border-slate-200 dark:border-slate-700" style={{ boxSizing: 'border-box' }}>
-                        {depth === 0 && (
-                            <InlineLabelPicker
-                                taskId={task.id}
-                                currentLabels={task.labels}
-                                projectId={boardId}
-                                onUpdate={handleLabelUpdate}
-                            />
-                        )}
-                    </div>
-                )}
-
                 {/* 8. T-Shirt Size */}
                 {visibleColumns.tShirtSize && (
                     <div className="h-full flex items-center px-3 border-r border-slate-200 dark:border-slate-700" style={{ boxSizing: 'border-box' }}>
@@ -317,6 +307,20 @@ function TaskRow({
                             <InlineProgressBar
                                 progress={task.progress}
                                 onUpdate={(val) => updateTask(task.id, { progress: val })}
+                            />
+                        )}
+                    </div>
+                )}
+
+                {/* 7. Labels - Moved */}
+                {visibleColumns.labels && (
+                    <div className="h-full flex items-center px-3 border-r border-slate-200 dark:border-slate-700" style={{ boxSizing: 'border-box' }}>
+                        {depth === 0 && (
+                            <InlineLabelPicker
+                                taskId={task.id}
+                                currentLabels={task.labels}
+                                projectId={boardId}
+                                onUpdate={handleLabelUpdate}
                             />
                         )}
                     </div>
@@ -348,19 +352,6 @@ function TaskRow({
                     )
                 }
 
-                {/* 10.5. Completed At */}
-                {
-                    visibleColumns.completedAt && (
-                        <div className="h-full flex items-center px-3 border-r border-slate-200 dark:border-slate-700" style={{ boxSizing: 'border-box' }}>
-                            {depth === 0 && (
-                                <span className="text-xs text-gray-500 dark:text-gray-400">
-                                    {(task.status === 'done' || task.isCompleted) && task.completedAt ? new Date(task.completedAt).toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' }) : '-'}
-                                </span>
-                            )}
-                        </div>
-                    )
-                }
-
                 {/* 11. Created By */}
                 {
                     visibleColumns.createdBy && (
@@ -375,6 +366,21 @@ function TaskRow({
                                 ) : (
                                     <span className="text-xs text-gray-400">-</span>
                                 )
+                            )}
+                        </div>
+                    )
+                }
+
+                {/* 12. Completed At (Moved) */}
+                {
+                    visibleColumns.completedAt && (
+                        <div className="h-full flex items-center px-3 border-r border-slate-200 dark:border-slate-700" style={{ boxSizing: 'border-box' }}>
+                            {depth === 0 && (
+                                <span className="text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap">
+                                    {(task.status === 'done' || task.isCompleted) && task.completedAt 
+                                        ? new Date(task.completedAt).toLocaleString('tr-TR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) 
+                                        : '-'}
+                                </span>
                             )}
                         </div>
                     )

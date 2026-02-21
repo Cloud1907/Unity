@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using System.Linq;
 using System.Collections.Generic;
 using System;
+using Unity.Infrastructure.Services;
 
 namespace Unity.API.Controllers
 {
@@ -13,10 +14,12 @@ namespace Unity.API.Controllers
     public class DebugController : ControllerBase
     {
         private readonly AppDbContext _context;
+        private readonly IEmailService _emailService;
 
-        public DebugController(AppDbContext context)
+        public DebugController(AppDbContext context, IEmailService emailService)
         {
             _context = context;
+            _emailService = emailService;
         }
 
         [HttpGet("check-legacy-data")]
@@ -107,6 +110,56 @@ namespace Unity.API.Controllers
             finally
             {
                 await connection.CloseAsync();
+            }
+        }
+
+        [HttpGet("send-test-email")]
+        public async Task<IActionResult> SendTestEmail(string to)
+        {
+            try 
+            {
+                await _emailService.SendEmailAsync(to, "UniTask Sistem Testi", "<h1>UniTask Sistem Testi</h1><p>Bu email, sistemdeki son değişiklikleri doğrulamak amacıyla gönderilmiştir.</p><p>Zaman: " + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss") + "</p>");
+                return Ok(new { Message = $"Email successfully sent to {to}", Time = DateTime.Now });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { Error = ex.Message, Type = ex.GetType().Name });
+            }
+        }
+
+        [HttpGet("trigger-assignment-email")]
+        public async Task<IActionResult> TriggerAssignmentEmail(string to)
+        {
+            try 
+            {
+                var subtasks = new List<Unity.Core.DTOs.EmailSubtaskDto>
+                {
+                    new Unity.Core.DTOs.EmailSubtaskDto { Title = "E-posta şablonu oluşturma", IsCompleted = true },
+                    new Unity.Core.DTOs.EmailSubtaskDto { Title = "SMTP entegrasyonu", IsCompleted = true },
+                    new Unity.Core.DTOs.EmailSubtaskDto { Title = "Canlı testlerin tamamlanması", IsCompleted = false }
+                };
+
+                await _emailService.SendTaskAssignmentEmailAsync(
+                    to,
+                    "Melih Bulut",
+                    "Bu e-posta, UniTask bildirim sisteminin tasarımını ve içeriğini doğrulamak amacıyla otomatik olarak oluşturulmuştur. Yeni eklenen premium tasarım öğelerini ve mobil uyumlu yapıyı kontrol edebilirsiniz.",
+                    "Antigravity AI",
+                    "Yazılım Geliştirme",
+                    "UniTask Otomasyon",
+                    "E-posta Bildirim Sistemi Testi",
+                    null,
+                    "High",
+                    DateTime.Now.AddDays(5),
+                    25, // Dummy ProjectId
+                    2723, // Dummy TaskId
+                    subtasks
+                );
+
+                return Ok(new { Message = $"Rich assignment email triggered for {to}" });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { Error = ex.Message, Stack = ex.StackTrace });
             }
         }
     }

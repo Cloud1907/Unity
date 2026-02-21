@@ -1,12 +1,12 @@
-# 🌌 Unity - Workforce Management System
+# 🌌 UniTask - Workforce Management System
 
-Welcome to the official documentation for **Unity**, a premium, high-performance project and workforce management application designed for modern teams. This document provides a comprehensive overview of the application's features, technical architecture, and design philosophy.
+Welcome to the official documentation for **UniTask**, a premium, high-performance project and workforce management application designed for modern teams. This document provides a comprehensive overview of the application's features, technical architecture, and design philosophy.
 
 ---
 
 ## 🚀 Overview
 
-Unity is built to streamline collaboration, task management, and productivity monitoring. It combines a sophisticated **React** frontend with a robust **.NET 8** backend to deliver a seamless, real-time user experience.
+UniTask is built to streamline collaboration, task management, and productivity monitoring. It combines a sophisticated **React** frontend with a robust **.NET 8** backend to deliver a seamless, real-time user experience.
 
 ### Key Value Propositions:
 - **Rich Aesthetics:** Glassmorphism, smooth transitions, and a curated color palette.
@@ -18,7 +18,7 @@ Unity is built to streamline collaboration, task management, and productivity mo
 
 ## 🎨 Design & User Experience
 
-Unity follows a **"Modern Premium"** design language.
+UniTask follows a **"Modern Premium"** design language.
 - **Typography:** Using high-quality sans-serif fonts for readability (Inter/Outfit).
 - **Motion:** Powered by `framer-motion` for fluid page transitions and interactive hover states.
 - **Components:** Built on top of **Radix UI** primitives for accessibility and reliability.
@@ -40,7 +40,7 @@ Upon login, users encounter a high-level summary of their productivity, includin
 ![Dashboard View](/Users/cloudsmac/.gemini/antigravity/brain/2972a433-3533-49cb-b7b6-8e2fbed6fa5e/dashboard_view_1770038233339.png)
 
 ### 3. Project & Task Management
-The heart of Unity is its versatile project views.
+The heart of UniTask is its versatile project views.
 - **Kanban Board:** Drag-and-drop workflow management.
 - **List View:** Detailed grid with inline editing capabilities.
 - **Progress Tracking:** Individual task progress bars and status indicators.

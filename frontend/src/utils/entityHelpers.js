@@ -14,13 +14,14 @@ export const normalizeEntity = (entity) => {
     if (!entity) return null;
 
     // Extract ID - STRICT MODE: Only accept 'id' or 'Id'
-    // Zero tolerance for '_id'
-    const rawId = entity.id || entity.Id || entity.projectId || entity.ProjectId;
+    // Do NOT fall back to projectId as that causes logical collisions
+    const rawId = entity.id || entity.Id;
 
     // STRICT VALIDATION: If no valid ID is found, we log CRITICAL error but return null to avoid crashing the entire app
     if (rawId === undefined || rawId === null) {
+        // If it's a new entity being normalized for optimistic update, it should have an id already assigned
         console.error("CRITICAL: Entity missing ID detected! Item skipped.", entity);
-        return null; // Return null effectively filtering this item out if the caller handles it
+        return null; 
     }
 
     // Convert to number
@@ -130,11 +131,13 @@ export const normalizeEntity = (entity) => {
         // Normalized Relations
         subtasks: subtasks,
         comments: entity.comments || entity.Comments || [], // Ensure comments are accessible
-        assigneeIds: assigneeIds.map(Number),
-        labelIds: labelIds.map(Number),
-        assignees: fullAssignees.length > 0 ? fullAssignees : assigneeIds.map(id => ({ id: Number(id) })),
-        labels: fullLabels.length > 0 ? fullLabels : labelIds.map(id => ({ id: Number(id) })),
-        tagIds: labelIds.map(Number), // Alias for label IDs
+        assigneeIds: assigneeIds.map(Number).sort((a, b) => a - b),
+        labelIds: labelIds.map(Number).sort((a, b) => a - b),
+        assignees: (fullAssignees.length > 0 ? fullAssignees : assigneeIds.map(id => ({ id: Number(id) })))
+            .sort((a, b) => Number(a.id) - Number(b.id)),
+        labels: (fullLabels.length > 0 ? fullLabels : labelIds.map(id => ({ id: Number(id) })))
+            .sort((a, b) => Number(a.id) - Number(b.id)),
+        tagIds: labelIds.map(Number).sort((a, b) => a - b), // Alias for label IDs
 
         // Fix common casing issues
         projectId: entity.projectId || entity.ProjectId ? Number(entity.projectId || entity.ProjectId) : null,

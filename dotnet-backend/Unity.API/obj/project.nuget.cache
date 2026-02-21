@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "dgSpecHash": "Mxo3V9jA8XI=",
+  "dgSpecHash": "64PWXId9HOk=",
   "success": true,
   "projectFilePath": "/Users/cloudsmac/Documents/AntiGravity/UnityApp/dotnet-backend/Unity.API/Unity.API.csproj",
   "expectedPackageFiles": [
@@ -66,7 +66,10 @@
     "/Users/cloudsmac/.nuget/packages/system.security.cryptography.protecteddata/6.0.0/system.security.cryptography.protecteddata.6.0.0.nupkg.sha512",
     "/Users/cloudsmac/.nuget/packages/system.security.permissions/6.0.0/system.security.permissions.6.0.0.nupkg.sha512",
     "/Users/cloudsmac/.nuget/packages/system.serviceprocess.servicecontroller/8.0.0/system.serviceprocess.servicecontroller.8.0.0.nupkg.sha512",
-    "/Users/cloudsmac/.nuget/packages/system.windows.extensions/6.0.0/system.windows.extensions.6.0.0.nupkg.sha512"
+    "/Users/cloudsmac/.nuget/packages/system.windows.extensions/6.0.0/system.windows.extensions.6.0.0.nupkg.sha512",
+    "/Users/cloudsmac/.nuget/packages/microsoft.netcore.app.runtime.win-x64/10.0.1/microsoft.netcore.app.runtime.win-x64.10.0.1.nupkg.sha512",
+    "/Users/cloudsmac/.nuget/packages/microsoft.aspnetcore.app.runtime.win-x64/10.0.1/microsoft.aspnetcore.app.runtime.win-x64.10.0.1.nupkg.sha512",
+    "/Users/cloudsmac/.nuget/packages/microsoft.netcore.app.host.win-x64/10.0.1/microsoft.netcore.app.host.win-x64.10.0.1.nupkg.sha512"
   ],
   "logs": [
     {
@@ -78,7 +81,8 @@
       "filePath": "/Users/cloudsmac/Documents/AntiGravity/UnityApp/dotnet-backend/Unity.API/Unity.API.csproj",
       "libraryId": "Azure.Identity",
       "targetGraphs": [
-        "net10.0"
+        "net10.0",
+        "net10.0/win-x64"
       ]
     },
     {
@@ -90,7 +94,8 @@
       "filePath": "/Users/cloudsmac/Documents/AntiGravity/UnityApp/dotnet-backend/Unity.API/Unity.API.csproj",
       "libraryId": "Azure.Identity",
       "targetGraphs": [
-        "net10.0"
+        "net10.0",
+        "net10.0/win-x64"
       ]
     },
     {
@@ -102,7 +107,8 @@
       "filePath": "/Users/cloudsmac/Documents/AntiGravity/UnityApp/dotnet-backend/Unity.API/Unity.API.csproj",
       "libraryId": "Azure.Identity",
       "targetGraphs": [
-        "net10.0"
+        "net10.0",
+        "net10.0/win-x64"
       ]
     },
     {
@@ -114,7 +120,8 @@
       "filePath": "/Users/cloudsmac/Documents/AntiGravity/UnityApp/dotnet-backend/Unity.API/Unity.API.csproj",
       "libraryId": "Microsoft.Data.SqlClient",
       "targetGraphs": [
-        "net10.0"
+        "net10.0",
+        "net10.0/win-x64"
       ]
     },
     {
@@ -126,7 +133,8 @@
       "filePath": "/Users/cloudsmac/Documents/AntiGravity/UnityApp/dotnet-backend/Unity.API/Unity.API.csproj",
       "libraryId": "Microsoft.IdentityModel.JsonWebTokens",
       "targetGraphs": [
-        "net10.0"
+        "net10.0",
+        "net10.0/win-x64"
       ]
     },
     {
@@ -138,7 +146,8 @@
       "filePath": "/Users/cloudsmac/Documents/AntiGravity/UnityApp/dotnet-backend/Unity.API/Unity.API.csproj",
       "libraryId": "System.IdentityModel.Tokens.Jwt",
       "targetGraphs": [
-        "net10.0"
+        "net10.0",
+        "net10.0/win-x64"
       ]
     }
   ]

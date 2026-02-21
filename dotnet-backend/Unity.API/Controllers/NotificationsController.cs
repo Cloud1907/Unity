@@ -2,33 +2,15 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Unity.Core.Models;
 using Unity.Infrastructure.Data;
-using System.Security.Claims;
+using Microsoft.AspNetCore.Authorization;
 
 namespace Unity.API.Controllers
 {
-    [Route("api/[controller]")]
-    [ApiController]
-    [Microsoft.AspNetCore.Authorization.Authorize]
-    public class NotificationsController : ControllerBase
+    [Authorize]
+    public class NotificationsController : BaseController
     {
-        private readonly AppDbContext _context;
-
-        public NotificationsController(AppDbContext context)
+        public NotificationsController(AppDbContext context) : base(context)
         {
-            _context = context;
-        }
-
-        // Helper: Get Current User ID
-        private int GetCurrentUserId()
-        {
-
-
-            var claimId = User.FindFirst("id")?.Value 
-                          ?? User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            
-            if (int.TryParse(claimId, out int uid)) return uid;
-            
-            return 0;
         }
 
         [HttpGet]

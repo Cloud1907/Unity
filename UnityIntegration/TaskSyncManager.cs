@@ -19,7 +19,7 @@ public class TaskSyncManager : MonoBehaviour
 
     // Events
     public event Action<TaskItem> OnTaskUpdated;
-    public event Action<string> OnTaskCreated; // Example payload
+    public event Action<TaskItem> OnTaskCreated;
     public event Action<int> OnTaskDeleted;
 
     // SignalR Connection
@@ -100,7 +100,7 @@ public class TaskSyncManager : MonoBehaviour
             Enqueue(() => 
             {
                 Debug.Log($"[SignalR] Task Created: {task.Title}");
-                // OnTaskCreated?.Invoke(task.Title);
+                OnTaskCreated?.Invoke(task);
             });
         });
 
@@ -187,4 +187,5 @@ public class TaskItem
     public int Progress;
     public int ProjectId;
     public string UpdatedAt;
+    public string TaskUrl;
 }

@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { authAPI } from '../services/api';
 import { useNavigate } from 'react-router-dom';
+import { normalizeUser } from '../utils/userHelper';
 
 const AuthContext = createContext();
 
@@ -43,15 +44,7 @@ export const AuthProvider = ({ children }) => {
     if (token) {
       try {
         const response = await authAPI.getMe();
-        const normalizedUser = {
-          ...response.data,
-          id: response.data.id || response.data.Id,
-          fullName: response.data.fullName || response.data.FullName,
-          email: response.data.email || response.data.Email,
-          avatar: response.data.avatar || response.data.Avatar,
-          color: response.data.color || response.data.Color,
-          role: response.data.role || response.data.Role
-        };
+        const normalizedUser = normalizeUser(response.data);
         setUser(normalizedUser);
         localStorage.setItem('user', JSON.stringify(normalizedUser));
       } catch (error) {
@@ -71,15 +64,7 @@ export const AuthProvider = ({ children }) => {
   const refreshUser = async () => {
     try {
       const response = await authAPI.getMe();
-      const normalizedUser = {
-        ...response.data,
-        id: response.data.id || response.data.Id,
-        fullName: response.data.fullName || response.data.FullName,
-        email: response.data.email || response.data.Email,
-        avatar: response.data.avatar || response.data.Avatar,
-        color: response.data.color || response.data.Color,
-        role: response.data.role || response.data.Role
-      };
+      const normalizedUser = normalizeUser(response.data);
       setUser(normalizedUser);
       localStorage.setItem('user', JSON.stringify(normalizedUser));
       return { success: true, data: normalizedUser };
@@ -102,18 +87,12 @@ export const AuthProvider = ({ children }) => {
         localStorage.setItem('refreshToken', refresh_token);
       }
 
-      const normalizedUser = {
-        ...userData,
-        id: userData.id || userData.Id,
-        fullName: userData.fullName || userData.FullName,
-        email: userData.email || userData.Email,
-        avatar: userData.avatar || userData.Avatar,
-        color: userData.color || userData.Color,
-        role: userData.role || userData.Role
-      };
+
+      const normalizedUser = normalizeUser(userData);
 
       localStorage.setItem('user', JSON.stringify(normalizedUser));
       setUser(normalizedUser);
+
 
       return { success: true };
     } catch (error) {
@@ -146,18 +125,11 @@ export const AuthProvider = ({ children }) => {
       if (refresh_token) {
         localStorage.setItem('refreshToken', refresh_token);
       }
-      const normalizedUser = {
-        ...userData,
-        id: userData.id || userData.Id,
-        fullName: userData.fullName || userData.FullName,
-        email: userData.email || userData.Email,
-        avatar: userData.avatar || userData.Avatar,
-        color: userData.color || userData.Color,
-        role: userData.role || userData.Role
-      };
+      const normalizedUser = normalizeUser(userData);
 
       localStorage.setItem('user', JSON.stringify(normalizedUser));
       setUser(normalizedUser);
+
 
       return { success: true };
     } catch (error) {

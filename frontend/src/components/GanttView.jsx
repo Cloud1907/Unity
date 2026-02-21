@@ -299,7 +299,7 @@ const GanttView = ({ boardId, filters, searchQuery, groupBy: headerGroupBy }) =>
           <p style="font-size: 14px; color: #64748b; margin: 5px 0 0;">Oluşturulma Tarihi: ${new Date().toLocaleDateString('tr-TR')} ${new Date().toLocaleTimeString('tr-TR')}</p>
         </div>
         <div style="text-align: right;">
-          <span style="font-size: 12px; color: #94a3b8; font-weight: 500;">UNITY PROJECT MANAGEMENT</span>
+          <span style="font-size: 12px; color: #94a3b8; font-weight: 500;">UNITASK PROJECT MANAGEMENT</span>
         </div>
       `;
       wrapper.appendChild(header);
@@ -560,7 +560,7 @@ const GanttView = ({ boardId, filters, searchQuery, groupBy: headerGroupBy }) =>
                               <InlineAssigneePicker
                                 assigneeIds={getIds(task.assignees, 'userId')}
                                 allUsers={projectUsers}
-                                onChange={(newAssignees) => updateTask(task.id, { assignees: newAssignees })}
+                                onChange={(newAssignees) => updateTask(task.id, { assigneeIds: newAssignees })}
                               />
                             </div>
                           </div>

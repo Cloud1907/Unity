@@ -94,7 +94,7 @@ const InlineTextEdit = ({ value, onSave, placeholder = 'Görev adı girin...', c
             title={value || placeholder} // Tooltip shows full text on hover
         >
             <span className={textClass}>
-                {value || <span className="text-gray-400 italic">{placeholder}</span>}
+                {text || <span className="text-gray-400 italic">{placeholder}</span>}
             </span>
         </div>
     );

@@ -1,10 +1,13 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
-import StarryBackground from '../components/ui/StarryBackground';
-import { Lock, Mail, ArrowRight, Loader2, Hexagon, Star, Zap, Shield, Heart, Users, TrendingUp, Eye, EyeOff, X } from 'lucide-react';
+import { Lock, Mail, ArrowRight, Loader2, CheckSquare, Users, BarChart2, Zap, Eye, EyeOff, X, Heart } from 'lucide-react';
+import UniTaskLogo, { GridMark } from '../components/ui/UniTaskLogo';
+import TrueFocus from '../components/react-bits/TrueFocus';
+import GradientText from '../components/react-bits/GradientText';
+import DotGrid from '../components/react-bits/DotGrid';
 
 const ForgotPasswordModal = ({ onClose, onSubmit }) => {
   const [email, setEmail] = useState('');
@@ -116,20 +119,12 @@ const Login = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
-  // Premium feature slides
-  const slides = [
-    { icon: <Users size={40} className="text-indigo-400" />, title: "Orchestrate Your Workforce", desc: "Align your team's potential with strategic goals using intelligent resource management." },
-    { icon: <TrendingUp size={40} className="text-emerald-400" />, title: "Data-Driven Insights", desc: "Transform raw activity into actionable intelligence to optimize operational efficiency." },
-    { icon: <Shield size={40} className="text-purple-400" />, title: "Enterprise-Grade Security", desc: "Your ecosystem is guarded with advanced protocols and compliance standards." }
+  const featureCards = [
+    { icon: <CheckSquare size={18} className="text-indigo-400" />, title: 'Task Tracking', desc: 'Real-time visibility on every task' },
+    { icon: <Users size={18} className="text-violet-400" />, title: 'Team Collaboration', desc: 'Work in sync across departments' },
+    { icon: <BarChart2 size={18} className="text-emerald-400" />, title: 'Analytics', desc: 'Actionable insights from your data' },
+    { icon: <Zap size={18} className="text-amber-400" />, title: 'Automation', desc: 'Eliminate repetitive manual work' },
   ];
-  const [currentSlide, setCurrentSlide] = useState(0);
-
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setCurrentSlide((prev) => (prev + 1) % slides.length);
-    }, 5000);
-    return () => clearInterval(timer);
-  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -140,7 +135,7 @@ const Login = () => {
     const result = await login(email, password);
 
     if (result.success) {
-      toast.success("Welcome back to Unity! 🚀");
+      toast.success("Welcome back to UniTask! 🚀");
       
       // Check for redirect destination (include query params)
       const from = location.state?.from ? 
@@ -156,80 +151,104 @@ const Login = () => {
   return (
     <div className="min-h-screen w-full flex overflow-hidden font-sans">
       {/* LEFT SIDE - BRANDING */}
-      <div className="hidden lg:flex w-1/2 relative bg-[#0B0F19] flex-col justify-center items-center text-center p-12 overflow-hidden">
-        <div className="absolute inset-0 z-0 opacity-60">
-          <StarryBackground />
+      <div
+        className="hidden lg:flex w-1/2 relative flex-col justify-center items-center p-14 overflow-hidden"
+        style={{ background: '#080818' }}
+      >
+        {/* Radial gradient glows — corners only */}
+        <div style={{
+          position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 0,
+          background: [
+            'radial-gradient(ellipse 60% 50% at 0% 0%, rgba(99,60,230,0.15) 0%, transparent 70%)',
+            'radial-gradient(ellipse 50% 40% at 100% 100%, rgba(139,92,246,0.12) 0%, transparent 70%)',
+          ].join(', ')
+        }} />
+
+        {/* Dot Grid Background */}
+        <div style={{ width: '100%', height: '100%', position: 'absolute', inset: 0, zIndex: 1, pointerEvents: 'none' }}>
+           <DotGrid
+             dotSize={4}
+             gap={24}
+             baseColor="rgba(255,255,255,0.05)"
+             activeColor="#818cf8"
+             proximity={150}
+             shockRadius={200}
+             shockStrength={8}
+             className="opacity-60"
+           />
         </div>
 
-        {/* Decorative Gradients */}
-        <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-indigo-900/40 via-transparent to-purple-900/40 pointer-events-none" />
-        <motion.div
-          animate={{
-            scale: [1, 1.2, 1],
-            opacity: [0.3, 0.5, 0.3],
-          }}
-          transition={{ duration: 8, repeat: Infinity }}
-          className="absolute top-1/4 left-1/4 w-96 h-96 bg-indigo-600/20 rounded-full blur-[100px]"
-        />
-
-        {/* Main Brand Content */}
-        <div className="relative z-10 max-w-xl">
+        {/* MIDDLE: Full logo + headline + 2×2 grid */}
+        <div className="relative z-10 flex flex-col items-center justify-center text-center max-w-lg w-full max-h-screen overflow-y-auto scrollbar-hide py-8 px-4">
           <motion.div
-            initial={{ opacity: 0, y: -20 }}
+            initial={{ opacity: 0, y: 28 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8 }}
-            className="mb-12 flex justify-center"
+            transition={{ duration: 0.7, delay: 0.1 }}
+            className="flex flex-col items-center w-full my-auto"
           >
-            <div className="relative">
-              <motion.div
-                animate={{ rotate: 360 }}
-                transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
-                className="absolute inset-0 rounded-full border-2 border-dashed border-indigo-500/30"
-              />
-              <div className="w-32 h-32 bg-gradient-to-tr from-indigo-600 to-purple-600 rounded-3xl flex items-center justify-center shadow-2xl shadow-indigo-500/40 transform rotate-3 hover:rotate-6 transition-transform duration-500">
-                <Hexagon size={64} className="text-white fill-white/10" strokeWidth={1.5} />
-              </div>
+            {/* Logo */}
+            <div className="mb-6 xl:mb-10 scale-100 xl:scale-110 shrink-0">
+              <UniTaskLogo size="lg" variant="full-dark" />
+            </div>
+
+            {/* Headline with TrueFocus */}
+            <div className="mb-4 xl:mb-6 relative h-[120px] 2xl:h-[180px] w-full flex items-center justify-center shrink-0">
+               <TrueFocus 
+                 sentence="Manage|Progress|Together."
+                 separator="|"
+                 manualMode={false}
+                 blurAmount={6}
+                 borderColor="#818cf8"
+                 animationDuration={0.8}
+                 pauseBetweenAnimations={1.5}
+               />
+            </div>
+
+
+
+            {/* 2×2 Feature card grid */}
+            <div className="grid grid-cols-2 gap-3 xl:gap-4 w-full shrink-0">
+              {featureCards.map(card => (
+                <div
+                  key={card.title}
+                  className="group flex flex-col items-center text-center"
+                  style={{
+                    background: 'rgba(255,255,255,0.03)',
+                    border: '1px solid rgba(255,255,255,0.06)',
+                    borderRadius: '16px',
+                    padding: '20px 16px',
+                    transition: 'all 0.3s ease',
+                    backdropFilter: 'blur(4px)'
+                  }}
+                  onMouseEnter={e => {
+                    e.currentTarget.style.borderColor = 'rgba(139,92,246,0.4)';
+                    e.currentTarget.style.transform = 'translateY(-2px)';
+                    e.currentTarget.style.background = 'rgba(255,255,255,0.05)';
+                  }}
+                  onMouseLeave={e => {
+                    e.currentTarget.style.borderColor = 'rgba(255,255,255,0.06)';
+                    e.currentTarget.style.transform = 'translateY(0)';
+                    e.currentTarget.style.background = 'rgba(255,255,255,0.03)';
+                  }}
+                >
+                  <div className="mb-3 p-2 rounded-xl bg-white/5 group-hover:bg-white/10 transition-colors">
+                    {card.icon}
+                  </div>
+                  <div className="mb-1">
+                    <GradientText
+                      colors={['#A78BFA', '#818CF8', '#C4B5FD', '#A78BFA']}
+                      animationSpeed={6}
+                      showBorder={false}
+                      className="font-bold text-sm"
+                    >
+                      {card.title}
+                    </GradientText>
+                  </div>
+                  <div style={{ fontSize: '12px', color: 'rgba(199,193,255,0.5)', lineHeight: 1.4 }}>{card.desc}</div>
+                </div>
+              ))}
             </div>
           </motion.div>
-
-          <h1 className="text-5xl font-black text-white mb-6 tracking-tight leading-tight">
-            Manage the Future with <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-purple-400">Unity</span>.
-          </h1>
-
-          <div className="mb-8 text-2xl font-bold tracking-tight text-indigo-200/90">
-            Univera Task Management
-          </div>
-
-          {/* Carousel */}
-          <div className="h-32 relative">
-            <AnimatePresence mode="wait">
-              <motion.div
-                key={currentSlide}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -20 }}
-                transition={{ duration: 0.5 }}
-                className="absolute inset-0 flex flex-col items-center"
-              >
-                <div className="mb-2 p-2 bg-white/5 rounded-full backdrop-blur-sm border border-white/10">
-                  {slides[currentSlide].icon}
-                </div>
-                <h3 className="text-xl font-bold text-white mb-1">{slides[currentSlide].title}</h3>
-                <p className="text-indigo-200">{slides[currentSlide].desc}</p>
-              </motion.div>
-            </AnimatePresence>
-          </div>
-
-          {/* Indicators */}
-          <div className="flex gap-2 justify-center mt-8">
-            {slides.map((_, idx) => (
-              <button
-                key={idx}
-                onClick={() => setCurrentSlide(idx)}
-                className={`w-2 h-2 rounded-full transition-all duration-300 ${idx === currentSlide ? 'w-8 bg-indigo-500' : 'bg-white/20 hover:bg-white/40'}`}
-              />
-            ))}
-          </div>
         </div>
       </div>
 
@@ -238,9 +257,7 @@ const Login = () => {
         <div className="w-full max-w-sm space-y-8 relative z-10">
           <div className="text-center lg:text-left">
             <div className="lg:hidden flex justify-center mb-6">
-              <div className="w-16 h-16 bg-indigo-600 rounded-2xl flex items-center justify-center shadow-lg transform rotate-3">
-                <Hexagon className="text-white w-8 h-8 fill-white/20" strokeWidth={1.5} />
-              </div>
+              <GridMark size="lg" />
             </div>
             <h2 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-white">Hoş Geldiniz!</h2>
             <p className="mt-2 text-sm text-slate-500 dark:text-gray-400">
@@ -281,7 +298,7 @@ const Login = () => {
                     <button
                       type="button"
                       onClick={() => setShowForgotModal(true)}
-                      className="font-medium text-indigo-600 hover:text-indigo-500 transition-colors"
+                      className="font-medium text-transparent bg-clip-text bg-gradient-to-r from-indigo-500 to-violet-500 hover:from-indigo-600 hover:to-violet-600 transition-all"
                     >
                       Şifremi unuttum?
                     </button>
@@ -317,7 +334,7 @@ const Login = () => {
               <button
                 type="submit"
                 disabled={loading}
-                className="group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-bold rounded-xl text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all duration-200 disabled:opacity-70 disabled:cursor-not-allowed shadow-lg shadow-indigo-500/30 hover:shadow-indigo-500/50 hover:-translate-y-0.5"
+                className="group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-bold rounded-xl text-white bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all duration-200 disabled:opacity-70 disabled:cursor-not-allowed shadow-lg shadow-indigo-500/30 hover:shadow-indigo-500/50 hover:-translate-y-0.5"
               >
                 {loading ? (
                   <Loader2 className="animate-spin h-5 w-5" />

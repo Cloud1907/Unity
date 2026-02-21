@@ -54,11 +54,11 @@ export const useSignalR = (isAuthenticated, setTasks, setProjects, setDepartment
             // DEBUG: Log timing
             // console.log(`[SignalR] Time check - Local: ${lastLocal}, Incoming: ${incomingTime}, Diff: ${incomingTime - lastLocal}`);
 
-            // STALE CHECK DISABLED FOR DEBUGGING
-            // if (lastLocal && incomingTime < lastLocal) {
-            //    console.warn('[SignalR] Ignoring stale update');
-            //    return; 
-            // }
+            // Restore stale check to prevent "shake" / flicker on optimistic updates
+            if (lastLocal && incomingTime < lastLocal) {
+               console.warn('[SignalR] Ignoring stale update');
+               return; 
+            }
 
             setTasks(prev => {
                 const updated = updateTaskInTree(prev, taskId, normalized);

@@ -7,8 +7,8 @@ namespace Unity.Core.DTOs
 {
     public class TaskUpdateDto
     {
-        [Required]
-        public string Title { get; set; }
+        public string? Title { get; set; }
+        public int? ProjectId { get; set; }
         
         public string? Description { get; set; }
         public string? TaskUrl { get; set; }
@@ -23,5 +23,10 @@ namespace Unity.Core.DTOs
         // Optional: Replace collections
         public List<int>? AssigneeIds { get; set; }
         public List<int>? LabelIds { get; set; }
+    }
+
+    public class TaskStatusUpdateRequest
+    {
+        public string Status { get; set; }
     }
 }

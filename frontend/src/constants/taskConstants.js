@@ -45,12 +45,12 @@ export const COLUMNS = [
     { id: 'assignee', label: 'Atanan', width: '110px', defaultVisible: true },
     { id: 'startDate', label: 'Başlangıç', width: '110px', defaultVisible: false },
     { id: 'dueDate', label: 'Bitiş Tarihi', width: '110px', defaultVisible: true },
-    { id: 'labels', label: 'Etiketler', width: '220px', defaultVisible: true },
     { id: 'tShirtSize', label: 'T-Shirt', width: '120px', defaultVisible: false },
     { id: 'progress', label: 'İlerleme', width: '160px', defaultVisible: true },
+    { id: 'labels', label: 'Etiketler', width: '220px', defaultVisible: true },
     { id: 'files', label: 'Dosyalar', width: '110px', defaultVisible: true },
-    { id: 'completedAt', label: 'Tamamlandı', width: '140px', defaultVisible: true },
-    { id: 'createdBy', label: 'Oluşturan', width: '180px', defaultVisible: true }
+    { id: 'createdBy', label: 'Oluşturan', width: '180px', defaultVisible: true },
+    { id: 'completedAt', label: 'Tamamlama Tarihi', width: '140px', defaultVisible: true }
 ];
 
 // Get default column visibility state

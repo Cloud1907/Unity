@@ -1,6 +1,6 @@
 import { notificationsAPI } from '../services/api';
 import React, { useState, useEffect } from 'react';
-import { Star, MoreHorizontal, Filter, Search, Users as UsersIcon, Tag, Table, LayoutGrid, Calendar, BarChart3, Users, Trash2, MoreVertical, Settings, Layers, Plus, Zap } from 'lucide-react';
+import { Star, MoreHorizontal, Filter, Search, Users as UsersIcon, Tag, Table, LayoutGrid, Calendar, BarChart3, Users, Trash2, MoreVertical, Settings, Layers, Plus, Zap, CheckCircle2 } from 'lucide-react';
 import { useData } from '../contexts/DataContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
@@ -26,7 +26,9 @@ const BoardHeader = ({
   filters = { status: [], priority: [], assignee: [], labels: [] },
   onFilterChange,
   groupBy,
-  onGroupByChange
+  onGroupByChange,
+  completedFilter,
+  onCompletedFilterChange
 }) => {
   const { projects, users, toggleFavorite, labels, deleteProject, departments } = useData();
   const { user: currentUser } = useAuth();
@@ -321,6 +323,7 @@ const BoardHeader = ({
         </div>
 
         <div className="flex items-center gap-1.5">
+
           <div className="relative">
             <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 text-gray-400" size={13} />
             <input
@@ -331,6 +334,29 @@ const BoardHeader = ({
               className="pl-7 pr-2 py-1 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded text-xs focus:outline-none focus:border-[#6366f1] transition-colors w-48 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500"
             />
           </div>
+
+          {/* New: Completed Tasks Filter Dropdown */}
+          {onCompletedFilterChange && (
+            <div className="relative group">
+               <div className="flex items-center bg-gray-50 dark:bg-slate-800 border border-gray-300 dark:border-gray-700 rounded-lg px-2 py-0.5 h-8">
+                <CheckCircle2 size={13} className="text-emerald-500 mr-1.5" />
+                <select 
+                    value={completedFilter}
+                    onChange={(e) => onCompletedFilterChange(e.target.value)}
+                    className="bg-transparent border-none text-xs font-medium text-gray-600 dark:text-gray-300 focus:ring-0 cursor-pointer py-0 pr-6 outline-none appearance-none"
+                    style={{ backgroundImage: 'none', width: '90px' }}
+                >
+                    <option value="7days">Son 7 Gün</option>
+                    <option value="1month">Son 1 Ay</option>
+                    <option value="3months">Son 3 Ay</option>
+                    <option value="all">Tümü</option>
+                </select>
+                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-500">
+                  <svg className="fill-current h-3 w-3" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/></svg>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Group By Dropdown */}
           <div className="relative group-by-menu">

@@ -9,33 +9,18 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.SignalR;
 using Unity.API.Hubs;
+using Microsoft.AspNetCore.Authorization;
 
 namespace Unity.API.Controllers
 {
-    [Route("api/[controller]")]
-    [ApiController]
-    [Microsoft.AspNetCore.Authorization.Authorize]
-    public class LabelsController : ControllerBase
+    [Authorize]
+    public class LabelsController : BaseController
     {
-        private readonly AppDbContext _context;
         private readonly IHubContext<AppHub> _hubContext;
 
-        public LabelsController(AppDbContext context, IHubContext<AppHub> hubContext)
+        public LabelsController(AppDbContext context, IHubContext<AppHub> hubContext) : base(context)
         {
-            _context = context;
             _hubContext = hubContext;
-        }
-
-        private int GetCurrentUserId()
-        {
-            var claimId = User.FindFirst("id")?.Value
-                          ?? User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-
-            if (int.TryParse(claimId, out int userId))
-            {
-                return userId;
-            }
-            throw new UnauthorizedAccessException("Invalid User Token.");
         }
 
         [HttpGet]

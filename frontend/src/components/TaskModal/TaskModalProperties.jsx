@@ -12,6 +12,7 @@ import { toSkyISOString } from '../../utils/dateUtils';
 import { extractIds } from '../../utils/entityUtils';
 import { statuses, priorities } from '../../constants/taskConstants';
 import { useOptimisticUpdate } from '../../hooks/useOptimisticUpdate';
+import { useDataState } from '../../contexts/DataContext';
 
 const TaskModalPropertiesInner = ({
     taskData,
@@ -25,6 +26,7 @@ const TaskModalPropertiesInner = ({
     isMobile = false,
     className = ''
 }) => {
+    const { labels } = useDataState();
     const [showStatusMenu, setShowStatusMenu] = useState(false);
     const statusMenuRef = useRef(null);
 
@@ -163,16 +165,16 @@ const TaskModalPropertiesInner = ({
                         assignees={taskData.assignees || []}
                         allUsers={filteredUsers}
                         workspaceId={workspaceId}
-                        onChange={async (newIds) => {
-                            // Construct optimistic objects for UI stability
+                        onChange={(newIds) => {
+                            // Fire-and-forget: InlineAssigneePicker manages its own local state
+                            // so we don't need to setTaskData here (no redundant state layer)
                             const optimisticAssignees = newIds.map(id => {
                                 const user = filteredUsers.find(u => Number(u.id) === Number(id));
                                 if (user) return user;
-                                return { id, userId: id, fullName: '...', avatar: null };
-                            });
+                                return { id: Number(id), userId: Number(id), fullName: '...', avatar: null };
+                            }).sort((a, b) => Number(a.id) - Number(b.id));
 
-                            setTaskData(prev => ({ ...prev, assignees: newIds }));
-                            await onUpdate(taskData.id, { assignees: newIds }, { assignees: optimisticAssignees });
+                            onUpdate(taskData.id, { assigneeIds: newIds }, { assignees: optimisticAssignees, assigneeIds: newIds.map(Number).sort((a, b) => a - b) });
                         }}
                     />
                 </div>
@@ -187,9 +189,17 @@ const TaskModalPropertiesInner = ({
                             taskId={taskData.id}
                             projectId={taskData.projectId}
                             currentLabels={taskData.labels || []}
-                            onUpdate={async (tid, newLabels) => {
-                                setTaskData(prev => ({ ...prev, labels: newLabels }));
-                                await onUpdate(tid, { labels: newLabels });
+                            onUpdate={(tid, newLabels) => {
+                                // Fire-and-forget: InlineLabelPicker manages its own local state
+                                const globalLabels = labels || [];
+                                const optimisticLabels = newLabels.map(id => {
+                                    const match = globalLabels.find(l => Number(l.id) === Number(id));
+                                    if (match) {
+                                        return { id: match.id, labelId: match.id, name: match.name, color: match.color, projectId: match.projectId };
+                                    }
+                                    return { id: Number(id), labelId: Number(id), name: 'Etiket', color: '#808080' }; 
+                                });
+                                onUpdate(tid, { labelIds: newLabels }, { labels: optimisticLabels, labelIds: newLabels });
                             }}
                         />
                     </div>
@@ -269,6 +279,17 @@ const TaskModalPropertiesInner = ({
                     </Popover>
                 </div>
             </div>
+            
+            {/* Completed Date (Read Only - Shows if set) */}
+            {taskData.completedAt && (
+                <div className="space-y-3">
+                    <label className="text-xs font-bold text-slate-400">Tamamlandı</label>
+                    <div className="flex items-center text-sm font-medium text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/20 p-2 rounded-lg border border-green-100 dark:border-green-900/40">
+                        <CheckCircle2 size={16} className="mr-2" />
+                        {format(new Date(taskData.completedAt), "d MMMM yyyy HH:mm", { locale: tr })}
+                    </div>
+                </div>
+            )}
 
             {/* Delete Button (Owner Only) */}
             {(currentUser?.role === 'admin' || taskData.createdBy === currentUser?.id || (!taskData.createdBy && taskData.assignedBy === currentUser?.id)) && (

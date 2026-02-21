@@ -34,7 +34,7 @@ namespace Unity.API.Services
 
                 var mailMessage = new MailMessage
                 {
-                    From = new MailAddress(username, "Unity Bilgilendirme"),
+                    From = new MailAddress(username, "UniTask Bilgilendirme"),
                     Subject = subject,
                     Body = body,
                     IsBodyHtml = true,

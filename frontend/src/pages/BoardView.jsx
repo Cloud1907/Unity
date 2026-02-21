@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
+import { toast } from 'sonner';
 import { useDataActions, useDataState } from '../contexts/DataContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import Sidebar from '../components/Sidebar';
@@ -14,11 +15,25 @@ import { TableSkeleton } from '../components/skeletons/TableSkeleton';
 
 const BoardView = () => {
     const { boardId: urlBoardId } = useParams();
+    const navigate = useNavigate();
     const { projects, loading } = useDataState();
     const { joinProjectGroup, leaveProjectGroup } = useDataActions();
 
     // Determine target board ID (URL or first available project)
     const currentBoardId = urlBoardId ? Number(urlBoardId) : (projects.length > 0 ? projects[0].id : null);
+
+    // --- Security / Authorization Check ---
+    useEffect(() => {
+        if (!loading && urlBoardId) {
+            const hasAccess = projects.some(p => p.id === Number(urlBoardId));
+            if (!hasAccess) { 
+                toast.error('Bu projeyi görüntüleme yetkiniz bulunmuyor.', {
+                    description: 'Sadece üyesi olduğunuz projeleri görüntüleyebilirsiniz.'
+                });
+                navigate('/dashboard?filter=all', { replace: true });
+            }
+        }
+    }, [urlBoardId, projects, loading, navigate]);
 
     const [currentView, setCurrentView] = useState('main');
 
@@ -31,6 +46,8 @@ const BoardView = () => {
         labels: []
     });
     const [groupBy, setGroupBy] = useState('status');
+    // New: Completed Task Filter (Default: 7days)
+    const [completedFilter, setCompletedFilter] = useState('7days');
 
     // Handle SignalR Group Subscription
     useEffect(() => {
@@ -57,7 +74,8 @@ const BoardView = () => {
             boardId: currentBoardId,
             searchQuery,
             filters,
-            groupBy
+            groupBy,
+            completedFilter // Pass to views
         };
 
         switch (currentView) {
@@ -86,6 +104,8 @@ const BoardView = () => {
                 onFilterChange={setFilters}
                 groupBy={groupBy}
                 onGroupByChange={setGroupBy}
+                completedFilter={completedFilter}
+                onCompletedFilterChange={setCompletedFilter}
             />
 
             {/* Animated Content Area */}

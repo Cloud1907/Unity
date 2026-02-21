@@ -33,7 +33,7 @@
 
 ---
 
-# 🏛️ UNITY PROJECT CONSTITUTION
+# 🏛️ UNITASK PROJECT CONSTITUTION
 
 > Bu kurallar KANUN niteliğindedir. Her kod değişikliğinde uyulması zorunludur.
 
@@ -110,6 +110,10 @@
 ### 4.3 COLOR & CONTRAST
 - Metin/arkaplan kontrastı WCAG AA standardını geçmeli (4.5:1)
 - Sadece renge dayalı bilgi aktarımı yapılmamalı (renk körü kullanıcılar)
+
+### 4.4 TYPOGRAPHY
+- ❌ **ASLA** kelimelerin tamamı büyük harf (UPPERCASE) olmamalıdır.
+- ✅ Sadece Başlık Düzeni (Title Case) veya Cümle Düzeni (Sentence case) kullanılmalıdır.
 
 ---
 

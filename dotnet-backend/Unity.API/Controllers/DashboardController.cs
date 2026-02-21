@@ -14,22 +14,11 @@ namespace Unity.API.Controllers
     /// Dashboard API - Optimized queries using SQL Views
     /// STRICT WORKSPACE ISOLATION: Users only see their own department's data
     /// </summary>
-    [Route("api/[controller]")]
-    [ApiController]
     [Authorize]
-    public class DashboardController : ControllerBase
+    public class DashboardController : BaseController
     {
-        private readonly AppDbContext _context;
-
-        public DashboardController(AppDbContext context)
+        public DashboardController(AppDbContext context) : base(context)
         {
-            _context = context;
-        }
-
-        private int GetCurrentUserId()
-        {
-            var claim = User.FindFirst("id")?.Value ?? User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-            return int.TryParse(claim, out int id) ? id : 0;
         }
 
         /// <summary>

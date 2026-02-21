@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo, useRef } from 'react';
 import { tasksAPI, subtasksAPI } from '../services/api';
 import { normalizeEntity, getId } from '../utils/entityHelpers';
 import { updateTaskInTree, findTaskInTree } from '../utils/taskHelpers';
@@ -50,7 +50,8 @@ export const useTasks = () => {
 
         } catch (error) {
             console.error('Error fetching tasks:', error);
-            toast.error('Görevler yüklenemedi');
+            const errorMessage = error.response?.data?.message || error.response?.data?.title || error.message || 'Görevler yüklenemedi';
+            toast.error(errorMessage);
         } finally {
             setLoading(false);
         }
@@ -62,10 +63,15 @@ export const useTasks = () => {
             const normalized = normalizeEntity(response.data);
 
             setTasks(prev => {
-                if (prev.some(t => t.id === normalized.id)) return prev;
+                // Prevent duplicates but UPDATE if already exists (SignalR race condition)
+                if (prev.some(t => t.id === normalized.id)) {
+                    console.log(`[useTasks] Task ${normalized.id} exists. Updating with API response. ProjectId: ${normalized.projectId}, Status: ${normalized.status}`);
+                    return prev.map(t => t.id === normalized.id ? normalized : t);
+                }
+                console.log(`[useTasks] Adding new task: ${normalized.id}. ProjectId: ${normalized.projectId}, Status: ${normalized.status}`);
                 return [...prev, normalized];
             });
-            // Toast handled by component or context generally, but OK here
+            
             return { success: true, data: normalized };
         } catch (error) {
             console.error('Task creation error:', error);
@@ -75,18 +81,19 @@ export const useTasks = () => {
     }, []);
 
     // Queue for sequential updates per task to prevent race conditions
-    const taskQueuesRef = {};
+    const taskQueuesRef = useRef({});
 
     const processQueue = async (taskId) => {
-        const queue = taskQueuesRef[taskId];
+        const queue = taskQueuesRef.current[taskId];
         if (!queue || queue.length === 0) {
-            delete taskQueuesRef[taskId];
+            delete taskQueuesRef.current[taskId];
             return;
         }
 
         const { data, resolve, reject, previousState } = queue[0];
 
         try {
+            console.log('[useTasks] Sending UPDATE payload:', JSON.stringify(data, null, 2));
             const response = await tasksAPI.update(taskId, data);
             const normalized = normalizeEntity(response.data);
 
@@ -95,27 +102,11 @@ export const useTasks = () => {
             resolve({ success: true, data: normalized });
         } catch (error) {
             console.error('Task update error in queue:', error);
-            // Rollback on error
             setTasks(previousState);
             const errorMessage = error.response?.data?.message || 'Güncelleme başarısız';
-            // Only show toast for 400 defaults (validation) to avoid spamming network errors if handled elsewhere
-            // But user wants to see strict validation errors.
-            if (error.response?.status === 400) {
-                toast.error(errorMessage);
-                // Cleanly resolve failure to prevent Uncaught Runtime Error overlay
-                resolve({ success: false, handled: true, error });
-            } else {
-                console.error('Task update failed silently (UI reverted)');
-                reject(error); // Keep rejecting critical errors if needed, or resolve false too?
-                // For critical errors (500 etc), maybe we want to see them in console/overlay?
-                // But better UX is consistent toast. 
-                // Let's resolve false for all to be safe against overlay.
-                // resolve({ success: false, error });
-            }
-            // For now, only suppressing 400 (validation) as requested.
-            // If we want to suppress ALL, we should move resolve out.
-            // But let's stick to the plan: Suppress validation errors.
-
+            
+            toast.error(`Güncelleme başarısız: ${errorMessage}`);
+            resolve({ success: false, handled: true, error });
         } finally {
             // Remove processed item and continue
             queue.shift();
@@ -150,11 +141,11 @@ export const useTasks = () => {
                 const newTasks = updateTaskInTree(prev, targetId, optimisticData || data);
 
                 // 4. Add to Queue (Always use 'data' for API)
-                if (!taskQueuesRef[targetId]) {
-                    taskQueuesRef[targetId] = [];
+                if (!taskQueuesRef.current[targetId]) {
+                    taskQueuesRef.current[targetId] = [];
                 }
 
-                taskQueuesRef[targetId].push({
+                taskQueuesRef.current[targetId].push({
                     data,
                     resolve,
                     reject,
@@ -162,7 +153,7 @@ export const useTasks = () => {
                 });
 
                 // 5. Start Queue if not running
-                if (taskQueuesRef[targetId].length === 1) {
+                if (taskQueuesRef.current[targetId].length === 1) {
                     processQueue(targetId);
                 }
 

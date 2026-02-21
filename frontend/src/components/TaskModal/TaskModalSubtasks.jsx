@@ -103,7 +103,7 @@ const SortableSubtaskItem = ({
                         onChange={(newIds) => {
                             const updated = localSubtasks.map(s => s.id === subtask.id ? { ...s, assigneeIds: newIds } : s);
                             setLocalSubtasks(updated);
-                            onUpdateSubtask(subtask.id, { assignees: newIds });
+                            onUpdateSubtask(subtask.id, { assigneeIds: newIds });
                         }}
                     />
 

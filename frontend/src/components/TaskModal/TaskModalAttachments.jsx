@@ -30,6 +30,41 @@ export const TaskModalAttachments = ({ attachments, onUpload, onRequestDelete, i
         }
     };
 
+    const handleDownload = async (e, file) => {
+        // Only intercept for text-based files to fix encoding
+        const isTextFile = file.name.match(/\.(txt|csv|log|md|json|xml|html|css|js)$/i) || 
+                          file.type?.includes('text') || 
+                          file.type?.includes('json');
+
+        if (!isTextFile) return; // Let default behavior handle binary files
+
+        e.preventDefault();
+        
+        try {
+            const fileUrl = file.url?.startsWith('http') ? file.url : `${BASE_URL}${file.url}`;
+            const response = await fetch(fileUrl);
+            const blob = await response.blob();
+            
+            // Add BOM for UTF-8 (EF BB BF)
+            const newBlob = new Blob(['\uFEFF', blob], { type: blob.type || 'text/plain;charset=utf-8' });
+            
+            const url = window.URL.createObjectURL(newBlob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = file.name;
+            document.body.appendChild(link);
+            link.click();
+            
+            // Cleanup
+            document.body.removeChild(link);
+            window.URL.revokeObjectURL(url);
+        } catch (error) {
+            console.error('Download failed:', error);
+            // Fallback to default behavior if fetch fails
+            window.open(file.url?.startsWith('http') ? file.url : `${BASE_URL}${file.url}`, '_blank');
+        }
+    };
+
     return (
         <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
             <h3 className="text-sm font-bold text-slate-400 mb-4 flex items-center gap-2">
@@ -84,7 +119,13 @@ export const TaskModalAttachments = ({ attachments, onUpload, onRequestDelete, i
                         </div>
 
                         <div className="flex-1 min-w-0">
-                            <a href={file.url?.startsWith('http') ? file.url : `${BASE_URL}${file.url}`} target="_blank" rel="noopener noreferrer" className="block text-sm font-medium text-slate-900 dark:text-white truncate hover:text-indigo-600 transition-colors">
+                            <a 
+                                href={file.url?.startsWith('http') ? file.url : `${BASE_URL}${file.url}`} 
+                                onClick={(e) => handleDownload(e, file)}
+                                target="_blank" 
+                                rel="noopener noreferrer" 
+                                className="block text-sm font-medium text-slate-900 dark:text-white truncate hover:text-indigo-600 transition-colors"
+                            >
                                 {file.name}
                             </a>
                             <div className="flex items-center gap-2 mt-0.5">
@@ -100,6 +141,7 @@ export const TaskModalAttachments = ({ attachments, onUpload, onRequestDelete, i
                         <div className="flex flex-col gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                             <a
                                 href={file.url?.startsWith('http') ? file.url : `${BASE_URL}${file.url}`}
+                                onClick={(e) => handleDownload(e, file)}
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 rounded-lg transition-colors"

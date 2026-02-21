@@ -4,72 +4,42 @@ import UserAvatar from '../ui/shared/UserAvatar';
 import { statuses } from '../../constants/taskConstants'; // Need to ensure path is correct
 
 export const TaskModalActivity = ({ activityLogs, taskData, users }) => {
-    // Parsing logic moved here
+    // Server now pre-formats 'details' via AuditController.FormatActivityDetails
+    // We just need to map ActionType to friendly Turkish action labels
     const getLogDetails = (log) => {
-        let actionText = 'İşlem yapıldı';
-        let detailText = '';
         const rawDetails = log.details || log.description || '';
-        const getStatusLabel = (s) => statuses.find(st => st.id === s)?.label || s;
+        const action = (log.action || '').toUpperCase();
 
-        switch (log.action) {
-            case 'CREATE_TASK':
-            case 'CREATE':
-                actionText = log.entityType === 'Subtask' ? 'Alt Görev Eklendi' : 'Görev Oluşturuldu';
-                detailText = rawDetails || 'Kayıt sisteme eklendi.';
-                break;
-            case 'COMMENT':
-                actionText = 'Yorum Yapıldı';
-                detailText = rawDetails;
-                break;
-            case 'UPDATE_TASK':
-            case 'UPDATE':
-                if (rawDetails.includes('Durum:')) actionText = 'Durum Güncellendi';
-                else if (rawDetails.includes('Öncelik:')) actionText = 'Öncelik Güncellendi';
-                else if (rawDetails.includes('Bitiş Tarihi:')) actionText = 'Bitiş Tarihi Güncellendi';
-                else if (rawDetails.includes('Başlangıç Tarihi:')) actionText = 'Başlangıç Tarihi Güncellendi';
-                else actionText = 'Güncelleme';
-                detailText = rawDetails || 'Kayıt detayları güncellendi.';
-                break;
-            case 'ASSIGN_TASK':
-            case 'ASSIGN':
-                actionText = 'Atama Yapıldı';
-                if (rawDetails.includes('ASSIGNED_TO:')) {
-                    const parts = rawDetails.split(':');
-                    const assignedUserId = parts[1];
-                    const assignedUser = users.find(u => u.id == assignedUserId);
-                    detailText = assignedUser ? `${assignedUser.fullName} göreve atandı.` : 'Kullanıcı göreve atandı.';
-                } else {
-                    detailText = rawDetails;
-                }
-                break;
-            case 'STATUS_CHANGE':
-                actionText = 'Durum Değişti';
-                if (rawDetails.startsWith('STATUS:')) {
-                    const newStatus = rawDetails.split(':')[1];
-                    detailText = `Durum "${getStatusLabel(newStatus)}" olarak değiştirildi.`;
-                } else {
-                    detailText = rawDetails;
-                }
-                break;
-            case 'CREATE_SUBTASK':
-                actionText = 'Alt Görev Eklendi';
-                detailText = rawDetails.replace('SUBTASK:', '');
-                break;
-            case 'DELETE_SUBTASK':
-            case 'DELETED':
-                actionText = log.entityType === 'Subtask' || rawDetails.includes('Subtask') ? 'Alt Görev Silindi' : 'Silme İşlemi';
-                detailText = rawDetails;
-                break;
-            case 'ADD_COMMENT':
-                actionText = 'Yorum Yapıldı';
-                detailText = 'Yeni bir yorum eklendi.';
-                break;
-            default:
-                actionText = log.action;
-                detailText = rawDetails;
+        // Map server action types to readable Turkish labels
+        const actionMap = {
+            'CREATE': log.entityType === 'Subtask' ? 'Alt Görev Eklendi' : 'Görev Oluşturuldu',
+            'CREATE_TASK': 'Görev Oluşturuldu',
+            'CREATE_SUBTASK': 'Alt Görev Eklendi',
+            'UPDATE': 'Güncelleme',
+            'UPDATE_TASK': 'Güncelleme',
+            'ASSIGN': 'Atama Yapıldı',
+            'ASSIGN_TASK': 'Atama Yapıldı',
+            'UNASSIGN': 'Atama Kaldırıldı',
+            'COMMENT': 'Yorum Yapıldı',
+            'ADD_COMMENT': 'Yorum Yapıldı',
+            'STATUS_CHANGE': 'Durum Değişti',
+            'DELETED': log.entityType === 'Subtask' ? 'Alt Görev Silindi' : 'Silme İşlemi',
+            'DELETE_SUBTASK': 'Alt Görev Silindi',
+        };
+
+        const actionText = actionMap[action] || action || 'İşlem Yapıldı';
+
+        // For UPDATE actions, make the label more specific based on content
+        let finalActionText = actionText;
+        if (action === 'UPDATE' || action === 'UPDATE_TASK') {
+            if (rawDetails.includes('Durum:')) finalActionText = 'Durum Güncellendi';
+            else if (rawDetails.includes('Öncelik:')) finalActionText = 'Öncelik Güncellendi';
+            else if (rawDetails.includes('Bitiş Tarihi:')) finalActionText = 'Bitiş Tarihi Güncellendi';
+            else if (rawDetails.includes('Başlangıç Tarihi:')) finalActionText = 'Başlangıç Tarihi Güncellendi';
+            else if (rawDetails.includes('Etiket')) finalActionText = 'Etiket Güncellendi';
         }
 
-        return { actionText, detailText };
+        return { actionText: finalActionText, detailText: rawDetails };
     };
 
     return (

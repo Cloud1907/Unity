@@ -33,3 +33,31 @@ export const filterProjectUsers = (project, allUsers) => {
         return isProjectMember || isDeptMember;
     });
 };
+
+/**
+ * Normalizes user data from API responses to handle case-insensitive property names.
+ * The backend sometimes returns PascalCase (C# convention) and sometimes camelCase.
+ * This utility ensures consistent camelCase properties in the frontend.
+ * 
+ * @param {Object} userData - Raw user data from API
+ * @returns {Object} Normalized user object with camelCase properties
+ */
+export const normalizeUser = (userData) => {
+  if (!userData) return null;
+  
+  return {
+    ...userData,
+    id: userData.id || userData.Id,
+    fullName: userData.fullName || userData.FullName,
+    email: userData.email || userData.Email,
+    avatar: userData.avatar || userData.Avatar,
+    color: userData.color || userData.Color,
+    role: userData.role || userData.Role,
+    jobTitle: userData.jobTitle || userData.JobTitle,
+    username: userData.username || userData.Username,
+    departments: userData.departments || userData.Departments,
+    gender: userData.gender || userData.Gender,
+    createdAt: userData.createdAt || userData.CreatedAt,
+    updatedAt: userData.updatedAt || userData.UpdatedAt
+  };
+};

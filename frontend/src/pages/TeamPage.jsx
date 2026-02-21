@@ -3,6 +3,7 @@ import { useData } from '../contexts/DataContext';
 import { Avatar, AvatarFallback, AvatarImage } from '../components/ui/avatar';
 import { getAvatarUrl } from '../utils/avatarHelper';
 import { Users, Mail, Shield, CheckCircle, Clock } from 'lucide-react';
+import TiltedCard from '../components/react-bits/TiltedCard';
 
 const TeamPage = () => {
   const { users, tasks } = useData();
@@ -100,7 +101,7 @@ const TeamPage = () => {
                 : 0;
 
               return (
-                <div
+                <TiltedCard
                   key={userId}
                   className="border border-gray-200 dark:border-gray-700 rounded-lg p-5 hover:shadow-lg dark:hover:shadow-gray-900 transition-all bg-white dark:bg-gray-900"
                 >
@@ -161,7 +162,7 @@ const TeamPage = () => {
                       </div>
                     </div>
                   </div>
-                </div>
+                </TiltedCard>
               );
             })}
           </div>

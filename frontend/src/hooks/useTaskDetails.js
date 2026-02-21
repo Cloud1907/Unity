@@ -10,8 +10,7 @@ export const useTaskDetails = (initialTask, isOpen, onClose, initialSection = 's
     const { tasks, updateTask, deleteTask, createSubtask, updateSubtask, refreshTask, users, projects } = useData();
     const { user: currentUser } = useAuth();
 
-    // 1. Single Source of Truth: Derived Task from Global Context
-    // We normalize immediately to ensure UI gets clean data.
+    // Single Source of Truth: Derived Task from Global Context
     const task = useMemo(() => {
         const found = tasks.find(t => t.id === initialTask.id);
         const source = found || initialTask;
@@ -214,7 +213,7 @@ export const useTaskDetails = (initialTask, isOpen, onClose, initialSection = 's
     return {
         task,
         taskData: task, // Alias for compatibility
-        setTaskData: noOp,
+        setTaskData: noOp,    // Pickers manage their own local state
         subtasks,
         setSubtasks: noOp,
         comments,

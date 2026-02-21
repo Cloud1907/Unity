@@ -1,7 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import { animate } from 'framer-motion';
 
-const CountUp = ({ to, prefix = '', suffix = '', duration = 1.5, className, play = true }) => {
+const CountUp = React.memo(({ to, prefix = '', suffix = '', duration = 1.5, className, play = true }) => {
   const nodeRef = useRef();
 
   useEffect(() => {
@@ -20,7 +20,8 @@ const CountUp = ({ to, prefix = '', suffix = '', duration = 1.5, className, play
     return () => controls.stop();
   }, [play, to, prefix, suffix, duration]);
 
-  return <span ref={nodeRef} className={className} />; // Use passed className
-};
+  return <span ref={nodeRef} className={className} />;
+});
 
 export default CountUp;
+

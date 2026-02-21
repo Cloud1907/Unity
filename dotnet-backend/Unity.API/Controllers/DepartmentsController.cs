@@ -4,44 +4,17 @@ using Unity.Core.Models;
 using Unity.Infrastructure.Data;
 using Unity.Infrastructure.Services;
 using Microsoft.AspNetCore.Authorization;
-using System.Security.Claims;
 
 namespace Unity.API.Controllers
 {
-    [Route("api/[controller]")]
-    [ApiController]
-    [Microsoft.AspNetCore.Authorization.Authorize]
-    public class DepartmentsController : ControllerBase
+    [Authorize]
+    public class DepartmentsController : BaseController
     {
-        private readonly AppDbContext _context;
         private readonly IAuditService _auditService;
 
-        public DepartmentsController(AppDbContext context, IAuditService auditService)
+        public DepartmentsController(AppDbContext context, IAuditService auditService) : base(context)
         {
-            _context = context;
             _auditService = auditService;
-        }
-
-        // Helper: Get Current User ID
-        private int GetCurrentUserId()
-        {
-             // 2. Try JWT Claim
-            var claimId = User.FindFirst("id")?.Value 
-                          ?? User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            
-            if (int.TryParse(claimId, out int uid)) return uid;
-
-            return 0;
-        }
-
-        private async Task<User> GetCurrentUserWithDeptsAsync()
-        {
-            var userId = GetCurrentUserId();
-            if (userId == 0) return null;
-
-            return await _context.Users
-                .Include(u => u.Departments)
-                .FirstOrDefaultAsync(u => u.Id == userId);
         }
 
         [HttpGet]

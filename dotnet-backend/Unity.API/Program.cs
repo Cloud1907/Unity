@@ -1,6 +1,7 @@
 using Unity.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using QuestPDF.Infrastructure;
+using Unity.Core;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -38,6 +39,11 @@ builder.Services.AddScoped<Unity.API.Services.IEmailService, Unity.API.Services.
 builder.Services.AddScoped<Unity.Infrastructure.Services.IAuditService, Unity.Infrastructure.Services.AuditService>();
 builder.Services.AddScoped<Unity.Infrastructure.Services.IActivityLogger, Unity.Infrastructure.Services.ActivityLogger>(); // New Enhanced Logger
 builder.Services.AddScoped<Unity.API.Services.IPdfService, Unity.API.Services.PdfService>();
+
+// Service Layer
+builder.Services.AddScoped<Unity.Core.Interfaces.ITaskService, Unity.Infrastructure.Services.TaskService>();
+builder.Services.AddScoped<Unity.Core.Interfaces.IProjectService, Unity.Infrastructure.Services.ProjectService>();
+builder.Services.AddScoped<Unity.Core.Interfaces.IAuthService, Unity.Infrastructure.Services.AuthService>();
 
 // CORS for local development
 builder.Services.AddCors(options =>

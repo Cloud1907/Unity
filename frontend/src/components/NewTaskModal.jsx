@@ -67,11 +67,8 @@ const NewTaskModal = ({ isOpen, onClose, projectId, defaultStatus = 'todo' }) =>
       projectId: Number(finalProjectId),
       startDate: toSkyISOString(formData.startDate || new Date()),
       dueDate: formData.dueDate ? toSkyISOString(formData.dueDate) : undefined,
-      assignees: formData.assignees.map(id => Number(id)).filter(id => !isNaN(id) && id > 0).map(id => ({ userId: id })), // Map IDs to TaskAssignee objects for backend binding
-      labels: formData.labels.map(id => ({ labelId: id })) // Labels might still need object if backend expects commands, but let's stick to previous pattern or check. 
-      // Actually TaskRow uses specific helpers. Let's assume Labels need objects based on existing code, but assignees definitely failed as objects.
-      // If TaskRow uses `updateTask(..., { labels: newLabels })` where InlineLabelPicker returns IDs... Let's check InlineLabelPicker if possible.
-      // But for now, let's fix assignees first as that was the main change I saw being wrong.
+      assigneeIds: formData.assignees.map(id => Number(id)).filter(id => !isNaN(id) && id > 0), 
+      labelIds: formData.labels.map(id => Number(id)) 
     };
 
     // Remove undefined fields

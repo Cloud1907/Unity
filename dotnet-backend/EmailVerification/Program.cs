@@ -67,7 +67,7 @@ namespace EmailVerification
 <head>
   <meta http-equiv=""Content-Type"" content=""text/html; charset=UTF-8"" />
   <meta name=""viewport"" content=""width=device-width, initial-scale=1.0"" />
-  <title>Univera Unity Task Notification</title>
+  <title>Univera UniTask Notification</title>
   
   <!--[if !mso]><!-->
   <link href=""https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"" rel=""stylesheet"">
@@ -117,7 +117,7 @@ namespace EmailVerification
                 </tr>
                 <tr>
                   <td align=""center"" style=""font-family: 'Inter', Helvetica, Arial, sans-serif; font-size: 28px; font-weight: 700; color: #ffffff; letter-spacing: -0.5px; padding-top: 15px; padding-bottom: 5px;"">
-                    Unity
+                    UniTask
                   </td>
                 </tr>
                 <tr>
@@ -281,7 +281,7 @@ namespace EmailVerification
           <!-- FOOTER -->
           <tr>
             <td align=""center"" style=""padding: 25px; font-family: 'Inter', Helvetica, Arial, sans-serif; font-size: 12px; color: #94a3b8;"">
-              &copy; {DateTime.Now.Year} Univera Unity Task Management
+              &copy; {DateTime.Now.Year} Univera UniTask Management
             </td>
           </tr>
 

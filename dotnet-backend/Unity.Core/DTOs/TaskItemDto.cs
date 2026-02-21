@@ -11,6 +11,7 @@ namespace Unity.Core.DTOs
         public string? Priority { get; set; }
         public DateTime? DueDate { get; set; }
         public int? Progress { get; set; }
+        public DateTime? CompletedAt { get; set; }
         public int ProjectId { get; set; }
         public string? ProjectName { get; set; }
         public string? ProjectColor { get; set; }
@@ -24,6 +25,9 @@ namespace Unity.Core.DTOs
         public List<SubtaskDto> Subtasks { get; set; } = new();
         public int CommentCount { get; set; }
         public int AttachmentCount { get; set; }
+        public string Description { get; set; } = string.Empty;
+        public DateTime? StartDate { get; set; }
+        public DateTime CreatedAt { get; set; }
         public int CreatedBy { get; set; }
     }
 

@@ -15,7 +15,9 @@ module.exports = {
 		},
 		extend: {
 			fontFamily: {
-				sans: ["Inter", "sans-serif"],
+				sans: ["Inter", "Outfit", "Manrope", "sans-serif"],
+				outfit: ["Outfit", "sans-serif"],
+				manrope: ["Manrope", "sans-serif"],
 			},
 			borderRadius: {
 				lg: 'var(--radius)',

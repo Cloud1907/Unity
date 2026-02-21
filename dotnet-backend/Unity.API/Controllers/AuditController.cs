@@ -24,7 +24,7 @@ namespace Unity.API.Controllers
         [HttpGet("task/{taskId}")]
         public async Task<IActionResult> GetTaskLogs(int taskId)
         {
-            var task = await _context.Tasks.AsNoTracking().FirstOrDefaultAsync(t => t.Id == taskId);
+            var task = await _context.Tasks.Include(t => t.Assignees).AsNoTracking().FirstOrDefaultAsync(t => t.Id == taskId);
             if (task == null) return NotFound();
 
             // Project & Workspace Membership Check (Security Fix)
@@ -39,8 +39,9 @@ namespace Unity.API.Controllers
                     .AnyAsync(ud => ud.DepartmentId == project.DepartmentId && ud.UserId == currentUserId);
                 
                 var isAdmin = User.IsInRole("admin") || User.IsInRole("Admin");
+                var isAssignee = task.Assignees.Any(a => a.UserId == currentUserId);
 
-                if (!isAdmin && !isProjectMember && !isWorkspaceMember && (project != null && project.Owner != currentUserId))
+                if (!isAdmin && !isProjectMember && !isWorkspaceMember && (project != null && project.Owner != currentUserId) && !isAssignee)
                 {
                     return StatusCode(403, new { message = "Bu görev loglarını görme yetkiniz yok." });
                 }
@@ -114,39 +115,49 @@ namespace Unity.API.Controllers
 
             if (log.ActionType == "DELETED") return $"{entity} silindi.";
             
-            string field = log.FieldName;
-            // Basic Turkish Mapping for fields
+            string field = log.FieldName ?? "";
+            // Turkish field name mapping
             if (field == "Status") field = "Durum";
             if (field == "Priority") field = "Öncelik";
             if (field == "Title") field = "Başlık";
-            if (field == "Assignee") field = "Atanan";
+            if (field == "Assignee" || field == "Assignees") field = "Atanan";
+            if (field == "Labels" || field == "Label") field = "Etiket";
             if (field == "StartDate") field = "Başlangıç Tarihi";
             if (field == "DueDate") field = "Bitiş Tarihi";
             if (field == "Description") field = "Açıklama";
             if (field == "TShirtSize") field = "Efor (T-Shirt)";
+            if (field == "Progress") field = "İlerleme";
 
-            string oldV = log.OldValueDisplay ?? log.OldValue ?? "n/a";
-            string newV = log.NewValueDisplay ?? log.NewValue ?? "n/a";
+            string oldV = log.OldValueDisplay ?? log.OldValue ?? "";
+            string newV = log.NewValueDisplay ?? log.NewValue ?? "";
 
             if (log.ActionType == "ASSIGN") {
-                return $"{newV} {entity}e atandı.";
+                if (!string.IsNullOrWhiteSpace(newV))
+                    return $"{newV} {entity}e atandı.";
+                return $"{entity}e atama yapıldı.";
             }
 
             if (log.ActionType == "UNASSIGN") {
-                return $"{oldV} {entity}den çıkarıldı.";
+                if (!string.IsNullOrWhiteSpace(oldV))
+                    return $"{oldV} {entity}den çıkarıldı.";
+                return $"{entity}den atama kaldırıldı.";
             }
 
             if (log.ActionType == "UPDATE") {
-                return $"{field}: {oldV} → {newV}";
-            }
-
-            // Status Boolean to Text (Fallback)
-
-            if (field == "Durum") {
-                 if (oldV == "False") oldV = "Yapılacak";
-                 if (oldV == "True") oldV = "Tamamlandı";
-                 if (newV == "False") newV = "Yapılacak";
-                 if (newV == "True") newV = "Tamamlandı";
+                // Label-specific format
+                if ((log.FieldName == "Labels" || log.FieldName == "Label") && !string.IsNullOrWhiteSpace(newV)) {
+                    return $"Etiket eklendi: {newV}";
+                }
+                
+                string oldDisplay = string.IsNullOrWhiteSpace(oldV) ? "Yok" : oldV;
+                string newDisplay = string.IsNullOrWhiteSpace(newV) ? "Yok" : newV;
+                
+                if (oldV == "False") oldDisplay = "Yapılacak";
+                if (oldV == "True") oldDisplay = "Tamamlandı";
+                if (newV == "False") newDisplay = "Yapılacak";
+                if (newV == "True") newDisplay = "Tamamlandı";
+                
+                return $"{field}: {oldDisplay} → {newDisplay}";
             }
 
             return $"{field}: {oldV} → {newV}";
