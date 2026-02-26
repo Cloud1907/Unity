@@ -1,1 +1,0 @@
-{"type":"https://tools.ietf.org/html/rfc9110#section-15.5.1","title":"One or more validation errors occurred.","status":400,"errors":{"Project.Name":["The Name field is required."]},"traceId":"00-9c26e5e5dc4219511d5e1e3cfe688b18-5da3df6ef58d052a-00"}

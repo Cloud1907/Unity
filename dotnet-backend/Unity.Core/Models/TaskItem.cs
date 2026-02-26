@@ -57,6 +57,9 @@ namespace Unity.Core.Models
 
         public int CreatedBy { get; set; } // Restored
 
+        [ForeignKey("CreatedBy")]
+        public virtual User CreatedByUser { get; set; }
+
         public DateTime CreatedAt { get; set; } = TimeHelper.Now;
         public DateTime UpdatedAt { get; set; } = TimeHelper.Now;
         public DateTime? CompletedAt { get; set; }

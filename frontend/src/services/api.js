@@ -212,6 +212,7 @@ export const tasksAPI = {
   updateStatus: (id, status) => api.put(`/tasks/${id}/status`, { status }),
   updateProgress: (id, progress) => api.put(`/tasks/${id}/progress`, null, { params: { progress } }),
   assign: (id, userId) => api.post(`/tasks/${id}/assign`, null, { params: { userId: userId } }),
+  triggerWeeklySummary: (email) => api.post('/tasks/trigger-weekly-summary', { targetEmail: email }),
 };
 
 

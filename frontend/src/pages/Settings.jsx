@@ -184,23 +184,23 @@ const Settings = () => {
         </div>
       </div>
 
-      <div className="max-w-6xl mx-auto px-6 py-8">
-        <div className="grid grid-cols-12 gap-6">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8">
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
           {/* Sidebar - Tabs */}
-          <div className="col-span-3">
-            <div className="bg-white dark:bg-gray-900 rounded-lg shadow-sm border border-gray-200 dark:border-gray-800 p-2">
+          <div className="md:col-span-4 lg:col-span-3">
+            <div className="bg-white dark:bg-gray-900 rounded-lg shadow-sm border border-gray-200 dark:border-gray-800 p-2 flex flex-row md:flex-col overflow-x-auto gap-2 scrollbar-hide">
               {tabs.map(tab => {
                 const Icon = tab.icon;
                 return (
                   <button
                     key={tab.id}
                     onClick={() => setActiveTab(tab.id)}
-                    className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all ${activeTab === tab.id
+                    className={`w-auto md:w-full flex items-center justify-center md:justify-start gap-2 md:gap-3 px-4 py-2.5 md:py-3 rounded-lg text-sm font-medium transition-all whitespace-nowrap shrink-0 ${activeTab === tab.id
                       ? 'bg-[#6366f1] text-white shadow-md'
                       : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800'
                       }`}
                   >
-                    <Icon size={18} />
+                    <Icon size={18} className="shrink-0" />
                     {tab.label}
                   </button>
                 );
@@ -209,7 +209,7 @@ const Settings = () => {
           </div>
 
           {/* Main Content */}
-          <div className="col-span-9">
+          <div className="md:col-span-8 lg:col-span-9">
             <div className="bg-white dark:bg-gray-900 rounded-lg shadow-sm border border-gray-200 dark:border-gray-800">
 
               {/* Profile Tab */}
@@ -292,7 +292,7 @@ const Settings = () => {
                   <div className="space-y-6">
                     {/* Gender Selection Removed per User Request */}
 
-                    <div className="grid grid-cols-2 gap-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       <div>
                         <Label htmlFor="fullName">Ad Soyad</Label>
                         <Input
@@ -318,7 +318,7 @@ const Settings = () => {
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       <div>
                         <Label htmlFor="phone">Telefon</Label>
                         <Input
@@ -472,7 +472,7 @@ const Settings = () => {
                     <div>
                       <h3 className="font-semibold text-gray-900 dark:text-white mb-4">Tema</h3>
 
-                      <div className="grid grid-cols-3 gap-4">
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                         {[
                           { id: 'light', label: 'Açık', bg: 'bg-white border border-gray-300' },
                           { id: 'dark', label: 'Koyu', bg: 'bg-gray-800' },

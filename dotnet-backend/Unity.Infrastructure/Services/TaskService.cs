@@ -266,15 +266,30 @@ namespace Unity.Infrastructure.Services
             if (dto.ProjectId.HasValue) task.ProjectId = dto.ProjectId.Value;
             if (dto.StartDate.HasValue) task.StartDate = dto.StartDate.Value.ToUniversalTime();
             if (dto.DueDate.HasValue) task.DueDate = dto.DueDate.Value.ToUniversalTime();
-            if (dto.Progress.HasValue) task.Progress = dto.Progress.Value;
+            if (dto.Progress.HasValue) 
+            {
+                task.Progress = dto.Progress.Value;
+            }
 
-            // Auto-set CompletedAt based on Status
+            // Auto-set CompletedAt and Progress based on Status
             if (dto.Status != null)
             {
-                if (dto.Status == "done" && task.CompletedAt == null)
-                    task.CompletedAt = DateTime.UtcNow;
-                else if (dto.Status != "done")
+                if (dto.Status == "done")
+                {
+                    task.Progress = 100;
+                    if (task.CompletedAt == null) task.CompletedAt = DateTime.UtcNow;
+                }
+                else
+                {
                     task.CompletedAt = null;
+                    if (!dto.Progress.HasValue)
+                    {
+                        if ((dto.Status == "working" || dto.Status == "in_progress" || dto.Status == "review") && task.Progress == 0) 
+                            task.Progress = 25;
+                        if (dto.Status == "todo") 
+                            task.Progress = 0;
+                    }
+                }
             }
 
             task.UpdatedAt = TimeHelper.Now;
@@ -317,7 +332,6 @@ namespace Unity.Infrastructure.Services
 
              task.Status = status;
              
-             // Business Logic: Progress updates based on status
              if (status == "done") 
              {
                  task.Progress = 100;
@@ -328,7 +342,7 @@ namespace Unity.Infrastructure.Services
                  task.CompletedAt = null; // Clear if re-opened
              }
 
-             if ((status == "working" || status == "review") && task.Progress == 0) task.Progress = 10;
+             if ((status == "working" || status == "in_progress" || status == "review") && task.Progress == 0) task.Progress = 25;
              if (status == "todo") task.Progress = 0;
 
              task.UpdatedAt = TimeHelper.Now;
@@ -439,6 +453,30 @@ namespace Unity.Infrastructure.Services
              _context.Subtasks.Remove(subtask);
              await _context.SaveChangesAsync();
              return true;
+        }
+
+        public async Task<bool> ReorderSubtasksAsync(SubtaskReorderRequest req, int userId)
+        {
+            if (req.Items == null || !req.Items.Any()) return false;
+
+            var subtaskIds = req.Items.Select(x => x.Id).ToList();
+            var subtasks = await _context.Subtasks
+                .Where(s => subtaskIds.Contains(s.Id))
+                .ToListAsync();
+
+            if (!subtasks.Any()) return false;
+
+            foreach (var item in req.Items)
+            {
+                var subtask = subtasks.FirstOrDefault(s => s.Id == item.Id);
+                if (subtask != null)
+                {
+                    subtask.Position = item.Position;
+                }
+            }
+
+            await _context.SaveChangesAsync();
+            return true;
         }
 
         public async Task<Comment?> AddCommentAsync(int taskId, string content, int userId)

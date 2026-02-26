@@ -34,6 +34,16 @@ namespace Unity.Core.Models
         public bool IsActive { get; set; } = true;
 
         public string? Gender { get; set; }
+        
+        // SaaS & Billing Fields
+        public string? CompanyName { get; set; }
+        public string? TaxOffice { get; set; }
+        public string? TaxNumber { get; set; }
+        public string? BillingAddress { get; set; }
+        public string? StripeCustomerId { get; set; }
+        public string? SubscriptionPlan { get; set; }
+        public DateTime? SubscriptionEndDate { get; set; }
+
         public DateTime? LastNotificationReadAt { get; set; }
         public string? PasswordHash { get; set; } = "";
 

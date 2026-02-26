@@ -16,7 +16,7 @@ import { toast } from 'sonner';
 import UniTaskLogo from './ui/UniTaskLogo';
 
 // User Profile Component
-const UserProfile = () => {
+const UserProfile = ({ onClose }) => {
   const { user, logout } = useAuth();
   const [showMenu, setShowMenu] = useState(false);
 
@@ -49,7 +49,10 @@ const UserProfile = () => {
 
           <Link
             to="/settings"
-            onClick={() => setShowMenu(false)}
+            onClick={() => {
+              setShowMenu(false);
+              if (onClose) onClose();
+            }}
             className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors"
           >
             <Settings size={16} />
@@ -58,7 +61,10 @@ const UserProfile = () => {
           {(user.role === 'admin' || user.role === 'manager') && (
             <Link
               to="/admin"
-              onClick={() => setShowMenu(false)}
+              onClick={() => {
+                setShowMenu(false);
+                if (onClose) onClose();
+              }}
               className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors"
             >
               <Users size={16} />
@@ -203,7 +209,7 @@ const Sidebar = ({ currentBoard, onBoardChange, onNewBoard }) => {
           <div className="flex items-center mb-4">
              <UniTaskLogo 
                size="sm" 
-               variant={resolvedTheme === 'dark' ? 'full-dark' : 'full'} 
+               variant="sidebar"
                hideTagline={true} 
                withAnimation={true}
              />
@@ -491,9 +497,8 @@ const Sidebar = ({ currentBoard, onBoardChange, onNewBoard }) => {
           </div>
         </div>
 
-        {/* User Profile & Settings */}
         <div className="p-4 border-t border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50">
-          <UserProfile />
+          <UserProfile onClose={() => setIsMobileOpen(false)} />
 
         </div>
       </div>

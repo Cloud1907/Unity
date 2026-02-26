@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Haftalık Performans Özeti</title>
+    <style>
+        body { margin: 0; padding: 0; background-color: #f8fafc; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #334155; }
+        .container { max-width: 600px; margin: 40px auto; background-color: #ffffff; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06); border: 1px solid #e2e8f0; }
+        .header { background-color: #0f172a; padding: 30px; text-align: center; border-bottom: 4px solid #8b5cf6; }
+        .logo { max-height: 40px; margin-bottom: 15px; }
+        .header-title { color: #ffffff; font-size: 24px; font-weight: 600; margin: 0; letter-spacing: -0.025em; }
+        .header-subtitle { color: #94a3b8; font-size: 14px; margin-top: 5px; margin-bottom: 0; }
+        .content { padding: 30px; }
+        .greeting { font-size: 18px; font-weight: 600; color: #1e293b; margin-bottom: 20px; }
+        .stats-grid { display: table; width: 100%; margin-bottom: 30px; border-spacing: 15px 0; }
+        .stat-card { display: table-cell; width: 33.33%; background-color: #f1f5f9; border-radius: 12px; padding: 15px; text-align: center; border: 1px solid #e2e8f0; }
+        .stat-value { font-size: 28px; font-weight: 700; margin: 0; line-height: 1.2; }
+        .stat-label { font-size: 12px; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 600; margin-top: 5px; }
+        .val-success { color: #10b981; } .val-warning { color: #f59e0b; } .val-danger { color: #ef4444; }
+        .ai-insight { background-color: #f5f3ff; border-left: 4px solid #8b5cf6; padding: 20px; border-radius: 0 12px 12px 0; margin-bottom: 30px; }
+        .ai-header { display: flex; align-items: center; margin-bottom: 10px; }
+        .ai-title { font-size: 14px; font-weight: 700; color: #6d28d9; text-transform: uppercase; letter-spacing: 0.05em; margin: 0; }
+        .ai-text { font-size: 15px; line-height: 1.6; color: #4c1d95; margin: 0; }
+        .action-container { text-align: center; margin-top: 35px; margin-bottom: 10px; }
+        .button { display: inline-block; background-color: #6366f1; color: #ffffff; font-weight: 600; text-decoration: none; padding: 12px 28px; border-radius: 8px; font-size: 15px; transition: background-color 0.2s; }
+        .footer { background-color: #f8fafc; padding: 20px; text-align: center; border-top: 1px solid #e2e8f0; color: #94a3b8; font-size: 12px; }
+        .footer p { margin: 5px 0; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <table border="0" cellpadding="0" cellspacing="0" width="100%">
+              <tr>
+                <td align="center">
+                  <table border="0" cellpadding="0" cellspacing="0" style="margin: 0 auto;">
+                    <tr>
+                      <td valign="middle" style="padding-right: 16px; padding-bottom: 2px;">
+                        <img src="cid:unitasklogo" width="56" height="56" alt="UniTask" style="display: block; border: 0; outline: none; width: 56px; height: 56px;" />
+                      </td>
+                      <td valign="middle">
+                        <table border="0" cellpadding="0" cellspacing="0">
+                          <tr>
+                            <td align="left" style="font-family: 'Inter', Helvetica, Arial, sans-serif; font-size: 32px; font-weight: 900; color: #ffffff; letter-spacing: -1.5px; line-height: 1;">
+                              Uni<span style="color: #9B7BFF;">Task</span>
+                            </td>
+                          </tr>
+                          <tr>
+                            <td align="left" style="padding: 8px 0;">
+                              <div style="height: 1px; width: 100%; background-color: rgba(255,255,255,0.15);"></div>
+                            </td>
+                          </tr>
+                          <tr>
+                            <td align="left" style="font-family: 'Inter', Helvetica, Arial, sans-serif; font-size: 13px; font-weight: 600; color: #cbd5e1; letter-spacing: 0.2px;">
+                              Performans Özeti
+                            </td>
+                          </tr>
+                        </table>
+                      </td>
+                    </tr>
+                  </table>
+                </td>
+              </tr>
+            </table>
+            <!-- <h1 class="header-title">Haftalık Performans Özeti</h1> -->
+            <p class="header-subtitle" style="margin-top: 20px;">{{DateRange}}</p>
+        </div>
+
+        <div class="content">
+            <div class="greeting">Merhaba {{UserName}},</div>
+
+            <table class="stats-grid" cellpadding="0" cellspacing="0">
+                <tr>
+                    <td class="stat-card">
+                        <p class="stat-value val-success">{{CompletedTasks}}</p>
+                        <p class="stat-label">Tamamlanan</p>
+                    </td>
+                    <td class="stat-card">
+                        <p class="stat-value val-warning">{{IdleTasks}}</p>
+                        <p class="stat-label">Yaklaşan</p>
+                    </td>
+                    <td class="stat-card">
+                        <p class="stat-value val-danger">{{OverdueTasks}}</p>
+                        <p class="stat-label">Geciken</p>
+                    </td>
+                </tr>
+            </table>
+
+            <div class="ai-insight">
+                <div class="ai-header">
+                    <p class="ai-title">✨ Haftalık Değerlendirme (AI)</p>
+                </div>
+                <div class="ai-text">
+                    <!-- AI Content Here (Supports simple HTML like <strong>, <br>) -->
+                    {{AiSummaryHtml}}
+                </div>
+            </div>
+
+            <div class="action-container">
+                <a href="https://unity.univera.com.tr/dashboard" class="button">Panoya Git ve Görevleri Gör</a>
+            </div>
+        </div>
+
+        <div class="footer">
+            <p>Bu otomatik bir bilgilendirme mesajıdır. Yanıtlamayınız.</p>
+            <p>&copy; {{Year}} Univera A.Ş. Tüm hakları saklıdır.</p>
+        </div>
+    </div>
+</body>
+</html>

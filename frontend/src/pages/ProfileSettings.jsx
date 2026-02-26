@@ -16,7 +16,12 @@ const ProfileSettings = () => {
     fullName: user?.fullName || '',
     email: user?.email || '',
     avatar: user?.avatar || '',
-    color: user?.color || ''
+    color: user?.color || '',
+    // SaaS & Billing Fields
+    companyName: user?.companyName || '',
+    taxOffice: user?.taxOffice || '',
+    taxNumber: user?.taxNumber || '',
+    billingAddress: user?.billingAddress || ''
   });
 
   // Password form
@@ -117,35 +122,35 @@ const ProfileSettings = () => {
           <p className="text-gray-600 dark:text-gray-400">Profil bilgilerinizi ve ayarlarınızı yönetin</p>
         </div>
 
-        <div className="grid grid-cols-12 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
           {/* Sidebar */}
-          <div className="col-span-12 md:col-span-3">
-            <div className="bg-white dark:bg-gray-900 rounded-xl shadow-sm border border-gray-200 dark:border-gray-800 p-2">
+          <div className="md:col-span-4 lg:col-span-3">
+            <div className="bg-white dark:bg-gray-900 rounded-xl shadow-sm border border-gray-200 dark:border-gray-800 p-2 flex flex-row md:flex-col overflow-x-auto gap-2 scrollbar-hide">
               <button
                 onClick={() => setActiveTab('profile')}
-                className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${activeTab === 'profile'
+                className={`w-auto md:w-full flex items-center justify-center md:justify-start gap-2 md:gap-3 px-4 py-2.5 md:py-3 rounded-lg transition-colors whitespace-nowrap shrink-0 ${activeTab === 'profile'
                   ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 font-semibold'
                   : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800'
                   }`}
               >
-                <UserIcon size={18} />
+                <UserIcon size={18} className="shrink-0" />
                 <span>Profil</span>
               </button>
               <button
                 onClick={() => setActiveTab('password')}
-                className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${activeTab === 'password'
+                className={`w-auto md:w-full flex items-center justify-center md:justify-start gap-2 md:gap-3 px-4 py-2.5 md:py-3 rounded-lg transition-colors whitespace-nowrap shrink-0 ${activeTab === 'password'
                   ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 font-semibold'
                   : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800'
                   }`}
               >
-                <Lock size={18} />
+                <Lock size={18} className="shrink-0" />
                 <span>Şifre</span>
               </button>
             </div>
           </div>
 
           {/* Content */}
-          <div className="col-span-12 md:col-span-9">
+          <div className="md:col-span-8 lg:col-span-9">
             <div className="bg-white dark:bg-gray-900 rounded-xl shadow-sm border border-gray-200 dark:border-gray-800 p-6">
               {activeTab === 'profile' && (
                 <div>
@@ -230,6 +235,50 @@ const ProfileSettings = () => {
                       <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                         Veya yukarıdaki kamera ikonundan dosya yükleyin
                       </p>
+                    </div>
+
+                    {/* Fatura & SaaS Bilgileri */}
+                    <div className="pt-6 border-t border-gray-200 dark:border-gray-800">
+                      <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Fatura Bilgileri (Opsiyonel)</h3>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Firma Adı</label>
+                          <input
+                            type="text"
+                            value={profileForm.companyName}
+                            onChange={(e) => setProfileForm({ ...profileForm, companyName: e.target.value })}
+                            className="w-full px-4 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 dark:text-gray-100"
+                            placeholder="Örn: Acme A.Ş."
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Vergi Dairesi</label>
+                          <input
+                            type="text"
+                            value={profileForm.taxOffice}
+                            onChange={(e) => setProfileForm({ ...profileForm, taxOffice: e.target.value })}
+                            className="w-full px-4 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 dark:text-gray-100"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Vergi / TC Kimlik No</label>
+                          <input
+                            type="text"
+                            value={profileForm.taxNumber}
+                            onChange={(e) => setProfileForm({ ...profileForm, taxNumber: e.target.value })}
+                            className="w-full px-4 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 dark:text-gray-100"
+                          />
+                        </div>
+                        <div className="md:col-span-2">
+                          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Açık Fatura Adresi</label>
+                          <input
+                            type="text"
+                            value={profileForm.billingAddress}
+                            onChange={(e) => setProfileForm({ ...profileForm, billingAddress: e.target.value })}
+                            className="w-full px-4 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 dark:text-gray-100"
+                          />
+                        </div>
+                      </div>
                     </div>
 
                     <div className="flex justify-end pt-4">

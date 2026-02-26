@@ -364,12 +364,13 @@ const MainTable = ({ boardId, searchQuery, filters, groupBy, completedFilter = '
       });
 
     // 4. Load More Row
-    if (tasksHasMore) {
-      items.push({
-        type: 'LOAD_MORE',
-        id: `load-more-${boardId}`
-      });
-    }
+    // DAHA FAZLA YUKLE butonu kullanici istegiyle kaldirildi
+    // if (tasksHasMore) {
+    //   items.push({
+    //     type: 'LOAD_MORE',
+    //     id: `load-more-${boardId}`
+    //   });
+    // }
 
     return items;
   }, [groupedTasks, expandedRows, groupBy, tasksHasMore, boardId]);

@@ -30,6 +30,16 @@ namespace Unity.Core.DTOs
         public string? ColumnPreferences { get; set; }
         public string? SidebarPreferences { get; set; }
         public List<WorkspacePreferenceDto>? WorkspacePreferences { get; set; }
+        
+        // SaaS Billing Fields
+        public string? CompanyName { get; set; }
+        public string? TaxOffice { get; set; }
+        public string? TaxNumber { get; set; }
+        public string? BillingAddress { get; set; }
+        public string? StripeCustomerId { get; set; }
+        public string? SubscriptionPlan { get; set; }
+        public DateTime? SubscriptionEndDate { get; set; }
+
         public DateTime CreatedAt { get; set; }
     }
 
@@ -48,6 +58,12 @@ namespace Unity.Core.DTOs
         public string? Avatar { get; set; }
         public string? Color { get; set; }
         public string? Gender { get; set; }
+
+        // SaaS Billing Fields
+        public string? CompanyName { get; set; }
+        public string? TaxOffice { get; set; }
+        public string? TaxNumber { get; set; }
+        public string? BillingAddress { get; set; }
     }
 
     public class CreateUserRequest
@@ -59,6 +75,13 @@ namespace Unity.Core.DTOs
         public string Role { get; set; } = "member";
         public List<int> Departments { get; set; } = new List<int>();
         public string? JobTitle { get; set; }
+
+        // SaaS Billing Fields
+        public string? CompanyName { get; set; }
+        public string? TaxOffice { get; set; }
+        public string? TaxNumber { get; set; }
+        public string? BillingAddress { get; set; }
+        public string? SubscriptionPlan { get; set; }
     }
 
     public class UpdatePreferencesRequest

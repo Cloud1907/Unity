@@ -39,6 +39,11 @@ builder.Services.AddScoped<Unity.API.Services.IEmailService, Unity.API.Services.
 builder.Services.AddScoped<Unity.Infrastructure.Services.IAuditService, Unity.Infrastructure.Services.AuditService>();
 builder.Services.AddScoped<Unity.Infrastructure.Services.IActivityLogger, Unity.Infrastructure.Services.ActivityLogger>(); // New Enhanced Logger
 builder.Services.AddScoped<Unity.API.Services.IPdfService, Unity.API.Services.PdfService>();
+builder.Services.AddScoped<Unity.API.Services.IGenerativeAIService, Unity.API.Services.GoogleGenerativeAIService>();
+
+// Background Services
+builder.Services.AddTransient<Unity.API.BackgroundServices.WeeklySummaryJob>();
+builder.Services.AddHostedService<Unity.API.BackgroundServices.WeeklySummaryHostedService>();
 
 // Service Layer
 builder.Services.AddScoped<Unity.Core.Interfaces.ITaskService, Unity.Infrastructure.Services.TaskService>();

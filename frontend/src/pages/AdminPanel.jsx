@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Search, Edit2, Trash2, Shield, User as UserIcon, Tag, Check, X } from 'lucide-react';
+import { Plus, Search, Edit2, Trash2, Shield, User as UserIcon, Tag, Check, X, Send } from 'lucide-react';
 import { useData } from '../contexts/DataContext';
-import { usersAPI, labelsAPI } from '../services/api';
+import { usersAPI, labelsAPI, tasksAPI } from '../services/api';
 import { toast } from '../components/ui/sonner';
 import { Avatar, AvatarFallback, AvatarImage } from '../components/ui/avatar';
 import { getAvatarUrl } from '../utils/avatarHelper';
@@ -79,6 +79,16 @@ const AdminPanel = () => {
     dept.name?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  const handleTriggerSummary = async (email = null) => {
+    try {
+      toast.loading(email ? `${email} için özet tetikleniyor...` : 'Tüm kullanıcılar için özet tetikleniyor...', { id: 'summary-toast' });
+      await tasksAPI.triggerWeeklySummary(email);
+      toast.success(email ? `${email} için özet süreci başlatıldı.` : 'Tüm aktif kullanıcılar için özet süreci başlatıldı.', { id: 'summary-toast' });
+    } catch (error) {
+      console.error('Bülten tetikleme hatası:', error);
+      toast.error('Özet e-postası tetiklenemedi: ' + (error.response?.data?.message || 'Bilinmeyen hata'), { id: 'summary-toast' });
+    }
+  };
 
   const handleDelete = async (userId) => {
     try {
@@ -200,6 +210,15 @@ const AdminPanel = () => {
               )}
 
               <button
+                onClick={() => handleTriggerSummary(null)}
+                className="flex items-center gap-2 px-3 py-1.5 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors text-xs font-bold whitespace-nowrap"
+                title="Tüm aktif kullanıcılar için özet maillerini tetikler"
+              >
+                <Send size={14} />
+                Özeti Tetikle (Tümü)
+              </button>
+
+              <button
                 onClick={() => {
                   if (activeTab === 'users') setIsAddModalOpen(true);
                   else if (activeTab === 'departments') setIsDeptModalOpen(true);
@@ -222,6 +241,7 @@ const AdminPanel = () => {
                 <thead className="bg-gray-50 dark:bg-gray-900/50 border-b border-gray-200 dark:border-gray-700">
                   <tr>
                     <th className="text-left px-4 py-3 text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Kullanıcı</th>
+                    <th className="text-left px-4 py-3 text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Firma</th>
                     <th className="text-left px-4 py-3 text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Email</th>
                     <th className="text-left px-4 py-3 text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Rol</th>
                     <th className="text-left px-4 py-3 text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Çalışma Alanları</th>
@@ -250,11 +270,19 @@ const AdminPanel = () => {
                           </div>
                         </div>
                       </td>
+                      <td className="px-4 py-2.5 text-xs font-semibold text-gray-800 dark:text-gray-200">{user.companyName || '-'}</td>
                       <td className="px-4 py-2.5 text-xs text-gray-700 dark:text-gray-300">{user.email}</td>
                       <td className="px-4 py-2.5">{getRoleBadge(user.role)}</td>
                       <td className="px-4 py-2.5 text-[11px] text-gray-600 dark:text-gray-400 font-medium leading-relaxed max-w-sm">{user.departmentNames?.join(', ') || '-'}</td>
                       <td className="px-4 py-2.5">
                         <div className="flex items-center justify-end gap-2">
+                          <button
+                            onClick={() => handleTriggerSummary(user.email)}
+                            className="p-2 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 rounded-lg transition-colors"
+                            title="Haftalık Özeti Tetikle"
+                          >
+                            <Send size={16} />
+                          </button>
                           <button
                             onClick={() => {
                               setSelectedUser(user);

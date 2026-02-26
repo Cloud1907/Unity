@@ -114,6 +114,12 @@ namespace Unity.Infrastructure.Services
             
             if (!string.IsNullOrEmpty(request.Color)) user.Color = request.Color;
             if (!string.IsNullOrEmpty(request.Gender)) user.Gender = request.Gender;
+            
+            // SaaS Billing Fields Update
+            user.CompanyName = request.CompanyName; // Nullable
+            user.TaxOffice = request.TaxOffice;
+            user.TaxNumber = request.TaxNumber;
+            user.BillingAddress = request.BillingAddress;
              
             user.UpdatedAt = TimeHelper.Now;
             await _context.SaveChangesAsync();
@@ -279,6 +285,16 @@ namespace Unity.Infrastructure.Services
                 ColumnPreferences = preferences?.Preferences,
                 SidebarPreferences = preferences?.SidebarPreferences,
                 WorkspacePreferences = workspacePreferences,
+                
+                // SaaS Billing Fields
+                CompanyName = user.CompanyName,
+                TaxOffice = user.TaxOffice,
+                TaxNumber = user.TaxNumber,
+                BillingAddress = user.BillingAddress,
+                StripeCustomerId = user.StripeCustomerId,
+                SubscriptionPlan = user.SubscriptionPlan,
+                SubscriptionEndDate = user.SubscriptionEndDate,
+
                 CreatedAt = user.CreatedAt
             };
         }

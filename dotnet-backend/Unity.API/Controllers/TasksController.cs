@@ -255,6 +255,17 @@ namespace Unity.API.Controllers
              return NoContent();
         }
 
+        [HttpPut("reorder-subtasks")]
+        public async Task<IActionResult> ReorderSubtasks([FromBody] SubtaskReorderRequest req)
+        {
+             var currentUser = await GetCurrentUserWithDeptsAsync();
+             var success = await _taskService.ReorderSubtasksAsync(req, currentUser.Id);
+             
+             if (!success) return BadRequest(new { message = "Sıralama güncellenemedi veya yetkiniz yok." });
+
+             return Ok(new { message = "Sıralama başarıyla güncellendi." });
+        }
+
         // --- COMMENTS ---
 
         [HttpGet("{taskId}/comments")]
@@ -389,6 +400,24 @@ namespace Unity.API.Controllers
             {
                 // Log failure but don't crash the request
                 Console.WriteLine($"[EmailError] Failed to send assignment emails: {ex.Message}");
+            }
+        }
+
+        [HttpPost("trigger-weekly-summary")]
+        public async Task<IActionResult> TriggerWeeklySummary([FromBody] TriggerWeeklySummaryDto? req, [FromServices] Unity.API.BackgroundServices.WeeklySummaryJob job)
+        {
+            try
+            {
+                var targetEmail = req?.TargetEmail;
+                // Run in background so it doesn't block the UI request
+                _ = Task.Run(() => job.ProcessWeeklySummariesAsync(targetEmail, default));
+
+                var msgTarget = string.IsNullOrEmpty(targetEmail) ? "all active users" : targetEmail;
+                return Ok(new { message = $"Weekly summary generation process started in the background for {msgTarget}." });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Failed to trigger job", error = ex.Message });
             }
         }
     }

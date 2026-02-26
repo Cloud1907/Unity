@@ -1,0 +1,25 @@
+{
+  "timeZone": "Europe/Istanbul",
+  "dependencies": {
+  },
+  "exceptionLogging": "STACKDRIVER",
+  "oauthScopes": [
+    "https://www.googleapis.com/auth/gmail.addons.execute",
+    "https://www.googleapis.com/auth/gmail.addons.current.message.readonly",
+    "https://www.googleapis.com/auth/gmail.addons.current.action.compose",
+    "https://www.googleapis.com/auth/script.external_request",
+    "https://www.googleapis.com/auth/userinfo.email"
+  ],
+  "runtimeVersion": "V8",
+  "gmail": {
+    "name": "Unity Task Manager",
+    "logoUrl": "https://unity.univera.com.tr/logo.png",
+    "contextualTriggers": [{
+      "unconditional": {
+      },
+      "onTriggerFunction": "onGmailMessageOpen"
+    }],
+    "primaryColor": "#7c3aed",
+    "secondaryColor": "#5b21b6"
+  }
+}

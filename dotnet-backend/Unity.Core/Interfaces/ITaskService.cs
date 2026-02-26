@@ -22,6 +22,7 @@ namespace Unity.Core.Interfaces
         Task<List<Subtask>> GetSubtasksAsync(int taskId);
         Task<Subtask?> AddSubtaskAsync(int taskId, SubtaskCreateDto dto, int userId);
         Task<Subtask?> UpdateSubtaskAsync(int subtaskId, SubtaskUpdateDto dto, int userId);
+        Task<bool> ReorderSubtasksAsync(SubtaskReorderRequest req, int userId);
         Task<bool> DeleteSubtaskAsync(int subtaskId, int userId);
 
         // Comments

@@ -11,5 +11,14 @@ namespace Unity.Core.DTOs
         public string? Avatar { get; set; }
         public string? Color { get; set; }
         public string? JobTitle { get; set; }
+
+        // SaaS & Billing Fields
+        public string? CompanyName { get; set; }
+        public string? TaxOffice { get; set; }
+        public string? TaxNumber { get; set; }
+        public string? BillingAddress { get; set; }
+        public string? StripeCustomerId { get; set; }
+        public string? SubscriptionPlan { get; set; }
+        public DateTime? SubscriptionEndDate { get; set; }
     }
 }

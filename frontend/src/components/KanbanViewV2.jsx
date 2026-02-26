@@ -20,13 +20,12 @@ import EmptyState from './ui/EmptyState';
 import { getAvatarUrl, getUserColor, getInitials } from '../utils/avatarHelper';
 import { filterProjectUsers } from '../utils/userHelper';
 import { toSkyISOString } from '../utils/dateUtils';
+import { subDays, subMonths, isAfter, parseISO } from 'date-fns';
 import { STATUS_COLORS } from './Kanban/constants';
 import { celebrateTask } from './Kanban/helpers';
 import CompactTaskCard from './Kanban/CompactTaskCard';
 
-
-
-const KanbanViewV2 = ({ boardId, searchQuery, filters }) => {
+const KanbanViewV2 = ({ boardId, searchQuery, filters, completedFilter = '7days' }) => {
   const { tasks, users: allUsers, projects, loading, labels } = useDataState();
   const { fetchTasks, fetchLabels, updateTaskStatus, updateTask, deleteTask, createTask } = useDataActions();
   const { user: currentUser } = useAuth();
@@ -109,19 +108,27 @@ const KanbanViewV2 = ({ boardId, searchQuery, filters }) => {
   const filteredTasks = React.useMemo(() => {
     let filtered = tasks.filter(task => task.projectId === Number(boardId));
 
-    // Filter out 'done' tasks older than 7 days (User Request) - DISABLED
-    /*
-    const sevenDaysAgo = new Date();
-    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+    // New: Completed Task Date Filter
+    if (completedFilter !== 'all') {
+        filtered = filtered.filter(t => {
+            if (t.status !== 'done') return true; // Keep active tasks
 
-    filtered = filtered.filter(t => {
-      if (t.status === 'done') {
-        const updateDate = t.updatedAt ? new Date(t.updatedAt) : new Date(t.createdAt || Date.now());
-        return updateDate > sevenDaysAgo;
-      }
-      return true;
-    });
-    */
+            const completedDate = t.completedAt || t.updatedAt;
+            if (!completedDate) return false; 
+
+            const now = new Date();
+            let thresholdDate;
+
+            switch (completedFilter) {
+                case '7days': thresholdDate = subDays(now, 7); break;
+                case '1month': thresholdDate = subMonths(now, 1); break;
+                case '3months': thresholdDate = subMonths(now, 3); break;
+                default: return true;
+            }
+
+            return isAfter(parseISO(completedDate), thresholdDate);
+        });
+    }
 
     // Apply Search
     if (searchQuery) {
@@ -153,7 +160,7 @@ const KanbanViewV2 = ({ boardId, searchQuery, filters }) => {
     }
 
     return filtered;
-  }, [tasks, boardId, searchQuery, filters, projectUsers]);
+  }, [tasks, boardId, searchQuery, filters, projectUsers, completedFilter]);
 
 
   const tasksByStatus = React.useMemo(() => {

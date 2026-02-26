@@ -2,6 +2,19 @@
 
 Tüm geliştirmeler tarih ve saat ile yeniden eskiye sıralanır.
 
+## [1.5.0] - 2026-02-25
+
+### Değiştirildi
+- **Gantt PDF İndirme Altyapısı Yenilendi**:
+  - Eski, yavaş ve hatalara açık `html2canvas` ve programatik `jsPDF` yaklaşımı tamamen terk edildi.
+  - Jira, Notion ve Trello gibi uygulamaların kullandığı **endüstri standardı Tarayıcı Yazdırma (`window.print()`)** ve `@media print` CSS mimarisine geçildi.
+  - Tarayıcının kendi render motoru sayesinde PDF kalitesi piksel-mükemmel (vector) hale geldi ve oluşturma hızı saniyenin altına düştü.
+  - Çıktı boyutu `@page` CSS kuralı ile otomatik olarak **A3 Yatay (Landscape)** formata ayarlandı.
+  - SPA'nın `h-full` ve `overflow-hidden` gibi katı (strict) UI kısıtlamaları print modunda kırılarak, yüzlerce görev barındıran tabloların kırpılmadan (clipping) çoklu sayfalara taşabilmesi (pagination) sağlandı.
+  - Gereksiz UI (butonlar, scrollbarlar) gizlendi ve satırların yanlış hizalanması sorunu kalıcı olarak çözüldü.
+
+---
+
 ## [1.4.9] - 2026-02-08
 
 ### Düzeltildi

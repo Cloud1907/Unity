@@ -65,6 +65,15 @@ namespace Unity.API.Controllers
                     Avatar = u.Avatar,
                     Color = u.Color,
                     JobTitle = u.JobTitle,
+                    
+                    CompanyName = u.CompanyName,
+                    TaxOffice = u.TaxOffice,
+                    TaxNumber = u.TaxNumber,
+                    BillingAddress = u.BillingAddress,
+                    StripeCustomerId = u.StripeCustomerId,
+                    SubscriptionPlan = u.SubscriptionPlan,
+                    SubscriptionEndDate = u.SubscriptionEndDate,
+
                     // RESTORED: Needed for frontend filterProjectUsers logic
                     Departments = u.Departments.Select(d => d.DepartmentId).ToList(), 
                     Gender = u.Gender,
@@ -122,6 +131,15 @@ namespace Unity.API.Controllers
                 Avatar = u.Avatar,
                 Color = u.Color,
                 JobTitle = u.JobTitle,
+
+                CompanyName = u.CompanyName,
+                TaxOffice = u.TaxOffice,
+                TaxNumber = u.TaxNumber,
+                BillingAddress = u.BillingAddress,
+                StripeCustomerId = u.StripeCustomerId,
+                SubscriptionPlan = u.SubscriptionPlan,
+                SubscriptionEndDate = u.SubscriptionEndDate,
+
                 DepartmentNames = u.Departments?
                     .Where(ud => ud.Department != null && !ud.Department.IsDeleted)
                     .Select(ud => ud.Department!.Name)
@@ -162,6 +180,11 @@ namespace Unity.API.Controllers
                 Role = request.Role,
                 Departments = request.Departments?.Select(id => new UserDepartment { DepartmentId = id }).ToList() ?? new List<UserDepartment>(),
                 JobTitle = request.JobTitle,
+                CompanyName = request.CompanyName,
+                TaxOffice = request.TaxOffice,
+                TaxNumber = request.TaxNumber,
+                BillingAddress = request.BillingAddress,
+                SubscriptionPlan = request.SubscriptionPlan,
                 PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password),
                 CreatedAt = TimeHelper.Now,
                 UpdatedAt = TimeHelper.Now,
@@ -180,6 +203,11 @@ namespace Unity.API.Controllers
                 Role = user.Role,
                 Departments = user.Departments.Select(d => d.DepartmentId).ToList(),
                 JobTitle = user.JobTitle,
+                CompanyName = user.CompanyName,
+                TaxOffice = user.TaxOffice,
+                TaxNumber = user.TaxNumber,
+                BillingAddress = user.BillingAddress,
+                SubscriptionPlan = user.SubscriptionPlan,
                 Avatar = user.Avatar,
                 Color = user.Color,
                 Gender = user.Gender
@@ -214,6 +242,14 @@ namespace Unity.API.Controllers
             
             existingUser.Color = user.Color ?? existingUser.Color;
             existingUser.JobTitle = user.JobTitle ?? existingUser.JobTitle;
+
+            existingUser.CompanyName = user.CompanyName ?? existingUser.CompanyName;
+            existingUser.TaxOffice = user.TaxOffice ?? existingUser.TaxOffice;
+            existingUser.TaxNumber = user.TaxNumber ?? existingUser.TaxNumber;
+            existingUser.BillingAddress = user.BillingAddress ?? existingUser.BillingAddress;
+            existingUser.StripeCustomerId = user.StripeCustomerId ?? existingUser.StripeCustomerId;
+            existingUser.SubscriptionPlan = user.SubscriptionPlan ?? existingUser.SubscriptionPlan;
+            existingUser.SubscriptionEndDate = user.SubscriptionEndDate ?? existingUser.SubscriptionEndDate;
             
             existingUser.UpdatedAt = TimeHelper.Now;
 

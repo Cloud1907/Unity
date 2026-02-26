@@ -1,20 +1,20 @@
 {
   "version": 2,
-  "dgSpecHash": "mJTW/wwYHWo=",
+  "dgSpecHash": "Rva28EHIpKk=",
   "success": true,
   "projectFilePath": "/Users/cloudsmac/Documents/AntiGravity/UnityApp/dotnet-backend/Unity.Infrastructure/Unity.Infrastructure.csproj",
   "expectedPackageFiles": [
-    "/Users/cloudsmac/.nuget/packages/azure.core/1.25.0/azure.core.1.25.0.nupkg.sha512",
-    "/Users/cloudsmac/.nuget/packages/azure.identity/1.7.0/azure.identity.1.7.0.nupkg.sha512",
+    "/Users/cloudsmac/.nuget/packages/azure.core/1.35.0/azure.core.1.35.0.nupkg.sha512",
+    "/Users/cloudsmac/.nuget/packages/azure.identity/1.10.3/azure.identity.1.10.3.nupkg.sha512",
     "/Users/cloudsmac/.nuget/packages/bcrypt.net-next/4.0.3/bcrypt.net-next.4.0.3.nupkg.sha512",
     "/Users/cloudsmac/.nuget/packages/microsoft.bcl.asyncinterfaces/1.1.1/microsoft.bcl.asyncinterfaces.1.1.1.nupkg.sha512",
-    "/Users/cloudsmac/.nuget/packages/microsoft.data.sqlclient/5.1.1/microsoft.data.sqlclient.5.1.1.nupkg.sha512",
-    "/Users/cloudsmac/.nuget/packages/microsoft.data.sqlclient.sni.runtime/5.1.0/microsoft.data.sqlclient.sni.runtime.5.1.0.nupkg.sha512",
-    "/Users/cloudsmac/.nuget/packages/microsoft.entityframeworkcore/8.0.0/microsoft.entityframeworkcore.8.0.0.nupkg.sha512",
-    "/Users/cloudsmac/.nuget/packages/microsoft.entityframeworkcore.abstractions/8.0.0/microsoft.entityframeworkcore.abstractions.8.0.0.nupkg.sha512",
-    "/Users/cloudsmac/.nuget/packages/microsoft.entityframeworkcore.analyzers/8.0.0/microsoft.entityframeworkcore.analyzers.8.0.0.nupkg.sha512",
-    "/Users/cloudsmac/.nuget/packages/microsoft.entityframeworkcore.relational/8.0.0/microsoft.entityframeworkcore.relational.8.0.0.nupkg.sha512",
-    "/Users/cloudsmac/.nuget/packages/microsoft.entityframeworkcore.sqlserver/8.0.0/microsoft.entityframeworkcore.sqlserver.8.0.0.nupkg.sha512",
+    "/Users/cloudsmac/.nuget/packages/microsoft.data.sqlclient/5.1.4/microsoft.data.sqlclient.5.1.4.nupkg.sha512",
+    "/Users/cloudsmac/.nuget/packages/microsoft.data.sqlclient.sni.runtime/5.1.1/microsoft.data.sqlclient.sni.runtime.5.1.1.nupkg.sha512",
+    "/Users/cloudsmac/.nuget/packages/microsoft.entityframeworkcore/8.0.2/microsoft.entityframeworkcore.8.0.2.nupkg.sha512",
+    "/Users/cloudsmac/.nuget/packages/microsoft.entityframeworkcore.abstractions/8.0.2/microsoft.entityframeworkcore.abstractions.8.0.2.nupkg.sha512",
+    "/Users/cloudsmac/.nuget/packages/microsoft.entityframeworkcore.analyzers/8.0.2/microsoft.entityframeworkcore.analyzers.8.0.2.nupkg.sha512",
+    "/Users/cloudsmac/.nuget/packages/microsoft.entityframeworkcore.relational/8.0.2/microsoft.entityframeworkcore.relational.8.0.2.nupkg.sha512",
+    "/Users/cloudsmac/.nuget/packages/microsoft.entityframeworkcore.sqlserver/8.0.2/microsoft.entityframeworkcore.sqlserver.8.0.2.nupkg.sha512",
     "/Users/cloudsmac/.nuget/packages/microsoft.extensions.caching.abstractions/8.0.0/microsoft.extensions.caching.abstractions.8.0.0.nupkg.sha512",
     "/Users/cloudsmac/.nuget/packages/microsoft.extensions.caching.memory/8.0.0/microsoft.extensions.caching.memory.8.0.0.nupkg.sha512",
     "/Users/cloudsmac/.nuget/packages/microsoft.extensions.configuration.abstractions/8.0.0/microsoft.extensions.configuration.abstractions.8.0.0.nupkg.sha512",
@@ -24,8 +24,8 @@
     "/Users/cloudsmac/.nuget/packages/microsoft.extensions.logging.abstractions/8.0.0/microsoft.extensions.logging.abstractions.8.0.0.nupkg.sha512",
     "/Users/cloudsmac/.nuget/packages/microsoft.extensions.options/8.0.0/microsoft.extensions.options.8.0.0.nupkg.sha512",
     "/Users/cloudsmac/.nuget/packages/microsoft.extensions.primitives/8.0.0/microsoft.extensions.primitives.8.0.0.nupkg.sha512",
-    "/Users/cloudsmac/.nuget/packages/microsoft.identity.client/4.47.2/microsoft.identity.client.4.47.2.nupkg.sha512",
-    "/Users/cloudsmac/.nuget/packages/microsoft.identity.client.extensions.msal/2.19.3/microsoft.identity.client.extensions.msal.2.19.3.nupkg.sha512",
+    "/Users/cloudsmac/.nuget/packages/microsoft.identity.client/4.56.0/microsoft.identity.client.4.56.0.nupkg.sha512",
+    "/Users/cloudsmac/.nuget/packages/microsoft.identity.client.extensions.msal/4.56.0/microsoft.identity.client.extensions.msal.4.56.0.nupkg.sha512",
     "/Users/cloudsmac/.nuget/packages/microsoft.identitymodel.abstractions/6.24.0/microsoft.identitymodel.abstractions.6.24.0.nupkg.sha512",
     "/Users/cloudsmac/.nuget/packages/microsoft.identitymodel.jsonwebtokens/6.24.0/microsoft.identitymodel.jsonwebtokens.6.24.0.nupkg.sha512",
     "/Users/cloudsmac/.nuget/packages/microsoft.identitymodel.logging/6.24.0/microsoft.identitymodel.logging.6.24.0.nupkg.sha512",
@@ -37,65 +37,36 @@
     "/Users/cloudsmac/.nuget/packages/system.configuration.configurationmanager/6.0.1/system.configuration.configurationmanager.6.0.1.nupkg.sha512",
     "/Users/cloudsmac/.nuget/packages/system.drawing.common/6.0.0/system.drawing.common.6.0.0.nupkg.sha512",
     "/Users/cloudsmac/.nuget/packages/system.identitymodel.tokens.jwt/6.24.0/system.identitymodel.tokens.jwt.6.24.0.nupkg.sha512",
+    "/Users/cloudsmac/.nuget/packages/system.io.filesystem.accesscontrol/5.0.0/system.io.filesystem.accesscontrol.5.0.0.nupkg.sha512",
     "/Users/cloudsmac/.nuget/packages/system.memory.data/1.0.2/system.memory.data.1.0.2.nupkg.sha512",
     "/Users/cloudsmac/.nuget/packages/system.runtime.caching/6.0.0/system.runtime.caching.6.0.0.nupkg.sha512",
     "/Users/cloudsmac/.nuget/packages/system.security.cryptography.protecteddata/6.0.0/system.security.cryptography.protecteddata.6.0.0.nupkg.sha512",
     "/Users/cloudsmac/.nuget/packages/system.security.permissions/6.0.0/system.security.permissions.6.0.0.nupkg.sha512",
-    "/Users/cloudsmac/.nuget/packages/system.windows.extensions/6.0.0/system.windows.extensions.6.0.0.nupkg.sha512",
-    "/Users/cloudsmac/.nuget/packages/microsoft.netcore.app.runtime.win-x64/10.0.1/microsoft.netcore.app.runtime.win-x64.10.0.1.nupkg.sha512",
-    "/Users/cloudsmac/.nuget/packages/microsoft.aspnetcore.app.runtime.win-x64/10.0.1/microsoft.aspnetcore.app.runtime.win-x64.10.0.1.nupkg.sha512"
+    "/Users/cloudsmac/.nuget/packages/system.windows.extensions/6.0.0/system.windows.extensions.6.0.0.nupkg.sha512"
   ],
   "logs": [
     {
-      "code": "NU1903",
+      "code": "NU1902",
       "level": "Warning",
-      "message": "'Azure.Identity' 1.7.0 paketinde önem derecesi yüksek olan bilinen bir https://github.com/advisories/GHSA-5mfx-4wcx-rv27 güvenlik açığı var",
+      "message": "'Azure.Identity' 1.10.3 paketinde önem derecesi orta olan bilinen bir https://github.com/advisories/GHSA-m5vv-6r4h-3vj9 güvenlik açığı var",
       "projectPath": "/Users/cloudsmac/Documents/AntiGravity/UnityApp/dotnet-backend/Unity.Infrastructure/Unity.Infrastructure.csproj",
       "warningLevel": 1,
       "filePath": "/Users/cloudsmac/Documents/AntiGravity/UnityApp/dotnet-backend/Unity.Infrastructure/Unity.Infrastructure.csproj",
       "libraryId": "Azure.Identity",
       "targetGraphs": [
-        "net10.0",
-        "net10.0/win-x64"
+        "net10.0"
       ]
     },
     {
       "code": "NU1902",
       "level": "Warning",
-      "message": "'Azure.Identity' 1.7.0 paketinde önem derecesi orta olan bilinen bir https://github.com/advisories/GHSA-m5vv-6r4h-3vj9 güvenlik açığı var",
+      "message": "'Azure.Identity' 1.10.3 paketinde önem derecesi orta olan bilinen bir https://github.com/advisories/GHSA-wvxc-855f-jvrv güvenlik açığı var",
       "projectPath": "/Users/cloudsmac/Documents/AntiGravity/UnityApp/dotnet-backend/Unity.Infrastructure/Unity.Infrastructure.csproj",
       "warningLevel": 1,
       "filePath": "/Users/cloudsmac/Documents/AntiGravity/UnityApp/dotnet-backend/Unity.Infrastructure/Unity.Infrastructure.csproj",
       "libraryId": "Azure.Identity",
       "targetGraphs": [
-        "net10.0",
-        "net10.0/win-x64"
-      ]
-    },
-    {
-      "code": "NU1902",
-      "level": "Warning",
-      "message": "'Azure.Identity' 1.7.0 paketinde önem derecesi orta olan bilinen bir https://github.com/advisories/GHSA-wvxc-855f-jvrv güvenlik açığı var",
-      "projectPath": "/Users/cloudsmac/Documents/AntiGravity/UnityApp/dotnet-backend/Unity.Infrastructure/Unity.Infrastructure.csproj",
-      "warningLevel": 1,
-      "filePath": "/Users/cloudsmac/Documents/AntiGravity/UnityApp/dotnet-backend/Unity.Infrastructure/Unity.Infrastructure.csproj",
-      "libraryId": "Azure.Identity",
-      "targetGraphs": [
-        "net10.0",
-        "net10.0/win-x64"
-      ]
-    },
-    {
-      "code": "NU1903",
-      "level": "Warning",
-      "message": "'Microsoft.Data.SqlClient' 5.1.1 paketinde önem derecesi yüksek olan bilinen bir https://github.com/advisories/GHSA-98g6-xh36-x2p7 güvenlik açığı var",
-      "projectPath": "/Users/cloudsmac/Documents/AntiGravity/UnityApp/dotnet-backend/Unity.Infrastructure/Unity.Infrastructure.csproj",
-      "warningLevel": 1,
-      "filePath": "/Users/cloudsmac/Documents/AntiGravity/UnityApp/dotnet-backend/Unity.Infrastructure/Unity.Infrastructure.csproj",
-      "libraryId": "Microsoft.Data.SqlClient",
-      "targetGraphs": [
-        "net10.0",
-        "net10.0/win-x64"
+        "net10.0"
       ]
     },
     {
@@ -107,8 +78,31 @@
       "filePath": "/Users/cloudsmac/Documents/AntiGravity/UnityApp/dotnet-backend/Unity.Infrastructure/Unity.Infrastructure.csproj",
       "libraryId": "Microsoft.Extensions.Caching.Memory",
       "targetGraphs": [
-        "net10.0",
-        "net10.0/win-x64"
+        "net10.0"
+      ]
+    },
+    {
+      "code": "NU1902",
+      "level": "Warning",
+      "message": "'Microsoft.Identity.Client' 4.56.0 paketinde önem derecesi orta olan bilinen bir https://github.com/advisories/GHSA-m5vv-6r4h-3vj9 güvenlik açığı var",
+      "projectPath": "/Users/cloudsmac/Documents/AntiGravity/UnityApp/dotnet-backend/Unity.Infrastructure/Unity.Infrastructure.csproj",
+      "warningLevel": 1,
+      "filePath": "/Users/cloudsmac/Documents/AntiGravity/UnityApp/dotnet-backend/Unity.Infrastructure/Unity.Infrastructure.csproj",
+      "libraryId": "Microsoft.Identity.Client",
+      "targetGraphs": [
+        "net10.0"
+      ]
+    },
+    {
+      "code": "NU1901",
+      "level": "Warning",
+      "message": "'Microsoft.Identity.Client' 4.56.0 paketinde önem derecesi düşük olan bilinen bir https://github.com/advisories/GHSA-x674-v45j-fwxw güvenlik açığı var",
+      "projectPath": "/Users/cloudsmac/Documents/AntiGravity/UnityApp/dotnet-backend/Unity.Infrastructure/Unity.Infrastructure.csproj",
+      "warningLevel": 1,
+      "filePath": "/Users/cloudsmac/Documents/AntiGravity/UnityApp/dotnet-backend/Unity.Infrastructure/Unity.Infrastructure.csproj",
+      "libraryId": "Microsoft.Identity.Client",
+      "targetGraphs": [
+        "net10.0"
       ]
     },
     {
@@ -120,8 +114,7 @@
       "filePath": "/Users/cloudsmac/Documents/AntiGravity/UnityApp/dotnet-backend/Unity.Infrastructure/Unity.Infrastructure.csproj",
       "libraryId": "Microsoft.IdentityModel.JsonWebTokens",
       "targetGraphs": [
-        "net10.0",
-        "net10.0/win-x64"
+        "net10.0"
       ]
     },
     {
@@ -133,8 +126,7 @@
       "filePath": "/Users/cloudsmac/Documents/AntiGravity/UnityApp/dotnet-backend/Unity.Infrastructure/Unity.Infrastructure.csproj",
       "libraryId": "System.IdentityModel.Tokens.Jwt",
       "targetGraphs": [
-        "net10.0",
-        "net10.0/win-x64"
+        "net10.0"
       ]
     }
   ]

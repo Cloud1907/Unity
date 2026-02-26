@@ -31,7 +31,7 @@ const STATUS_CONFIG = {
 };
 
 // Status color mapping based on the high-fidelity design requirements
-const getTaskStyles = (type, isCompleted) => {
+const getTaskStyles = (type, statusKey) => {
   if (type === 'parent') {
     return {
       bar: 'bg-slate-200 dark:bg-slate-700',
@@ -40,23 +40,41 @@ const getTaskStyles = (type, isCompleted) => {
     };
   }
 
-  // Logic delegated to Shared StatusComponent for labels/text
-  // But for timeline BARS we keep local styles for now or map them later
-  if (isCompleted) {
-    return {
-      bar: 'bg-green-100 dark:bg-green-900/30',
-      border: 'border-green-500',
-      text: 'text-green-700 dark:text-green-400',
+  // Maps status to specific tailwind colors for timeline bars (subtasks mostly)
+  const styles = {
+    todo: {
+      bar: 'bg-slate-100 dark:bg-slate-800',
+      border: 'border-slate-300 dark:border-slate-600',
+      text: 'text-slate-600 dark:text-slate-400',
+      label: 'Yapılacak'
+    },
+    working: {
+      bar: 'bg-blue-100 dark:bg-blue-900/40',
+      border: 'border-blue-400 dark:border-blue-500',
+      text: 'text-blue-700 dark:text-blue-300',
+      label: 'Devam Ediyor'
+    },
+    review: {
+      bar: 'bg-indigo-100 dark:bg-indigo-900/40',
+      border: 'border-indigo-400 dark:border-indigo-500',
+      text: 'text-indigo-700 dark:text-indigo-300',
+      label: 'İnceleme'
+    },
+    done: {
+      bar: 'bg-emerald-100 dark:bg-emerald-900/40',
+      border: 'border-emerald-400 dark:border-emerald-500',
+      text: 'text-emerald-700 dark:text-emerald-300',
       label: 'Tamamlandı'
-    };
-  }
-
-  return {
-    bar: 'bg-blue-100 dark:bg-blue-900/30',
-    border: 'border-blue-500',
-    text: 'text-blue-700 dark:text-blue-400',
-    label: 'Devam Ediyor'
+    },
+    stuck: {
+      bar: 'bg-red-100 dark:bg-red-900/40',
+      border: 'border-red-400 dark:border-red-500',
+      text: 'text-red-700 dark:text-red-300',
+      label: 'Takıldı'
+    }
   };
+
+  return styles[statusKey] || styles.todo;
 };
 
 const GANTT_ROW_HEIGHT = 42;
@@ -220,7 +238,9 @@ const GanttView = ({ boardId, filters, searchQuery, groupBy: headerGroupBy }) =>
   };
 
   const getTaskDuration = (startStr, endStr) => {
-    if (!startStr || !endStr) return 1;
+    if (!startStr) return 7; // Fallback duration if no dates
+    if (!endStr) return 7;   // Fallback duration if only start date exists
+    
     const start = new Date(startStr);
     const end = new Date(endStr);
     const diff = Math.floor((end - start) / (1000 * 60 * 60 * 24));
@@ -257,117 +277,28 @@ const GanttView = ({ boardId, filters, searchQuery, groupBy: headerGroupBy }) =>
     setIsModalOpen(true);
   };
 
-  const handleExportPDF = async () => {
-    setIsExporting(true);
-    toast.loading('PDF hazırlanıyor...');
+  const visibleW = timeline.length * DAY_WIDTH + 320;
+  // A3 Landscape = 420mm width. Minus 20mm margin = 400mm.
+  // 400mm at 96dpi = ~1511px. 
+  // Calculate zoom so our grid seamlessly spans to exactly the edge of the printed page.
+  const printZoom = Math.min(1, 1511 / visibleW);
 
-    try {
-      const originalElement = ganttRef.current;
-      if (!originalElement) throw new Error('Gantt container not found');
+  const handleExportPDF = () => {
+    const pName = projects.find(p => p.id === Number(boardId))?.name || 'Proje';
+    // Set document title so the default save filename = project name
+    const prevTitle = document.title;
+    document.title = `${pName} – Proje Planı`;
 
-      // 1. Calculate Total Dimensions
-      // We need the full scroll width of the timeline + sidebar + any padding
-      const scrollContainer = originalElement.querySelector('.overflow-auto');
-      const totalWidth = scrollContainer ? scrollContainer.scrollWidth : originalElement.scrollWidth;
-      const totalHeight = scrollContainer ? scrollContainer.scrollHeight + 150 : originalElement.scrollHeight + 150; // +150 for header/legend
+    // Remove dark mode so print is always white
+    const wasDark = document.documentElement.classList.contains('dark');
+    if (wasDark) document.documentElement.classList.remove('dark');
 
-      // 2. Clone the node
-      const clone = originalElement.cloneNode(true);
+    // Trigger browser print dialog (user chooses Save as PDF)
+    window.print();
 
-      // 3. Create a wrapper for capture
-      const wrapper = document.createElement('div');
-      wrapper.style.position = 'absolute';
-      wrapper.style.top = '-9999px';
-      wrapper.style.left = '-9999px';
-      wrapper.style.width = `${totalWidth}px`;
-      wrapper.style.height = `${totalHeight}px`;
-      wrapper.style.backgroundColor = '#ffffff'; // Ensure white background
-      wrapper.style.zIndex = '-1';
-      document.body.appendChild(wrapper);
-
-      // 4. Add Professional Header
-      const header = document.createElement('div');
-      header.style.padding = '20px 40px';
-      header.style.borderBottom = '1px solid #e2e8f0';
-      header.style.marginBottom = '20px';
-      header.style.display = 'flex';
-      header.style.justifyContent = 'space-between';
-      header.style.alignItems = 'center';
-      header.innerHTML = `
-        <div>
-          <h1 style="font-size: 24px; font-weight: bold; color: #1e293b; margin: 0;">${projects.find(p => p.id === Number(boardId))?.name || 'Proje'} - Zaman Çizelgesi</h1>
-          <p style="font-size: 14px; color: #64748b; margin: 5px 0 0;">Oluşturulma Tarihi: ${new Date().toLocaleDateString('tr-TR')} ${new Date().toLocaleTimeString('tr-TR')}</p>
-        </div>
-        <div style="text-align: right;">
-          <span style="font-size: 12px; color: #94a3b8; font-weight: 500;">UNITASK PROJECT MANAGEMENT</span>
-        </div>
-      `;
-      wrapper.appendChild(header);
-
-      // 5. Append Clone and Force Full Size
-      wrapper.appendChild(clone);
-
-      // Apply styles to ensure clone expands fully
-      clone.style.width = '100%';
-      clone.style.height = 'auto'; // Let content define height
-      clone.style.overflow = 'visible';
-      clone.style.maxHeight = 'none';
-
-      // Find internal scroll containers and expand them
-      const cloneScrollContainer = clone.querySelector('.overflow-auto');
-      if (cloneScrollContainer) {
-        cloneScrollContainer.style.overflow = 'visible';
-        cloneScrollContainer.style.width = '100%';
-        cloneScrollContainer.style.height = 'auto';
-        cloneScrollContainer.className = cloneScrollContainer.className.replace('overflow-auto', '');
-      }
-
-      // Hide interactive elements in clone (optional)
-      const controls = clone.querySelector('.h-14'); // Top nav bar selector
-      if (controls) controls.style.display = 'none'; // Hide top controls
-
-      // 6. Capture
-      const canvas = await html2canvas(wrapper, {
-        scale: 2, // High resolution
-        useCORS: true,
-        logging: false,
-        backgroundColor: '#ffffff',
-        width: totalWidth,
-        height: totalHeight,
-        windowWidth: totalWidth,
-        windowHeight: totalHeight
-      });
-
-      // 7. Generate PDF (Single Page)
-      const imgData = canvas.toDataURL('image/png');
-      const imgWidth = canvas.width / 2; // Adjust for scale: 2 (canvas pixels -> PDF points)
-      const imgHeight = canvas.height / 2;
-
-      const pdf = new jsPDF({
-        orientation: imgWidth > imgHeight ? 'landscape' : 'portrait',
-        unit: 'px',
-        format: [imgWidth, imgHeight], // Exact dimensions
-        hotfixes: ['px_scaling']
-      });
-
-      pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight);
-
-      const projectName = projects.find(p => p.id === Number(boardId))?.name || 'Proje';
-      const dateStr = format(new Date(), 'yyyyMMdd_HHmm');
-      pdf.save(`${projectName}_Zaman_Cizelgesi_${dateStr}.pdf`);
-
-      // 8. Cleanup
-      document.body.removeChild(wrapper);
-      toast.dismiss();
-      toast.success('PDF başarıyla indirildi.');
-
-    } catch (error) {
-      console.error('PDF export error:', error);
-      toast.dismiss();
-      toast.error('PDF oluşturulurken hata: ' + (error.message || 'Bilinmeyen hata'));
-    } finally {
-      setIsExporting(false);
-    }
+    // Restore after the dialog closes
+    document.title = prevTitle;
+    if (wasDark) document.documentElement.classList.add('dark');
   };
 
   return (
@@ -384,11 +315,112 @@ const GanttView = ({ boardId, filters, searchQuery, groupBy: headerGroupBy }) =>
         .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 10px; }
         .dark .custom-scrollbar::-webkit-scrollbar-thumb { background: #4b5563; }
+
+        /* ─── PRINT / PDF STYLES ──────────────────────────────────────── */
+        @media print {
+          /* 1. Sayfa Boyutu ve Kenar Boşlukları */
+          @page { 
+            size: A3 landscape; 
+            margin: 10mm; 
+          }
+
+          /* 2. SPA Kök Kapsayıcılarını Serbest Bırakma */
+          html, body, #root {
+            display: block !important;
+            height: auto !important;
+            min-height: auto !important;
+            max-height: none !important;
+            width: auto !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            overflow: visible !important;
+            position: static !important;
+            background: white !important;
+          }
+
+          /* 3. İstenmeyen Tüm Elemanları görünmez yapıp sadece Gantt'i görünür kılma */
+          body * {
+            visibility: hidden !important;
+          }
+          #gantt-print-root, #gantt-print-root * {
+            visibility: visible !important;
+          }
+          
+          /* Kendi içimizdeki toolbar'ı (İndir butonu vb.) tamamen gizle */
+          .gantt-toolbar-print-hide {
+            display: none !important;
+          }
+
+          /* 4. Gantt Kapsayıcısını DOM Akışından Koparıp Özgürleştirme */
+          #gantt-print-root {
+            position: absolute !important;
+            top: 0 !important;
+            left: 0 !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            display: block !important;
+            overflow: visible !important;
+            
+            /* Dinamik genişlik ve zoom ile A3'e mükemmel sığdırma */
+            width: ${visibleW}px !important;
+            zoom: ${printZoom} !important; 
+          }
+
+          /* Scroll/Inner container serbest bırakma */
+          #gantt-scroll-root, #gantt-scroll-root > div {
+            display: block !important;
+            overflow: visible !important;
+            height: auto !important;
+            max-height: none !important;
+            min-width: unset !important;
+            flex: none !important;
+          }
+
+          /* 5. Sticky/Fixed Kolonları Statik Hale Getirme */
+          #gantt-print-root [class*="sticky"], 
+          #gantt-print-root [class*="fixed"] {
+            position: static !important;
+            transform: none !important;
+            box-shadow: none !important;
+          }
+
+          /* Sidebar genişliğini koru ama wrap yap */
+          #gantt-scroll-root .w-80 {
+            white-space: normal !important;
+          }
+
+          /* Text bileşenlerinin !truncate Tailwind sınıflarını ezip isimlerin kesilmesini (kesik yerler) engelleme */
+          #gantt-print-root .truncate,
+          #gantt-print-root [class*="truncate"],
+          #gantt-print-root [class*="whitespace-nowrap"] {
+            white-space: normal !important;
+            overflow: visible !important;
+            text-overflow: clip !important;
+          }
+
+          /* 6. Dikey Sayfalama: Satırların (Row) ortadan ikiye bölünmesini engelleme */
+          .gantt-row {
+            page-break-inside: avoid !important;
+            break-inside: avoid !important;
+          }
+
+          /* Genel Ayarlar */
+          * {
+            -webkit-user-select: none !important;
+            user-select: none !important;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+          }
+
+          ::-webkit-scrollbar { display: none !important; width: 0 !important; height: 0 !important; }
+        }
+
+
       `}</style>
 
-      <div className="h-full flex flex-col bg-white dark:bg-slate-950 select-none overflow-hidden" ref={ganttRef}>
-        {/* Top Navigation / Actions */}
-        <div className="h-14 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between px-6 bg-white dark:bg-slate-900 shrink-0 z-50 relative">
+      <div id="gantt-print-root" className="h-full flex flex-col bg-white dark:bg-slate-950 select-none overflow-hidden" ref={ganttRef}>
+        {/* Top Navigation / Actions – hidden in print */}
+        <div className="gantt-toolbar-print-hide h-14 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between px-6 bg-white dark:bg-slate-900 shrink-0 z-50 relative">
           <div className="flex items-center gap-4">
             <h2 className="text-lg font-normal text-slate-800 dark:text-slate-100 flex items-center gap-2">
               <Calendar className="text-primary w-5 h-5" />
@@ -448,7 +480,7 @@ const GanttView = ({ boardId, filters, searchQuery, groupBy: headerGroupBy }) =>
         </div>
 
         {/* Unified Scroll Container (Sync Scrolling) */}
-        <div className="flex-1 overflow-auto custom-scrollbar relative">
+        <div id="gantt-scroll-root" className="flex-1 overflow-auto custom-scrollbar relative">
           <div className="min-w-max">
 
             {/* Sticky Timeline Header */}
@@ -511,7 +543,8 @@ const GanttView = ({ boardId, filters, searchQuery, groupBy: headerGroupBy }) =>
                   )}
 
                   {group.tasks.map((task) => {
-                    const startProp = task.startDate || task.createdAt;
+                    const fallbackStart = (new Date()).toISOString().split('T')[0];
+                    const startProp = task.startDate || task.createdAt || fallbackStart;
                     const startPosition = getDayPosition(startProp);
                     const duration = getTaskDuration(startProp, task.dueDate);
 
@@ -526,13 +559,11 @@ const GanttView = ({ boardId, filters, searchQuery, groupBy: headerGroupBy }) =>
                       else if (s === 'review') statusKey = 'review';
                     }
 
-                    const config = STATUS_CONFIG[statusKey] || STATUS_CONFIG.todo;
-
                     return (
                       <div
                         key={task.id}
                         className={cn(
-                          "flex flex-col relative mt-2 pt-2 border-t-[2px] first:mt-0 first:pt-0 first:border-t-0 transition-colors border-slate-200 dark:border-slate-800"
+                          "gantt-row flex flex-col relative mt-2 pt-2 border-t-[2px] first:mt-0 first:pt-0 first:border-t-0 transition-colors border-slate-200 dark:border-slate-800"
                         )}
                       >
                         {/* Subtle Light Reflection (Top Shine) */}
@@ -566,22 +597,25 @@ const GanttView = ({ boardId, filters, searchQuery, groupBy: headerGroupBy }) =>
                           </div>
 
                           {/* Timeline Bar Cell */}
-                          <div className="relative flex-1 h-full">
-                            {startPosition >= -10 && startPosition <= timeline.length + 10 && (
+                          <div className="relative flex-1 h-full overflow-hidden">
+                            {/* Render if start is within view OR if bar spans across the view */}
+                            {(startPosition < timeline.length + 10 && (startPosition + duration) > -10) && (
                               <div
                                 onClick={() => openTaskModal(task)}
                                 className={cn(
-                                  "absolute top-1/2 -translate-y-1/2 h-5 rounded-md cursor-pointer border overflow-hidden z-10 transition-all hover:shadow-md",
+                                  "absolute top-1/2 -translate-y-1/2 h-5 rounded-md cursor-pointer border z-10 transition-all hover:shadow-md",
                                   getTaskStyles('parent').bar,
                                   "border-slate-300 dark:border-slate-600"
                                 )}
                                 style={{
-                                  left: `${startPosition * DAY_WIDTH + 4}px`,
-                                  width: `${duration * DAY_WIDTH - 8}px`,
+                                  left: `${Math.max(0, startPosition) * DAY_WIDTH + 4}px`,
+                                  width: `${Math.max(1, duration - (startPosition < 0 ? Math.abs(startPosition) : 0)) * DAY_WIDTH - 8}px`,
+                                  borderTopLeftRadius: startPosition < 0 ? '0px' : undefined,
+                                  borderBottomLeftRadius: startPosition < 0 ? '0px' : undefined,
                                 }}
                               >
                                 <div
-                                  className={cn("h-full flex items-center px-3 transition-all opacity-90 relative overflow-visible", getTaskStyles('parent').progress)}
+                                  className={cn("h-full flex items-center px-3 transition-all opacity-90 relative overflow-visible rounded-sm", getTaskStyles('parent').progress)}
                                   style={{ width: `${task.progress || 0}%` }}
                                 >
                                   <span className="text-[10px] text-white font-normal truncate tracking-tight z-10 relative">
@@ -590,7 +624,7 @@ const GanttView = ({ boardId, filters, searchQuery, groupBy: headerGroupBy }) =>
                                 </div>
 
                                 {/* Floating Avatars at end of bar */}
-                                {task.assignees && task.assignees.length > 0 && (
+                                {task.assignees && task.assignees.length > 0 && (startPosition + duration) > 0 && (
                                   <div
                                     className="absolute top-1/2 -translate-y-1/2 flex -space-x-2 z-20 transition-all hover:scale-110 hover:z-30"
                                     style={{ left: `calc(100% + 8px)` }}
@@ -618,11 +652,23 @@ const GanttView = ({ boardId, filters, searchQuery, groupBy: headerGroupBy }) =>
 
                         {/* Subtasks */}
                         {expandedTasks[task.id] && task.subtasks && task.subtasks.map((subtask, innerIndex) => {
-                          const subStart = subtask.startDate || subtask.createdAt;
-                          const subEnd = subtask.dueDate || subStart;
+                          const subStart = subtask.startDate || subtask.createdAt || startProp;
+                          const subEnd = subtask.dueDate || task.dueDate || subStart; 
                           const subStartPosition = getDayPosition(subStart);
                           const subDuration = getTaskDuration(subStart, subEnd);
-                          const styles = getTaskStyles('subtask', subtask.isCompleted);
+                          
+                          // Resolve status for subtasks
+                          let subStatusKey = 'todo';
+                          if (subtask.isCompleted) subStatusKey = 'done';
+                          else if (subtask.status) {
+                            const ss = subtask.status.toLowerCase();
+                            if (ss === 'done' || ss === 'completed') subStatusKey = 'done';
+                            else if (ss === 'in progress' || ss === 'working') subStatusKey = 'working';
+                            else if (ss === 'stuck') subStatusKey = 'stuck';
+                            else if (ss === 'review') subStatusKey = 'review';
+                          }
+
+                          const styles = getTaskStyles('subtask', subStatusKey);
                           const isLastSub = innerIndex === task.subtasks.length - 1;
 
                           return (
@@ -666,8 +712,9 @@ const GanttView = ({ boardId, filters, searchQuery, groupBy: headerGroupBy }) =>
                               </div>
 
                               {/* Timeline Bar Cell */}
-                              <div className="relative flex-1 h-full">
-                                {subStartPosition >= -10 && subStartPosition <= timeline.length + 10 && (
+                              <div className="relative flex-1 h-full overflow-hidden">
+                                {/* Visibility check for subtasks */}
+                                {(subStartPosition < timeline.length + 10 && (subStartPosition + subDuration) > -10) && (
                                   <div
                                     className={cn(
                                       "absolute top-1/2 -translate-y-1/2 h-4 rounded-md z-10 border flex items-center px-3 transition-all hover:scale-[1.01]",
@@ -675,17 +722,18 @@ const GanttView = ({ boardId, filters, searchQuery, groupBy: headerGroupBy }) =>
                                       styles.border
                                     )}
                                     style={{
-                                      left: `${subStartPosition * DAY_WIDTH + 8}px`,
-                                      width: `${subDuration * DAY_WIDTH - 16}px`,
+                                      left: `${Math.max(0, subStartPosition) * DAY_WIDTH + 8}px`,
+                                      width: `${Math.max(1, subDuration - (subStartPosition < 0 ? Math.abs(subStartPosition) : 0)) * DAY_WIDTH - 16}px`,
+                                      borderTopLeftRadius: subStartPosition < 0 ? '0px' : undefined,
+                                      borderBottomLeftRadius: subStartPosition < 0 ? '0px' : undefined,
                                     }}
                                   >
-                                    {/* Using StatusBadge logic implicitly via Text but we can make it cleaner later */}
                                     <span className={cn("text-[9px] font-normal truncate tracking-tighter", styles.text)}>
-                                      {subtask.isCompleted ? 'Tamamlandı' : 'Devam Ediyor'}
+                                      {styles.label}
                                     </span>
 
                                     {/* Floating Avatars for Subtasks */}
-                                    {subtask.assignees && subtask.assignees.length > 0 && (
+                                    {subtask.assignees && subtask.assignees.length > 0 && (subStartPosition + subDuration) > 0 && (
                                       <div
                                         className="absolute top-1/2 -translate-y-1/2 flex -space-x-2 z-20 transition-all hover:scale-110 hover:z-30"
                                         style={{ left: `calc(100% + 8px)` }}
@@ -712,6 +760,7 @@ const GanttView = ({ boardId, filters, searchQuery, groupBy: headerGroupBy }) =>
                             </div>
                           );
                         })}
+
                       </div>
                     );
                   })}

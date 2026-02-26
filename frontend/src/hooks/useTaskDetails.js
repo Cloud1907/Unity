@@ -81,10 +81,17 @@ export const useTaskDetails = (initialTask, isOpen, onClose, initialSection = 's
     const handleAddSubtask = async (title, clearInput) => {
         if (!title.trim()) return;
 
+        // Calculate next position
+        const currentSubtasks = task.subtasks || [];
+        const nextPosition = currentSubtasks.length > 0
+            ? Math.max(...currentSubtasks.map(s => s.position || 0)) + 1
+            : 0;
+
         // Context's createSubtask handles optimistic update
         const result = await createSubtask(task.id, {
             title: title,
-            isCompleted: false
+            isCompleted: false,
+            position: nextPosition
         });
 
         if (result.success) {
