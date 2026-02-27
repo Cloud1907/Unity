@@ -76,7 +76,7 @@ namespace Unity.API.Services
             var sb = new StringBuilder();
             sb.AppendLine("Sen UniTask platformunun kıdemli proje asistanısın. Aşağıdaki haftalık performans verilerine dayanarak kullanıcıya samimi, kısa ve motive edici bir HTML özet yaz.");
             sb.AppendLine("KURALLARI KESINLIKLE UYGULA:");
-            sb.AppendLine("1. Kullanıcıya ISMIYLE hitap et.");
+            sb.AppendLine("1. ASLA 'Merhaba [İsim]' veya benzeri bir selamlama ile başlama, doğrudan konuya gir çünkü e-postada zaten selamlama var. Sadece değerlendirme metnini yaz.");
             sb.AppendLine("2. Görevlerden bahsederken durumuna göre PROJE ADINI, kimin oluşturduğunu (olusturan), öncelik durumunu (oncelik) ve diğer çalışanları (diger_calisanlar) kullanarak tavsiyeler ver. Örneğin 'Kritik öncelikli', 'Ahmet ile birlikte yürüttüğünüz', 'Kemal Bey tarafından atanan' gibi.");
             sb.AppendLine("3. Sadece HTML dön. <p>, <ul>, <li>, <strong> kullanabilirsin. Asla ```html blokları yazma.");
             sb.AppendLine("4. Maksimum 180 kelime. Robotik olma. Vizyoner ve profesyonel bir koç/yönetici gibi yorum yap.");
@@ -115,8 +115,7 @@ namespace Unity.API.Services
 
         private string BuildFallbackText(UserWeeklyMetricsDto metrics)
         {
-            return $"<strong>Merhaba {metrics.FullName.Split(' ')[0]},</strong><br/><br/>" +
-                   $"Bu hafta {metrics.CompletedTasksCount} görevi başarıyla tamamladın! " +
+            return $"Bu hafta {metrics.CompletedTasksCount} görevi başarıyla tamamladın! " +
                    (metrics.OverdueTasksCount > 0 ? $"Geciken {metrics.OverdueTasksCount} görevine önümüzdeki hafta öncelik vermen iyi olabilir." : "Harika ilerliyorsun, hiç geciken görevin yok.");
         }
     }
